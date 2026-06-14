@@ -34,8 +34,8 @@ import CostosFijosPage from './pages/CostosFijosPage';
 // ============================================
 // PRESUPUESTADOR
 // ============================================
-import Presupuestador from './pages/Presupuestador';
-import BusquedaPresupuestosPage from './pages/BusquedaPresupuestosPage';
+import Presupuestador from '@modules/presupuestador/pages/Presupuestador';
+import BusquedaPresupuestosPage from '@modules/presupuestador/pages/BusquedaPresupuestosPage';
 
 // ============================================
 // ANÁLISIS MARGINAL - MULTIPÁGINA

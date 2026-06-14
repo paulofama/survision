@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useTipoCambio } from "../context/TipoCambioContext";
-import supabase from "../lib/supabase";
+import { useTipoCambio } from "@/context/TipoCambioContext";
+import supabase from "@/lib/supabase";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
