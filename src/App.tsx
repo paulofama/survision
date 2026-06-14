@@ -124,7 +124,7 @@ const InformesEjecutivosPage = lazy(() =>
 // SEGUIMIENTO DE PACIENTES - LAZY LOADING
 // ============================================
 const SeguimientoPacientesPage = lazy(() =>
-  import('./pages/SeguimientoPacientesPage').catch(() => ({
+  import('@modules/seguimiento/pages/SeguimientoPacientesPage').catch(() => ({
     default: () => <ComingSoonPage title="Seguimiento de Pacientes" />
   }))
 );
