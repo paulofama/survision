@@ -16,7 +16,7 @@ import { AuthProvider } from './context/AuthContext';
 
 // Componentes de autenticación
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import LoginPage from './pages/LoginPage';
+import LoginPage from '@modules/accesos/pages/LoginPage';
 
 // Páginas principales
 import PrestacionesPage from './pages/PrestacionesPage';
@@ -61,7 +61,7 @@ import EvolucionTemporalPage from './pages/EvolucionTemporalPage';
 import AnalisisTurnosPage from '@modules/turnos/pages/AnalisisTurnosPage';
 
 // Páginas de Administración - UNIFICADA
-import GestionAccesosPage from './pages/GestionAccesosPage';
+import GestionAccesosPage from '@modules/accesos/pages/GestionAccesosPage';
 
 // Páginas Coming Soon
 import ComingSoonPage from './pages/ComingSoonPage';

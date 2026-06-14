@@ -60,12 +60,24 @@ src/
 
 ## 4. Estado del refactor
 
+- ✅ **Git instalado** (winget) + repo inicializado. Commit baseline `08f923e`; un commit por módulo migrado. `server/.env` y secrets ignorados.
 - ✅ **Limpieza (quick wins)**: borrados 3 archivos muertos (sin referencias) →
   `pages/Presupuestador - copia.tsx`, `utils/InformeGestionModal.tsx`,
   `pages/analisis/EvolucionTemporalPage.tsx`. **Bajó errores TS de 340 → 322.**
 - ✅ **Aliases** `@modules` / `@shared` configurados (tsconfig + vite).
-- ✅ **Piloto Tesorería migrado** a `src/modules/tesoreria/` (3 pages + hook + index), build verde, módulo con 0 errores TS.
-- ⬜ Resto de módulos (ver lista en §1) + crear `shared/`.
+- ✅ **Módulos migrados** (cada uno con build verde + commit):
+  - `tesoreria` (3 pages + useTesoreriaCaja) — piloto
+  - `seguimiento` (1 page + hook)
+  - `presupuestador` (2 pages)
+  - `turnos` (AnalisisTurnos ruteada; **Diagnostico/DetalleAtenciones movidas pero SIN rutear** → decidir wirear o borrar)
+- ⬜ Pendiente: módulos grandes (`insumos`, `prestaciones`, `analisis`, `analisis-marginal`, `liquidaciones`, `informes`, `accesos`) + mover `sueldos` a `modules/` + crear `shared/`.
+- 📉 Progreso: páginas sueltas en `src/pages` 30 → 20; hooks sueltos 26 → 24.
+
+> **Lección (importante para el mapeo):** algunos imports usan **comillas dobles**
+> (`from "../lib/x"`). Al mapear dependencias de un módulo, grep con `from ['"]\.\.?/`
+> (ambas comillas), no solo comillas simples. Vite build atrapa los que se escapen.
+> **Cuidado:** un archivo MUERTO (sin importadores) con import roto NO rompe `vite build`
+> (no entra al grafo) pero SÍ suma error a `tsc` — arreglar/borrar igual.
 
 ## 5. Seguridad / rollback
 

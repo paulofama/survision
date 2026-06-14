@@ -1,6 +1,6 @@
-// ============================================
-// GESTIÓN DE ACCESOS - Usuarios y Roles
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+﻿// ============================================
+// GESTIÃ“N DE ACCESOS - Usuarios y Roles
+// Sistema Integral de GestiÃ³n - Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/GestionAccesosPage.tsx
 // ============================================
@@ -35,9 +35,9 @@ import {
   Lock,
   Activity,
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
-import { ModuloSistema, PERMISOS_DEFAULT } from '../types/auth.types';
+import { ModuloSistema, PERMISOS_DEFAULT } from '@/types/auth.types';
 
 // ============================================
 // TIPOS
@@ -63,19 +63,19 @@ interface UsuarioConRol extends Usuario {
 }
 
 // ============================================
-// CONFIGURACIÓN DE MÓDULOS PARA UI
+// CONFIGURACIÃ“N DE MÃ“DULOS PARA UI
 // ============================================
 
 const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: string; icono: React.ElementType; color: string }> = {
   dashboard: { 
     nombre: 'Dashboard', 
-    descripcion: 'Panel principal con estadísticas',
+    descripcion: 'Panel principal con estadÃ­sticas',
     icono: Home,
     color: 'blue'
   },
   prestaciones: { 
     nombre: 'Prestaciones', 
-    descripcion: 'Gestión y prestaciones realizadas',
+    descripcion: 'GestiÃ³n y prestaciones realizadas',
     icono: DollarSign,
     color: 'green'
   },
@@ -86,19 +86,19 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     color: 'purple'
   },
   analisis: { 
-    nombre: 'Análisis', 
-    descripcion: 'Por OS, prestador, evolución',
+    nombre: 'AnÃ¡lisis', 
+    descripcion: 'Por OS, prestador, evoluciÃ³n',
     icono: TrendingUp,
     color: 'orange'
   },
   analisis_marginal: { 
     nombre: 'A. Marginal', 
-    descripcion: 'Rentabilidad y márgenes',
+    descripcion: 'Rentabilidad y mÃ¡rgenes',
     icono: BarChart3,
     color: 'pink'
   },
   tesoreria: {
-    nombre: 'Tesorería',
+    nombre: 'TesorerÃ­a',
     descripcion: 'Caja, bancos y movimientos',
     icono: DollarSign,
     color: 'yellow'
@@ -111,37 +111,37 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
   },
   presupuestador: {
     nombre: 'Presupuestador',
-    descripcion: 'Generación y búsqueda de presupuestos',
+    descripcion: 'GeneraciÃ³n y bÃºsqueda de presupuestos',
     icono: FileText,
     color: 'cyan'
   },
   informes: { 
     nombre: 'Informes', 
-    descripcion: 'Informes de gestión mensual',
+    descripcion: 'Informes de gestiÃ³n mensual',
     icono: FileText,
     color: 'indigo'
   },
   seguimiento_pacientes: { 
     nombre: 'Seguim. Pac.', 
-    descripcion: 'Seguimiento de pacientes clínicos',
+    descripcion: 'Seguimiento de pacientes clÃ­nicos',
     icono: Activity,
     color: 'teal'
   },
   usuarios: { 
     nombre: 'Usuarios', 
-    descripcion: 'Gestión de usuarios del sistema',
+    descripcion: 'GestiÃ³n de usuarios del sistema',
     icono: Users,
     color: 'cyan'
   },
   roles: {
     nombre: 'Roles',
-    descripcion: 'Configuración de roles',
+    descripcion: 'ConfiguraciÃ³n de roles',
     icono: Shield,
     color: 'red'
   },
   'sueldos:reportes': {
     nombre: 'Sueldos - Reportes',
-    descripcion: 'Reportes auditoría de sueldos (sólo Auditor)',
+    descripcion: 'Reportes auditorÃ­a de sueldos (sÃ³lo Auditor)',
     icono: BarChart3,
     color: 'amber'
   },
@@ -193,7 +193,7 @@ const GestionAccesosPage: React.FC = () => {
             <Lock className="h-8 w-8 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Accesos</h1>
+            <h1 className="text-2xl font-bold text-gray-900">GestiÃ³n de Accesos</h1>
             <p className="text-gray-500">Administra usuarios y permisos del sistema</p>
           </div>
         </div>
@@ -238,7 +238,7 @@ const GestionAccesosPage: React.FC = () => {
               }`}
             >
               <Shield className="h-5 w-5" />
-              Configuración de Roles
+              ConfiguraciÃ³n de Roles
             </button>
           </nav>
         </div>
@@ -372,7 +372,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
   }, [usuarios, searchTerm, filterRol, filterActivo]);
 
   // ============================================
-  // ESTADÍSTICAS
+  // ESTADÃSTICAS
   // ============================================
 
   const estadisticas = useMemo(() => ({
@@ -491,12 +491,12 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
 
       if (error) throw error;
 
-      showSuccess('Contraseña actualizada correctamente');
+      showSuccess('ContraseÃ±a actualizada correctamente');
       setShowPasswordModal(false);
       setEditingUser(null);
       setNewPassword('');
     } catch (err: any) {
-      showError(err.message || 'Error al cambiar contraseña');
+      showError(err.message || 'Error al cambiar contraseÃ±a');
     } finally {
       setSaving(false);
     }
@@ -563,7 +563,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
 
   return (
     <div className="space-y-6">
-      {/* Estadísticas */}
+      {/* EstadÃ­sticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-4">
           <div className="p-3 bg-blue-100 rounded-lg">
@@ -597,7 +597,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
       {/* Barra de acciones */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex flex-col md:flex-row gap-3 flex-1 w-full md:w-auto">
-          {/* Búsqueda */}
+          {/* BÃºsqueda */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
@@ -662,7 +662,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
                 Estado
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Último Acceso
+                Ãšltimo Acceso
               </th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Acciones
@@ -734,7 +734,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
                     <button
                       onClick={() => handleOpenPassword(user)}
                       className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
-                      title="Cambiar contraseña"
+                      title="Cambiar contraseÃ±a"
                     >
                       <Key className="h-4 w-4" />
                     </button>
@@ -773,7 +773,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Username (solo en creación) */}
+              {/* Username (solo en creaciÃ³n) */}
               {!editingUser && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -800,16 +800,16 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
                   value={formData.nombre_completo}
                   onChange={(e) => setFormData((prev) => ({ ...prev, nombre_completo: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Juan Pérez"
+                  placeholder="Juan PÃ©rez"
                   required
                 />
               </div>
 
-              {/* Password (solo en creación) */}
+              {/* Password (solo en creaciÃ³n) */}
               {!editingUser && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contraseña *
+                    ContraseÃ±a *
                   </label>
                   <div className="relative">
                     <input
@@ -817,7 +817,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
                       value={formData.password}
                       onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
-                      placeholder="••••••••"
+                      placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                       required
                     />
                     <button
@@ -851,10 +851,10 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
                 </select>
               </div>
 
-              {/* Teléfono */}
+              {/* TelÃ©fono */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono
+                  TelÃ©fono
                 </label>
                 <input
                   type="text"
@@ -902,12 +902,12 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
         </div>
       )}
 
-      {/* Modal Cambiar Contraseña */}
+      {/* Modal Cambiar ContraseÃ±a */}
       {showPasswordModal && editingUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Cambiar Contraseña
+              Cambiar ContraseÃ±a
             </h3>
             <p className="text-gray-600 mb-4">
               Usuario: <strong>{editingUser.username}</strong>
@@ -918,7 +918,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
-                placeholder="Nueva contraseña"
+                placeholder="Nueva contraseÃ±a"
               />
               <button
                 type="button"
@@ -952,7 +952,7 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
         </div>
       )}
 
-      {/* Modal Confirmar Eliminación */}
+      {/* Modal Confirmar EliminaciÃ³n */}
       {deletingUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
@@ -961,10 +961,10 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
                 <Trash2 className="h-6 w-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                ¿Eliminar usuario?
+                Â¿Eliminar usuario?
               </h3>
               <p className="text-gray-600 mb-6">
-                ¿Estás seguro de eliminar a <strong>{deletingUser.nombre_completo}</strong>?
+                Â¿EstÃ¡s seguro de eliminar a <strong>{deletingUser.nombre_completo}</strong>?
               </p>
               <div className="flex justify-center gap-3">
                 <button
@@ -1171,7 +1171,7 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
               <th className="w-48 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
                 Rol
               </th>
-              {/* Columnas de módulos - ancho fijo para alineación */}
+              {/* Columnas de mÃ³dulos - ancho fijo para alineaciÃ³n */}
               {MODULOS_ORDENADOS.map((modulo) => {
                 const config = MODULOS_CONFIG[modulo];
                 const Icon = config.icono;
@@ -1281,7 +1281,7 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
                         <button
                           onClick={() => handleEliminar(rol.id)}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                          title="Confirmar eliminación"
+                          title="Confirmar eliminaciÃ³n"
                         >
                           <Check className="h-4 w-4" />
                         </button>
@@ -1331,7 +1331,7 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
         </div>
       </div>
 
-      {/* Modal Crear/Editar Rol - Solo nombre y descripción */}
+      {/* Modal Crear/Editar Rol - Solo nombre y descripciÃ³n */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
@@ -1361,15 +1361,15 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
                 />
               </div>
 
-              {/* Descripción */}
+              {/* DescripciÃ³n */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">DescripciÃ³n</label>
                 <textarea
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={2}
-                  placeholder="Descripción del rol..."
+                  placeholder="DescripciÃ³n del rol..."
                 />
               </div>
 
@@ -1377,7 +1377,7 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
               {!editingRol && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-700">
-                    💡 Los permisos se configuran directamente en la tabla usando los checkboxes de cada módulo.
+                    ðŸ’¡ Los permisos se configuran directamente en la tabla usando los checkboxes de cada mÃ³dulo.
                   </p>
                 </div>
               )}
