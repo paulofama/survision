@@ -58,7 +58,7 @@ import {
   AnalisisPorGrupoPage
 } from './pages/analisis';
 import EvolucionTemporalPage from './pages/EvolucionTemporalPage';
-import AnalisisTurnosPage from './pages/AnalisisTurnosPage';
+import AnalisisTurnosPage from '@modules/turnos/pages/AnalisisTurnosPage';
 
 // Páginas de Administración - UNIFICADA
 import GestionAccesosPage from './pages/GestionAccesosPage';
