@@ -1,6 +1,6 @@
-// ============================================================
-// PAGE: Liquidación de Honorarios
-// Página principal con 3 tabs: Nueva, Lista, Reporte
+﻿// ============================================================
+// PAGE: LiquidaciÃ³n de Honorarios
+// PÃ¡gina principal con 3 tabs: Nueva, Lista, Reporte
 // ============================================================
 
 import { useState, useCallback } from 'react';
@@ -31,19 +31,19 @@ export default function LiqHonorariosPage() {
     reload,
   } = useLiqHonorarios();
 
-  // ─── Toast notifications ──────────────────────────────
+  // â”€â”€â”€ Toast notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
   }, []);
 
-  // ─── Handlers ─────────────────────────────────────────
+  // â”€â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleEdit = useCallback(
     (id: string) => {
       setEditingId(id);
       setActiveTab('form');
       const liq = getById(id);
-      if (liq) showToast(`Editando liquidación de ${liq.prestador_nombre}`, 'info');
+      if (liq) showToast(`Editando liquidaciÃ³n de ${liq.prestador_nombre}`, 'info');
     },
     [getById, showToast]
   );
@@ -63,7 +63,7 @@ export default function LiqHonorariosPage() {
     async (id: string) => {
       const liq = getById(id);
       const nombre = liq?.prestador_nombre || 'desconocido';
-      if (!window.confirm(`¿Está seguro que desea eliminar la liquidación de ${nombre}?\n\nEsta acción no se puede deshacer.`)) {
+      if (!window.confirm(`Â¿EstÃ¡ seguro que desea eliminar la liquidaciÃ³n de ${nombre}?\n\nEsta acciÃ³n no se puede deshacer.`)) {
         return;
       }
       const result = await eliminar(id);
@@ -94,7 +94,7 @@ export default function LiqHonorariosPage() {
 
   const handleCancelEdit = useCallback(() => {
     setEditingId(null);
-    showToast('Edición cancelada', 'info');
+    showToast('EdiciÃ³n cancelada', 'info');
   }, [showToast]);
 
   const handleNewLiq = useCallback(() => {
@@ -102,17 +102,17 @@ export default function LiqHonorariosPage() {
     setActiveTab('form');
   }, []);
 
-  // ─── Render ───────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Institucional */}
       <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white px-6 py-5">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold tracking-wide">INSTITUTO DR. MERCADO</h1>
-          <p className="text-blue-200 text-sm mt-0.5">Survisión S.A.</p>
+          <p className="text-blue-200 text-sm mt-0.5">SurvisiÃ³n S.A.</p>
           <h2 className="text-lg font-medium mt-2 flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Sistema de Liquidación de Prestadores
+            Sistema de LiquidaciÃ³n de Prestadores
           </h2>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function LiqHonorariosPage() {
                 : 'bg-blue-600 text-white'
             }`}
           >
-            <span>{toast.type === 'success' ? '✅' : toast.type === 'error' ? '❌' : 'ℹ️'}</span>
+            <span>{toast.type === 'success' ? 'âœ…' : toast.type === 'error' ? 'âŒ' : 'â„¹ï¸'}</span>
             {toast.message}
           </div>
         </div>
@@ -157,12 +157,12 @@ export default function LiqHonorariosPage() {
             {editingId ? (
               <>
                 <FileText className="w-4 h-4" />
-                ✏️ Editando Liquidación
+                âœï¸ Editando LiquidaciÃ³n
               </>
             ) : (
               <>
                 <Plus className="w-4 h-4" />
-                Nueva Liquidación
+                Nueva LiquidaciÃ³n
               </>
             )}
           </button>

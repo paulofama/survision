@@ -1,6 +1,6 @@
-// ============================================================
+﻿// ============================================================
 // COMPONENT: LiqHonorariosForm
-// Formulario de liquidación con cálculo IVA en tiempo real
+// Formulario de liquidaciÃ³n con cÃ¡lculo IVA en tiempo real
 // 5 secciones: Datos, Ingreso Caja, Fact. Caja, Fact. OS, Totales
 // ============================================================
 
@@ -9,7 +9,7 @@ import { Save, X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { useCajaCalculation, calcularOS, calcularTotales } from './useCajaCalculation';
 import type { LiqPrestador, LiqHonorarioConPrestador, CajaCalculated } from './types';
 
-// ─── FMT helper (necesario antes de los componentes) ───────
+// â”€â”€â”€ FMT helper (necesario antes de los componentes) â”€â”€â”€â”€â”€â”€â”€
 const NUM = (v: string | number): number => {
   const n = typeof v === 'string' ? parseFloat(v) : v;
   return isNaN(n) ? 0 : n;
@@ -17,8 +17,8 @@ const NUM = (v: string | number): number => {
 const FMT = (v: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }).format(v);
 
-// ─── NumInput FUERA del componente principal ───────────────
-// CRÍTICO: definirlo dentro causaba pérdida de foco en cada
+// â”€â”€â”€ NumInput FUERA del componente principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// CRÃTICO: definirlo dentro causaba pÃ©rdida de foco en cada
 // keystroke porque React re-creaba el componente en cada render.
 interface NumInputProps {
   label: string;
@@ -57,7 +57,7 @@ const NumInput: React.FC<NumInputProps> = ({
   </div>
 );
 
-// ─── CalcValue FUERA del componente principal ──────────────
+// â”€â”€â”€ CalcValue FUERA del componente principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface CalcValueProps { label: string; value: number; bold?: boolean; }
 const CalcValue: React.FC<CalcValueProps> = ({ label, value, bold }) => (
   <div>
@@ -85,7 +85,7 @@ export function LiqHonorariosForm({
   onCancelEdit,
   showToast,
 }: Props) {
-  // ─── Form State ───────────────────────────────────────
+  // â”€â”€â”€ Form State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [fecha, setFecha] = useState('');
   const [prestadorId, setPrestadorId] = useState('');
   const [ingresoPorCaja, setIngresoPorCaja] = useState('');
@@ -100,12 +100,12 @@ export function LiqHonorariosForm({
   const [osGravados21, setOsGravados21] = useState('');
   const [osGravados105, setOsGravados105] = useState('');
 
-  // Retención
+  // RetenciÃ³n
   const [retencionGastos, setRetencionGastos] = useState('');
 
   const [saving, setSaving] = useState(false);
 
-  // ─── Caja calculation hook ────────────────────────────
+  // â”€â”€â”€ Caja calculation hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const {
     cajaValues,
     suggestion,
@@ -117,7 +117,7 @@ export function LiqHonorariosForm({
     reset: resetCaja,
   } = useCajaCalculation();
 
-  // ─── Initialize form for editing ─────────────────────
+  // â”€â”€â”€ Initialize form for editing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (editingLiq) {
       setFecha(editingLiq.fecha);
@@ -135,33 +135,33 @@ export function LiqHonorariosForm({
     }
   }, [editingLiq]);
 
-  // ─── Recalculate Caja on input change ─────────────────
+  // â”€â”€â”€ Recalculate Caja on input change â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     calculateCaja(NUM(cajaExentoInput), NUM(cajaNetoInput), NUM(cajaTotalInput));
   }, [cajaExentoInput, cajaNetoInput, cajaTotalInput, calculateCaja]);
 
-  // ─── OS calculations ─────────────────────────────────
+  // â”€â”€â”€ OS calculations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const osCalc = useMemo(
     () => calcularOS(NUM(osExentos), NUM(osGravados21), NUM(osGravados105)),
     [osExentos, osGravados21, osGravados105]
   );
 
-  // ─── Totales consolidados ─────────────────────────────
+  // â”€â”€â”€ Totales consolidados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const totales = useMemo(
     () =>
       calcularTotales(NUM(ingresoPorCaja), cajaValues, osCalc, NUM(retencionGastos)),
     [ingresoPorCaja, cajaValues, osCalc, retencionGastos]
   );
 
-  // ─── Apply suggestion ─────────────────────────────────
+  // â”€â”€â”€ Apply suggestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleApplySuggestion = useCallback(() => {
     setCajaExentoInput(String(suggestion.suggestedExento));
     setCajaNetoInput(String(suggestion.suggestedNeto));
     applySuggestion();
-    showToast('Valores corregidos automáticamente', 'success');
+    showToast('Valores corregidos automÃ¡ticamente', 'success');
   }, [suggestion, applySuggestion, showToast]);
 
-  // ─── Clear form ───────────────────────────────────────
+  // â”€â”€â”€ Clear form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const clearForm = useCallback(() => {
     setFecha(new Date().toISOString().split('T')[0]);
     setPrestadorId('');
@@ -176,9 +176,9 @@ export function LiqHonorariosForm({
     resetCaja();
   }, [resetCaja]);
 
-  // ─── Guardar ──────────────────────────────────────────
+  // â”€â”€â”€ Guardar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleGuardar = useCallback(async () => {
-    // Validación
+    // ValidaciÃ³n
     if (!fecha) {
       showToast('La fecha es obligatoria', 'error');
       return;
@@ -188,7 +188,7 @@ export function LiqHonorariosForm({
       return;
     }
     if (totales.totalLiquidado === 0) {
-      showToast('La liquidación no puede tener total $0', 'error');
+      showToast('La liquidaciÃ³n no puede tener total $0', 'error');
       return;
     }
 
@@ -221,18 +221,18 @@ export function LiqHonorariosForm({
     retencionGastos, totales, editingLiq, onSave, onSaved, clearForm, showToast,
   ]);
 
-  // ─── Render ───────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const isEditing = !!editingLiq;
 
   return (
     <div className="space-y-4">
-      {/* Banner de edición */}
+      {/* Banner de ediciÃ³n */}
       {isEditing && (
         <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r-lg flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-600" />
             <span className="text-sm font-medium text-amber-800">
-              Editando liquidación de {editingLiq.prestador_nombre} — {new Date(editingLiq.fecha).toLocaleDateString('es-AR')}
+              Editando liquidaciÃ³n de {editingLiq.prestador_nombre} â€” {new Date(editingLiq.fecha).toLocaleDateString('es-AR')}
             </span>
           </div>
           <button
@@ -244,7 +244,7 @@ export function LiqHonorariosForm({
         </div>
       )}
 
-      {/* ── Sección 1: Datos Generales ── */}
+      {/* â”€â”€ SecciÃ³n 1: Datos Generales â”€â”€ */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-blue-50 to-white px-5 py-3 border-b border-gray-100">
           <h3 className="font-semibold text-blue-900 flex items-center gap-2">
@@ -284,7 +284,7 @@ export function LiqHonorariosForm({
         </div>
       </section>
 
-      {/* ── Sección 2: Ingreso por Caja ── */}
+      {/* â”€â”€ SecciÃ³n 2: Ingreso por Caja â”€â”€ */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-green-50 to-white px-5 py-3 border-b border-gray-100">
           <h3 className="font-semibold text-green-900 flex items-center gap-2">
@@ -307,7 +307,7 @@ export function LiqHonorariosForm({
         </div>
       </section>
 
-      {/* ── Sección 3: Facturación por Caja (IVA por diferencia) ── */}
+      {/* â”€â”€ SecciÃ³n 3: FacturaciÃ³n por Caja (IVA por diferencia) â”€â”€ */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-purple-50 to-white px-5 py-3 border-b border-gray-100">
           <div className="flex items-center justify-between">
@@ -315,7 +315,7 @@ export function LiqHonorariosForm({
               <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs flex items-center justify-center font-bold">
                 3
               </span>
-              Facturación por Caja
+              FacturaciÃ³n por Caja
             </h3>
             {/* Badge de estado IVA */}
             {estadoBadge && (
@@ -327,7 +327,7 @@ export function LiqHonorariosForm({
             )}
           </div>
           <p className="text-xs text-gray-500 mt-0.5 ml-8">
-            IVA calculado automáticamente por diferencia
+            IVA calculado automÃ¡ticamente por diferencia
           </p>
         </div>
 
@@ -359,7 +359,7 @@ export function LiqHonorariosForm({
             </div>
           )}
 
-          {/* Sugerencia de auto-corrección */}
+          {/* Sugerencia de auto-correcciÃ³n */}
           {suggestion.show && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-start gap-2 mb-3">
@@ -372,9 +372,9 @@ export function LiqHonorariosForm({
                   Neto a Exento.
                 </p>
                 <p className="mt-1">
-                  Exento: {FMT(suggestion.originalExento)} → <strong>{FMT(suggestion.suggestedExento)}</strong>
+                  Exento: {FMT(suggestion.originalExento)} â†’ <strong>{FMT(suggestion.suggestedExento)}</strong>
                   {' | '}
-                  Neto: {FMT(suggestion.originalNeto)} → <strong>{FMT(suggestion.suggestedNeto)}</strong>
+                  Neto: {FMT(suggestion.originalNeto)} â†’ <strong>{FMT(suggestion.suggestedNeto)}</strong>
                 </p>
               </div>
               <div className="flex gap-2 ml-6">
@@ -383,7 +383,7 @@ export function LiqHonorariosForm({
                   onClick={handleApplySuggestion}
                   className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors"
                 >
-                  ✓ Aplicar
+                  âœ“ Aplicar
                 </button>
                 <button
                   type="button"
@@ -416,21 +416,21 @@ export function LiqHonorariosForm({
                 </>
               )}
               <div className="border-t border-gray-200 mt-2 pt-2">
-                <CalcValue label="Total Facturación Caja" value={cajaValues.total} bold />
+                <CalcValue label="Total FacturaciÃ³n Caja" value={cajaValues.total} bold />
               </div>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── Sección 4: Facturación por Obras Sociales ── */}
+      {/* â”€â”€ SecciÃ³n 4: FacturaciÃ³n por Obras Sociales â”€â”€ */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-orange-50 to-white px-5 py-3 border-b border-gray-100">
           <h3 className="font-semibold text-orange-900 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-orange-600 text-white text-xs flex items-center justify-center font-bold">
               4
             </span>
-            Facturación por Obras Sociales
+            FacturaciÃ³n por Obras Sociales
           </h3>
         </div>
         <div className="p-5 space-y-4">
@@ -465,7 +465,7 @@ export function LiqHonorariosForm({
         </div>
       </section>
 
-      {/* ── Sección 5: Retenciones y Total ── */}
+      {/* â”€â”€ SecciÃ³n 5: Retenciones y Total â”€â”€ */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-red-50 to-white px-5 py-3 border-b border-gray-100">
           <h3 className="font-semibold text-red-900 flex items-center gap-2">
@@ -477,7 +477,7 @@ export function LiqHonorariosForm({
         </div>
         <div className="p-5 space-y-4">
           <NumInput
-            label="Retención por Gastos"
+            label="RetenciÃ³n por Gastos"
             value={retencionGastos}
             onChange={setRetencionGastos}
           />
@@ -485,12 +485,12 @@ export function LiqHonorariosForm({
           {/* Resumen final */}
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-5 space-y-2">
             <CalcValue label="Ingreso por Caja" value={NUM(ingresoPorCaja)} />
-            <CalcValue label="Facturación por Caja" value={cajaValues.total} />
-            <CalcValue label="Facturación por OS" value={osCalc.osTotal} />
+            <CalcValue label="FacturaciÃ³n por Caja" value={cajaValues.total} />
+            <CalcValue label="FacturaciÃ³n por OS" value={osCalc.osTotal} />
             <div className="border-t border-blue-200 pt-2 mt-2">
               <CalcValue label="TOTAL LIQUIDADO" value={totales.totalLiquidado} bold />
             </div>
-            <CalcValue label="(-) Retención por Gastos" value={NUM(retencionGastos)} />
+            <CalcValue label="(-) RetenciÃ³n por Gastos" value={NUM(retencionGastos)} />
             <div className="bg-blue-600 text-white rounded-lg p-3 flex justify-between items-center mt-2">
               <span className="font-semibold">TOTAL A ABONAR</span>
               <span className="text-xl font-bold">{FMT(totales.totalAbonar)}</span>
@@ -499,7 +499,7 @@ export function LiqHonorariosForm({
         </div>
       </section>
 
-      {/* ── Botones ── */}
+      {/* â”€â”€ Botones â”€â”€ */}
       <div className="flex gap-3 justify-end pb-8">
         {isEditing && (
           <button
@@ -524,8 +524,8 @@ export function LiqHonorariosForm({
           {saving
             ? 'Guardando...'
             : isEditing
-            ? 'Actualizar Liquidación'
-            : 'Guardar Liquidación'}
+            ? 'Actualizar LiquidaciÃ³n'
+            : 'Guardar LiquidaciÃ³n'}
         </button>
       </div>
     </div>

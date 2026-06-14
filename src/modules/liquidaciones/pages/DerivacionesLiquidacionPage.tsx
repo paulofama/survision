@@ -1,5 +1,5 @@
-// ============================================
-// PÁGINA: LIQUIDACIÓN DE DERIVACIONES
+﻿// ============================================
+// PÃGINA: LIQUIDACIÃ“N DE DERIVACIONES
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
 
@@ -29,8 +29,8 @@ import {
   Image,
   Check
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { getApiBaseUrl } from '../lib/apiConfig';
+import { supabase } from '@/lib/supabase';
+import { getApiBaseUrl } from '@/lib/apiConfig';
 import jsPDF from 'jspdf';
 
 // ============================================
@@ -160,7 +160,7 @@ const DerivacionesLiquidacionPage = () => {
   // CARGA DE DATOS
   // ============================================
 
-  // Cargar años disponibles
+  // Cargar aÃ±os disponibles
   const cargarAnios = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/derivaciones/anios-disponibles`);
@@ -168,7 +168,7 @@ const DerivacionesLiquidacionPage = () => {
       if (data.success && data.data.length > 0) {
         setAniosDisponibles(data.data);
       } else {
-        // Fallback: últimos 5 años
+        // Fallback: Ãºltimos 5 aÃ±os
         const currentYear = new Date().getFullYear();
         setAniosDisponibles(Array.from({ length: 5 }, (_, i) => currentYear - i));
       }
@@ -191,7 +191,7 @@ const DerivacionesLiquidacionPage = () => {
     }
   }, [API_BASE]);
 
-  // Cargar configuración de porcentajes desde Supabase
+  // Cargar configuraciÃ³n de porcentajes desde Supabase
   const cargarConfig = useCallback(async () => {
     setLoadingConfig(true);
     try {
@@ -209,7 +209,7 @@ const DerivacionesLiquidacionPage = () => {
     }
   }, []);
 
-  // Cargar datos de liquidación
+  // Cargar datos de liquidaciÃ³n
   const cargarLiquidacion = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -248,7 +248,7 @@ const DerivacionesLiquidacionPage = () => {
   }, [cargarLiquidacion]);
 
   // ============================================
-  // OBTENER PORCENTAJE DE CONFIGURACIÓN
+  // OBTENER PORCENTAJE DE CONFIGURACIÃ“N
   // ============================================
 
   const getPorcentaje = useCallback((derivadorId: number): number => {
@@ -314,7 +314,7 @@ const DerivacionesLiquidacionPage = () => {
   }), [registrosProcesados]);
 
   // ============================================
-  // GUARDAR CONFIGURACIÓN DE PORCENTAJE
+  // GUARDAR CONFIGURACIÃ“N DE PORCENTAJE
   // ============================================
 
   const guardarPorcentaje = async (entderId: number, nombre: string, porcentaje: number) => {
@@ -353,7 +353,7 @@ const DerivacionesLiquidacionPage = () => {
   };
 
   // ============================================
-  // GENERACIÓN DE PDF
+  // GENERACIÃ“N DE PDF
   // ============================================
 
   const generarPDF = async (derivadorId: number) => {
@@ -372,7 +372,7 @@ const DerivacionesLiquidacionPage = () => {
 
       const periodoTexto = mes
         ? `${getNombreMes(parseInt(mes))} ${anio}`
-        : `Año ${anio}`;
+        : `AÃ±o ${anio}`;
 
       const doc = new jsPDF('portrait', 'mm', 'a4');
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -388,7 +388,7 @@ const DerivacionesLiquidacionPage = () => {
       doc.setFillColor(30, 58, 95); // Azul oscuro corporativo
       doc.rect(0, 0, pageWidth, 45, 'F');
 
-      // Línea decorativa
+      // LÃ­nea decorativa
       doc.setFillColor(41, 128, 185); // Azul medio
       doc.rect(0, 45, pageWidth, 2, 'F');
 
@@ -400,9 +400,9 @@ const DerivacionesLiquidacionPage = () => {
 
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text('Liquidación de Derivaciones', margin, 30);
+      doc.text('LiquidaciÃ³n de Derivaciones', margin, 30);
 
-      // Período (derecha)
+      // PerÃ­odo (derecha)
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.text(periodoTexto, pageWidth - margin, 20, { align: 'right' });
@@ -435,7 +435,7 @@ const DerivacionesLiquidacionPage = () => {
       doc.setFont('helvetica', 'normal');
       doc.text(`Porcentaje: ${(porcentaje * 100).toFixed(1)}%`, margin + 5, y + 17);
       doc.text(`Total Atenciones: ${datosDeriv.length}`, margin + 70, y + 17);
-      doc.text(`Período: ${periodoTexto}`, pageWidth - margin - 5, y + 17, { align: 'right' });
+      doc.text(`PerÃ­odo: ${periodoTexto}`, pageWidth - margin - 5, y + 17, { align: 'right' });
 
       y += 30;
 
@@ -445,7 +445,7 @@ const DerivacionesLiquidacionPage = () => {
 
       // Headers de tabla
       const colWidths = [12, 16, 36, 22, 40, 22, 10, 22];
-      const colHeaders = ['ID', 'Fecha', 'Apellido y Nombre', 'Prestador', 'Prestación', 'Coseguro (s/IVA)', '%', 'Devengado'];
+      const colHeaders = ['ID', 'Fecha', 'Apellido y Nombre', 'Prestador', 'PrestaciÃ³n', 'Coseguro (s/IVA)', '%', 'Devengado'];
       const colAligns: ('left' | 'right' | 'center')[] = ['center', 'center', 'left', 'left', 'left', 'right', 'center', 'right'];
 
       // Header row
@@ -474,13 +474,13 @@ const DerivacionesLiquidacionPage = () => {
       let rowIndex = 0;
 
       for (const registro of datosDeriv) {
-        // Verificar espacio para nueva página
+        // Verificar espacio para nueva pÃ¡gina
         if (y > pageHeight - 45) {
-          // Pie de página antes de nueva página
+          // Pie de pÃ¡gina antes de nueva pÃ¡gina
           agregarPiePagina(doc, pageWidth, pageHeight, margin);
           doc.addPage('portrait');
 
-          // Re-dibujar header en nueva página
+          // Re-dibujar header en nueva pÃ¡gina
           doc.setFillColor(30, 58, 95);
           doc.rect(0, 0, pageWidth, 20, 'F');
           doc.setFillColor(41, 128, 185);
@@ -489,7 +489,7 @@ const DerivacionesLiquidacionPage = () => {
           doc.setTextColor(255, 255, 255);
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
-          doc.text(`Liquidación Derivaciones - ${derivadorNombre}`, margin, 13);
+          doc.text(`LiquidaciÃ³n Derivaciones - ${derivadorNombre}`, margin, 13);
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(8);
           doc.text(periodoTexto, pageWidth - margin, 13, { align: 'right' });
@@ -554,7 +554,7 @@ const DerivacionesLiquidacionPage = () => {
       }
 
       // ============================================
-      // LÍNEA SEPARADORA Y TOTALES
+      // LÃNEA SEPARADORA Y TOTALES
       // ============================================
 
       y += 3;
@@ -575,7 +575,7 @@ const DerivacionesLiquidacionPage = () => {
       doc.setFontSize(16);
       doc.text(formatCurrency(totalDevengado).replace('ARS', '$'), margin + 8, y + 17);
 
-      // Detalle del cálculo (derecha)
+      // Detalle del cÃ¡lculo (derecha)
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.text(`Coseguro Total (s/IVA): ${formatCurrency(totalCoseguro).replace('ARS', '$')}`, pageWidth - margin - 5, y + 8, { align: 'right' });
@@ -585,11 +585,11 @@ const DerivacionesLiquidacionPage = () => {
       y += 28;
 
       // ============================================
-      // FIRMA "RECIBÍ"
+      // FIRMA "RECIBÃ"
       // ============================================
 
       if (y < pageHeight - 40) {
-        // Línea de firma
+        // LÃ­nea de firma
         const firmaX = pageWidth - margin - 80;
         doc.setDrawColor(100, 100, 100);
         doc.setLineWidth(0.3);
@@ -598,7 +598,7 @@ const DerivacionesLiquidacionPage = () => {
         doc.setTextColor(80, 80, 80);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'italic');
-        doc.text('Recibí', firmaX + 30, y + 14, { align: 'center' });
+        doc.text('RecibÃ­', firmaX + 30, y + 14, { align: 'center' });
 
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
@@ -606,7 +606,7 @@ const DerivacionesLiquidacionPage = () => {
         doc.text(derivadorNombre, firmaX + 37.5, y + 20, { align: 'center' });
       }
 
-      // Pie de página
+      // Pie de pÃ¡gina
       agregarPiePagina(doc, pageWidth, pageHeight, margin);
 
       // Guardar
@@ -630,7 +630,7 @@ const DerivacionesLiquidacionPage = () => {
       const derivadoresUnicos = [...new Set(registrosProcesados.map(r => r.derivador_id))];
       for (const derivId of derivadoresUnicos) {
         await generarPDF(derivId);
-        // Pequeña pausa entre descargas
+        // PequeÃ±a pausa entre descargas
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       showSuccess(`${derivadoresUnicos.length} PDFs generados exitosamente`);
@@ -642,7 +642,7 @@ const DerivacionesLiquidacionPage = () => {
     }
   };
 
-  // Helper: Pie de página
+  // Helper: Pie de pÃ¡gina
   const agregarPiePagina = (doc: jsPDF, pageW: number, pageH: number, m: number) => {
     doc.setFillColor(245, 247, 250);
     doc.rect(0, pageH - 12, pageW, 12, 'F');
@@ -652,7 +652,7 @@ const DerivacionesLiquidacionPage = () => {
     doc.setTextColor(130, 130, 130);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text('Sistema de Costos - Desarrollo | P. Famá', m, pageH - 5);
+    doc.text('Sistema de Costos - Desarrollo | P. FamÃ¡', m, pageH - 5);
     doc.text(`Instituto Dr. Mercado - ${new Date().getFullYear()}`, pageW - m, pageH - 5, { align: 'right' });
   };
 
@@ -686,7 +686,7 @@ const DerivacionesLiquidacionPage = () => {
     });
     setImagenPreview(null);
 
-    // Generar imagen después de que el modal se monte
+    // Generar imagen despuÃ©s de que el modal se monte
     setTimeout(() => generarImagenLiquidacion(derivadorId), 100);
   };
 
@@ -733,7 +733,7 @@ const DerivacionesLiquidacionPage = () => {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, headerH);
 
-    // Línea accent
+    // LÃ­nea accent
     ctx.fillStyle = '#3b82f6';
     ctx.fillRect(0, headerH, W, 3);
 
@@ -765,7 +765,7 @@ const DerivacionesLiquidacionPage = () => {
     ctx.font = 'bold 18px Arial, sans-serif';
     ctx.fillText(datos.derivador, PAD, derY + 22);
 
-    // Línea separadora
+    // LÃ­nea separadora
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -807,7 +807,7 @@ const DerivacionesLiquidacionPage = () => {
       ctx.fillStyle = i % 2 === 0 ? '#f8fafc' : '#ffffff';
       ctx.fillRect(tblX, ry, tblW, rowH);
 
-      // Línea separadora sutil
+      // LÃ­nea separadora sutil
       ctx.strokeStyle = '#f1f5f9';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
@@ -822,7 +822,7 @@ const DerivacionesLiquidacionPage = () => {
       ctx.font = '11px Arial, sans-serif';
       ctx.fillText(formatDate(r.fecha), col[0] + 8, midY);
 
-      // Paciente (bold) + prestación (small)
+      // Paciente (bold) + prestaciÃ³n (small)
       ctx.fillStyle = '#1e293b';
       ctx.font = 'bold 11px Arial, sans-serif';
       ctx.fillText(r.apellido_nombre.substring(0, 26), col[1] + 8, midY);
@@ -929,7 +929,7 @@ const DerivacionesLiquidacionPage = () => {
       setTimeout(() => setWhatsappModal(prev => ({ ...prev, imagenCopiada: false })), 3000);
     } catch (err) {
       console.error('Error copiando imagen:', err);
-      setError('No se pudo copiar la imagen. Intentá con clic derecho > Copiar imagen.');
+      setError('No se pudo copiar la imagen. IntentÃ¡ con clic derecho > Copiar imagen.');
     }
   };
 
@@ -960,10 +960,10 @@ const DerivacionesLiquidacionPage = () => {
 
     setWhatsappModal(prev => ({ ...prev, sending: true }));
 
-    // Guardar teléfono
+    // Guardar telÃ©fono
     await guardarTelefonoDerivador(whatsappModal.derivadorId, whatsappModal.telefono.trim());
 
-    // Formatear teléfono
+    // Formatear telÃ©fono
     let tel = whatsappModal.telefono.replace(/\D/g, '');
     if (tel.startsWith('0')) tel = '54' + tel.substring(1);
     if (!tel.startsWith('54') && tel.length <= 10) tel = '54' + tel;
@@ -988,10 +988,10 @@ const DerivacionesLiquidacionPage = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <FileText className="h-7 w-7 text-blue-600" />
-            Liquidación de Derivaciones
+            LiquidaciÃ³n de Derivaciones
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Gestión y liquidación de comisiones por derivaciones médicas
+            GestiÃ³n y liquidaciÃ³n de comisiones por derivaciones mÃ©dicas
           </p>
         </div>
 
@@ -1029,13 +1029,13 @@ const DerivacionesLiquidacionPage = () => {
         </div>
       )}
 
-      {/* Panel Configuración de Porcentajes */}
+      {/* Panel ConfiguraciÃ³n de Porcentajes */}
       {showConfig && (
         <div className="bg-white border border-blue-200 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Percent className="h-5 w-5 text-blue-600" />
-              Configuración de Porcentajes por Derivador
+              ConfiguraciÃ³n de Porcentajes por Derivador
             </h3>
             <button onClick={() => setShowConfig(false)}>
               <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -1055,7 +1055,7 @@ const DerivacionesLiquidacionPage = () => {
                     <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Derivador</th>
                     <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Porcentaje Actual</th>
                     <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Nuevo %</th>
-                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Acción</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">AcciÃ³n</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1122,7 +1122,7 @@ const DerivacionesLiquidacionPage = () => {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Año</label>
+            <label className="block text-xs text-gray-500 mb-1">AÃ±o</label>
             <select
               value={anio}
               onChange={(e) => setAnio(parseInt(e.target.value))}
@@ -1298,7 +1298,7 @@ const DerivacionesLiquidacionPage = () => {
         <div className="px-5 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Calendar className="h-4 w-4 text-blue-600" />
-            Detalle de Prácticas Derivadas
+            Detalle de PrÃ¡cticas Derivadas
             <span className="text-xs font-normal text-gray-500">
               ({registrosProcesados.length} registros)
             </span>
@@ -1314,7 +1314,7 @@ const DerivacionesLiquidacionPage = () => {
           <div className="flex flex-col items-center justify-center py-16">
             <FileText className="h-12 w-12 text-gray-300 mb-3" />
             <p className="text-gray-500">No se encontraron registros de derivaciones</p>
-            <p className="text-sm text-gray-400 mt-1">Ajustá los filtros para ver resultados</p>
+            <p className="text-sm text-gray-400 mt-1">AjustÃ¡ los filtros para ver resultados</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -1326,7 +1326,7 @@ const DerivacionesLiquidacionPage = () => {
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Apellido y Nombre</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prestador</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Derivador</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prestación</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">PrestaciÃ³n</th>
                   <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Coseguro <span className="text-[10px] text-gray-400">(s/IVA)</span></th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">%</th>
                   <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Devengado</th>
@@ -1383,7 +1383,7 @@ const DerivacionesLiquidacionPage = () => {
                 <MessageCircle className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h3 className="text-white font-semibold text-lg">Enviar Liquidación</h3>
+                <h3 className="text-white font-semibold text-lg">Enviar LiquidaciÃ³n</h3>
                 <p className="text-green-100 text-xs">{whatsappModal.derivadorNombre}</p>
               </div>
               <button
@@ -1428,7 +1428,7 @@ const DerivacionesLiquidacionPage = () => {
                   {imagenPreview ? (
                     <img 
                       src={imagenPreview} 
-                      alt="Liquidación" 
+                      alt="LiquidaciÃ³n" 
                       className="w-full h-auto"
                     />
                   ) : (
@@ -1457,8 +1457,8 @@ const DerivacionesLiquidacionPage = () => {
                       </p>
                       <p className="text-xs text-gray-500">
                         {whatsappModal.imagenCopiada 
-                          ? 'Listo! La imagen está en tu portapapeles' 
-                          : 'Hacé clic en "Copiar imagen" arriba'}
+                          ? 'Listo! La imagen estÃ¡ en tu portapapeles' 
+                          : 'HacÃ© clic en "Copiar imagen" arriba'}
                       </p>
                     </div>
                   </div>
@@ -1479,7 +1479,7 @@ const DerivacionesLiquidacionPage = () => {
                           <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">
                               <Phone className="h-3 w-3 inline mr-1" />
-                              Teléfono del derivador
+                              TelÃ©fono del derivador
                             </label>
                             <input
                               type="tel"
@@ -1490,7 +1490,7 @@ const DerivacionesLiquidacionPage = () => {
                               autoFocus
                             />
                             <p className="text-[10px] text-gray-400 mt-0.5">
-                              Se guarda para próximos envíos
+                              Se guarda para prÃ³ximos envÃ­os
                             </p>
                           </div>
                           <button

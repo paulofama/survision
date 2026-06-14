@@ -1,6 +1,6 @@
-// ============================================
+﻿// ============================================
 // HONORARIOS PAGE
-// Configuración de honorarios por segmento
+// ConfiguraciÃ³n de honorarios por segmento
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
 
@@ -25,7 +25,7 @@ import {
   Search,
   Building2
 } from 'lucide-react';
-import { useHonorariosConfig, HonorarioConfig, Prestador } from '../hooks/useHonorariosConfig';
+import { useHonorariosConfig, HonorarioConfig, Prestador } from '@/hooks/useHonorariosConfig';
 
 // ============================================
 // TIPOS LOCALES
@@ -128,7 +128,7 @@ const HonorariosPage: React.FC = () => {
     }
   };
 
-  // Handlers Configuración
+  // Handlers ConfiguraciÃ³n
   const handleGuardarConfig = async (id: string, config: HonorarioConfig) => {
     const exito = await actualizarConfiguracion(id, {
       porcentaje_socio: config.porcentaje_socio,
@@ -137,9 +137,9 @@ const HonorariosPage: React.FC = () => {
     
     if (exito) {
       setEditandoConfig(null);
-      mostrarMensaje('Configuración actualizada correctamente', 'exito');
+      mostrarMensaje('ConfiguraciÃ³n actualizada correctamente', 'exito');
     } else {
-      mostrarMensaje('Error al actualizar configuración', 'error');
+      mostrarMensaje('Error al actualizar configuraciÃ³n', 'error');
     }
   };
 
@@ -213,7 +213,7 @@ const HonorariosPage: React.FC = () => {
     if (resultado) {
       setResultadoSimulacion(resultado);
     } else {
-      mostrarMensaje('No se encontró configuración para el código ingresado', 'error');
+      mostrarMensaje('No se encontrÃ³ configuraciÃ³n para el cÃ³digo ingresado', 'error');
       setResultadoSimulacion(null);
     }
   };
@@ -233,7 +233,7 @@ const HonorariosPage: React.FC = () => {
   const renderTabs = () => (
     <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
       {[
-        { id: 'configuracion', label: 'Configuración', icon: Settings },
+        { id: 'configuracion', label: 'ConfiguraciÃ³n', icon: Settings },
         { id: 'prestadores', label: 'Prestadores', icon: Users },
         { id: 'simulador', label: 'Simulador', icon: Calculator }
       ].map(tab => {
@@ -318,15 +318,15 @@ const HonorariosPage: React.FC = () => {
   );
 
   // ============================================
-  // RENDER: TAB CONFIGURACIÓN
+  // RENDER: TAB CONFIGURACIÃ“N
   // ============================================
 
   const renderTabConfiguracion = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Configuración de Honorarios</h3>
-          <p className="text-sm text-gray-500">Porcentajes por segmento de práctica</p>
+          <h3 className="text-lg font-semibold text-gray-900">ConfiguraciÃ³n de Honorarios</h3>
+          <p className="text-sm text-gray-500">Porcentajes por segmento de prÃ¡ctica</p>
         </div>
         <button
           onClick={() => setMostrarFormConfig(true)}
@@ -345,10 +345,10 @@ const HonorariosPage: React.FC = () => {
                 Segmento
               </th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Código Desde
+                CÃ³digo Desde
               </th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Código Hasta
+                CÃ³digo Hasta
               </th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 <span className="flex items-center justify-center">
@@ -372,7 +372,7 @@ const HonorariosPage: React.FC = () => {
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
-                  <p className="text-gray-500">Cargando configuración...</p>
+                  <p className="text-gray-500">Cargando configuraciÃ³n...</p>
                 </td>
               </tr>
             ) : configuraciones.length === 0 ? (
@@ -501,10 +501,10 @@ const HonorariosPage: React.FC = () => {
         <div className="flex items-center space-x-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Prestadores</h3>
-            <p className="text-sm text-gray-500">Gestión de socios y no socios</p>
+            <p className="text-sm text-gray-500">GestiÃ³n de socios y no socios</p>
           </div>
           
-          {/* Búsqueda */}
+          {/* BÃºsqueda */}
           <div className="relative">
             <input
               type="text"
@@ -534,7 +534,7 @@ const HonorariosPage: React.FC = () => {
                 Prestador
               </th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Matrícula
+                MatrÃ­cula
               </th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 CUIT
@@ -643,7 +643,7 @@ const HonorariosPage: React.FC = () => {
 
   const renderTabSimulador = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Formulario de simulación */}
+      {/* Formulario de simulaciÃ³n */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Calculator className="h-5 w-5 mr-2 text-blue-600" />
@@ -653,7 +653,7 @@ const HonorariosPage: React.FC = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Monto de la Práctica
+              Monto de la PrÃ¡ctica
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -669,7 +669,7 @@ const HonorariosPage: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Código de Práctica
+              CÃ³digo de PrÃ¡ctica
             </label>
             <input
               type="text"
@@ -680,7 +680,7 @@ const HonorariosPage: React.FC = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Consultas: 01xxxx | Estudios: 02xxxx | Cirugías: 03xxxx
+              Consultas: 01xxxx | Estudios: 02xxxx | CirugÃ­as: 03xxxx
             </p>
           </div>
 
@@ -812,13 +812,13 @@ const HonorariosPage: React.FC = () => {
               >
                 <option value="Consultas">Consultas</option>
                 <option value="Estudios">Estudios</option>
-                <option value="Cirugias">Cirugías</option>
+                <option value="Cirugias">CirugÃ­as</option>
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Código Desde</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CÃ³digo Desde</label>
                 <input
                   type="text"
                   value={formConfig.codigo_desde}
@@ -829,7 +829,7 @@ const HonorariosPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Código Hasta</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CÃ³digo Hasta</label>
                 <input
                   type="text"
                   value={formConfig.codigo_hasta}
@@ -922,7 +922,7 @@ const HonorariosPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">MatrÃ­cula</label>
                 <input
                   type="number"
                   value={formPrestador.matricula_provincial}
@@ -961,7 +961,7 @@ const HonorariosPage: React.FC = () => {
                   `} />
                 </div>
                 <span className="ml-3 text-sm font-medium text-gray-700">
-                  {formPrestador.es_socio ? 'Socio de la Clínica' : 'No Socio'}
+                  {formPrestador.es_socio ? 'Socio de la ClÃ­nica' : 'No Socio'}
                 </span>
               </label>
             </div>
@@ -1015,16 +1015,16 @@ const HonorariosPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                Configuración de Honorarios
+                ConfiguraciÃ³n de Honorarios
               </h1>
               <p className="text-gray-500 text-sm">
-                Gestión de porcentajes por segmento y prestadores
+                GestiÃ³n de porcentajes por segmento y prestadores
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            {/* Estado de conexión */}
+            {/* Estado de conexiÃ³n */}
             <div className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
               isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
             }`}>
@@ -1050,7 +1050,7 @@ const HonorariosPage: React.FC = () => {
       {/* Tabs */}
       {renderTabs()}
 
-      {/* Contenido según tab */}
+      {/* Contenido segÃºn tab */}
       {tabActiva === 'configuracion' && renderTabConfiguracion()}
       {tabActiva === 'prestadores' && renderTabPrestadores()}
       {tabActiva === 'simulador' && renderTabSimulador()}
@@ -1062,7 +1062,7 @@ const HonorariosPage: React.FC = () => {
       {/* Footer */}
       <div className="mt-6 text-center">
         <p className="text-xs text-gray-500">
-          Configuración de Honorarios | Sistema de Costos | Instituto Dr. Mercado
+          ConfiguraciÃ³n de Honorarios | Sistema de Costos | Instituto Dr. Mercado
         </p>
       </div>
     </div>

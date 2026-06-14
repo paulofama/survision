@@ -27,7 +27,7 @@ import PrestacionesRealizadasPage from './pages/PrestacionesRealizadasPage';
 
 // Páginas de Costos
 import PoolsConfigPage from './pages/PoolsConfigPage';
-import HonorariosPage from './pages/HonorariosPage';
+import HonorariosPage from '@modules/liquidaciones/pages/HonorariosPage';
 import RecetasCostosPage from './pages/RecetasCostosPage';
 import CostosFijosPage from './pages/CostosFijosPage';
 
@@ -91,7 +91,7 @@ const SaldoHistoricoPage = lazy(() =>
 // DERIVACIONES - LAZY LOADING
 // ============================================
 const DerivacionesLiquidacionPage = lazy(() => 
-  import('./pages/DerivacionesLiquidacionPage').catch(() => ({
+  import('@modules/liquidaciones/pages/DerivacionesLiquidacionPage').catch(() => ({
     default: () => <ComingSoonPage title="Liquidación Derivaciones" />
   }))
 );
@@ -100,7 +100,7 @@ const DerivacionesLiquidacionPage = lazy(() =>
 // LIQUIDACIÓN DE HONORARIOS - LAZY LOADING
 // ============================================
 const LiqHonorariosPage = lazy(() => 
-  import('./pages/liq-honorarios/LiqHonorariosPage').catch(() => ({
+  import('@modules/liquidaciones/liq-honorarios/LiqHonorariosPage').catch(() => ({
     default: () => <ComingSoonPage title="Liquidación de Honorarios" />
   }))
 );

@@ -1,9 +1,9 @@
-// ============================================================
-// TYPES: Liquidación de Honorarios
+﻿// ============================================================
+// TYPES: LiquidaciÃ³n de Honorarios
 // Instituto Dr. Mercado - Sistema de Costos
 // ============================================================
 
-/** Prestador habilitado para liquidación */
+/** Prestador habilitado para liquidaciÃ³n */
 export interface LiqPrestador {
   id: string;
   nombre: string;
@@ -17,10 +17,10 @@ export interface LiqPrestador {
   telefono: string | null;
 }
 
-/** Estado IVA de la sección Facturación por Caja */
+/** Estado IVA de la secciÃ³n FacturaciÃ³n por Caja */
 export type CajaIvaEstado = 'Exento' | '10,5%' | '21%' | 'Mixto' | 'Error';
 
-/** Valores calculados de la sección Caja */
+/** Valores calculados de la secciÃ³n Caja */
 export interface CajaCalculated {
   exento: number;
   neto105: number;
@@ -31,7 +31,7 @@ export interface CajaCalculated {
   estado: CajaIvaEstado;
 }
 
-/** Sugerencia de autocorrección */
+/** Sugerencia de autocorrecciÃ³n */
 export interface CajaSuggestion {
   show: boolean;
   message: string;
@@ -41,23 +41,23 @@ export interface CajaSuggestion {
   originalNeto: number;
 }
 
-/** Liquidación completa (estructura de BD) */
+/** LiquidaciÃ³n completa (estructura de BD) */
 export interface LiqHonorario {
   id: string;
   
-  // Sección 1: Datos generales
+  // SecciÃ³n 1: Datos generales
   fecha: string;                 // "YYYY-MM-DD"
   prestador_id: string;          // UUID del prestador
   
-  // Sección 2: Ingreso por Caja
+  // SecciÃ³n 2: Ingreso por Caja
   ingreso_por_caja: number;
   
-  // Sección 3: Facturación por Caja - Inputs del usuario
+  // SecciÃ³n 3: FacturaciÃ³n por Caja - Inputs del usuario
   caja_exento_input: number;
   caja_neto_input: number;
   caja_total_input: number;
   
-  // Sección 3: Calculados por IVA por diferencia
+  // SecciÃ³n 3: Calculados por IVA por diferencia
   caja_exentos: number;
   caja_neto_105: number;
   caja_iva_105: number;
@@ -67,7 +67,7 @@ export interface LiqHonorario {
   caja_total: number;
   caja_estado: CajaIvaEstado;
   
-  // Sección 4: Facturación por Obras Sociales
+  // SecciÃ³n 4: FacturaciÃ³n por Obras Sociales
   os_exentos: number;
   os_gravados_21: number;
   os_gravados_105: number;
@@ -76,7 +76,7 @@ export interface LiqHonorario {
   os_iva_total: number;
   os_total: number;
   
-  // Sección 5: Retenciones
+  // SecciÃ³n 5: Retenciones
   retencion_gastos: number;
   
   // Totales consolidados
@@ -116,7 +116,7 @@ export interface LiqHonorarioFormData {
   retencion_gastos: number;
 }
 
-/** Detalle para facturar (cálculo del reporte) */
+/** Detalle para facturar (cÃ¡lculo del reporte) */
 export interface FacturacionDetails {
   lineaExenta: number;
   totalGravados21: number;
@@ -129,7 +129,7 @@ export interface FacturacionDetails {
   ivaTotal: number;
 }
 
-/** Resultado de operación CRUD */
+/** Resultado de operaciÃ³n CRUD */
 export interface LiqOperationResult {
   success: boolean;
   message: string;

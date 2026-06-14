@@ -1,7 +1,7 @@
-// ============================================================
+﻿// ============================================================
 // HOOK: useCajaCalculation
 // Replica exacta de calculateCajaByDifference() del HTML
-// Cálculo de IVA por diferencia con auto-corrección
+// CÃ¡lculo de IVA por diferencia con auto-correcciÃ³n
 // ============================================================
 
 import { useState, useCallback, useMemo } from 'react';
@@ -42,15 +42,15 @@ export function useCajaCalculation() {
    *   N = Neto gravado total (neto que fue facturado con IVA)
    *   T = Total cobrado por caja
    * 
-   * Cálculo:
+   * CÃ¡lculo:
    *   I = T - E - N  (IVA total por diferencia)
    * 
-   * Detección automática de alícuota:
-   *   - Si I ≈ 0.105·N → todo 10.5%
-   *   - Si I ≈ 0.21·N  → todo 21%
-   *   - Si entre ambos  → Mixto (resolver sistema)
-   *   - Si I < 0.105·N  → Error + sugerencia de corrección
-   *   - Si I > 0.21·N   → Error inconsistente
+   * DetecciÃ³n automÃ¡tica de alÃ­cuota:
+   *   - Si I â‰ˆ 0.105Â·N â†’ todo 10.5%
+   *   - Si I â‰ˆ 0.21Â·N  â†’ todo 21%
+   *   - Si entre ambos  â†’ Mixto (resolver sistema)
+   *   - Si I < 0.105Â·N  â†’ Error + sugerencia de correcciÃ³n
+   *   - Si I > 0.21Â·N   â†’ Error inconsistente
    */
   const calculate = useCallback(
     (exentoInput: number, netoInput: number, totalInput: number): CajaCalculated => {
@@ -62,7 +62,7 @@ export function useCajaCalculation() {
       setSuggestion(INITIAL_SUGGESTION);
       setCajaError(null);
 
-      // Sin datos → todo cero
+      // Sin datos â†’ todo cero
       if (T === 0 && E === 0 && N === 0) {
         const result = { ...INITIAL_CAJA };
         setCajaValues(result);
@@ -99,14 +99,14 @@ export function useCajaCalculation() {
       let iva21 = 0;
 
       if (I < 0) {
-        // IVA negativo → error
+        // IVA negativo â†’ error
         setCajaError(
           `El IVA resultante es negativo ($${I.toFixed(2)}). ` +
             `Verifique que el Total sea mayor que Exento + Neto.`
         );
         estado = 'Error';
       } else if (I < iva105Expected - tolerance) {
-        // I < 10.5% → probablemente hay exentos incluidos en N
+        // I < 10.5% â†’ probablemente hay exentos incluidos en N
         const excessInNeto = N - I / 0.105;
         const suggestedExento = E + excessInNeto;
         const suggestedNeto = N - excessInNeto;
@@ -114,7 +114,7 @@ export function useCajaCalculation() {
         setSuggestion({
           show: true,
           message:
-            `El IVA calculado ($${I.toFixed(2)}) es menor al mínimo esperado ` +
+            `El IVA calculado ($${I.toFixed(2)}) es menor al mÃ­nimo esperado ` +
             `($${iva105Expected.toFixed(2)} al 10,5%). Posiblemente $${excessInNeto.toFixed(2)} ` +
             `del neto son en realidad honorarios exentos.`,
           suggestedExento: Math.round(suggestedExento * 100) / 100,
@@ -140,15 +140,15 @@ export function useCajaCalculation() {
       } else if (I > iva105Expected + tolerance && I < iva21Expected - tolerance) {
         // Mixto: resolver sistema de ecuaciones
         // N105 + N21 = N
-        // 0.105·N105 + 0.21·N21 = I
-        // → N21 = (I - 0.105·N) / (0.21 - 0.105)
-        // → N105 = N - N21
+        // 0.105Â·N105 + 0.21Â·N21 = I
+        // â†’ N21 = (I - 0.105Â·N) / (0.21 - 0.105)
+        // â†’ N105 = N - N21
         neto21 = (I - 0.105 * N) / (0.21 - 0.105);
         neto105 = N - neto21;
 
-        // Validación de signos
+        // ValidaciÃ³n de signos
         if (neto21 < 0 || neto105 < 0) {
-          setCajaError('No se puede descomponer el IVA en alícuotas válidas.');
+          setCajaError('No se puede descomponer el IVA en alÃ­cuotas vÃ¡lidas.');
           estado = 'Error';
         } else {
           iva21 = neto21 * 0.21;
@@ -156,9 +156,9 @@ export function useCajaCalculation() {
           estado = 'Mixto';
         }
       } else if (I > iva21Expected + tolerance) {
-        // I > 21% → datos inconsistentes
+        // I > 21% â†’ datos inconsistentes
         setCajaError(
-          `El IVA calculado ($${I.toFixed(2)}) supera el máximo posible ` +
+          `El IVA calculado ($${I.toFixed(2)}) supera el mÃ¡ximo posible ` +
             `($${iva21Expected.toFixed(2)} al 21%). Verifique los montos.`
         );
         neto21 = N;
@@ -189,10 +189,10 @@ export function useCajaCalculation() {
     []
   );
 
-  /** Aplicar sugerencia de auto-corrección */
+  /** Aplicar sugerencia de auto-correcciÃ³n */
   const applySuggestion = useCallback(() => {
     setSuggestion(INITIAL_SUGGESTION);
-    // El componente padre usará suggestedExento/suggestedNeto
+    // El componente padre usarÃ¡ suggestedExento/suggestedNeto
     // para actualizar los inputs del formulario
   }, []);
 
@@ -233,7 +233,7 @@ export function useCajaCalculation() {
 }
 
 // ============================================================
-// FUNCIONES PURAS: Cálculos de totales
+// FUNCIONES PURAS: CÃ¡lculos de totales
 // ============================================================
 
 /** Calcular totales de OS */
