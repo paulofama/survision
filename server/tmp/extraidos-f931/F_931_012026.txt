@@ -1,0 +1,37 @@
+VEP
+Volante Electrónico de Pago
+Atención: este VEP esta pendiente de pago y expira en 30 día/s
+Nro. VEP: 1584148785
+Organismo Recaudador: ARCA
+Tipo de Pago: Empleadores SICOSS - Saldo DJ
+Descripción Reducida: SIJPDJ01/26
+CUIT: 30-70967266-1
+Concepto: 19 OBLIGACION MENSUAL/ANUAL
+Subconcepto: 19 OBLIGACION MENSUAL/ANUAL
+Período: 2026-01
+Generado desde la presentación de DJ
+nro:
+1149132645
+Generado por el Usuario: 27215603275
+Fecha Generación: 2026-02-08 Hora: 11:03:05
+Día de Expiración: 2026-03-10
+CONTRIBUCIONES SEG. SOCIAL
+(351)
+$303.576,65
+EMPLEADOR-APORTES SEG. SOCIAL
+(301)
+$1.144.900,37
+CONTRIBUCIONES OBRA SOCIAL
+(352)
+$650.496,84
+APORTES OBRAS SOCIALES (302) $325.248,30
+ASEG.RIESGO DE TRABAJO L 24557
+(312)
+$230.469,40
+SEGURO DE VIDA COLECTIVO (28) $3.012,12
+Importe total a pagar $2.657.703,68
+Para efectuar el pago ingrese a:
+https://web.pagomiscuentas.com/login
+
+-- 1 of 1 --
+

@@ -1,0 +1,31 @@
+{
+  "name": "sistema-costos-api",
+  "version": "1.0.0",
+  "description": "API Backend para Sistema de Costos - Instituto Dr. Mercado",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test:connection": "node -e \"require('./config/database').testConnection().then(() => process.exit(0)).catch(() => process.exit(1))\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "mssql": "^10.0.2",
+    "pdf-parse": "^2.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "api",
+    "sql-server",
+    "express",
+    "sistema-costos",
+    "nomenclador"
+  ],
+  "author": "P. Famá | Desarrollo",
+  "license": "ISC"
+}

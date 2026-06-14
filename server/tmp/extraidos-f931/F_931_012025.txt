@@ -1,0 +1,65 @@
+Declaro que los datos consignados en
+este formulario son correctos y
+completos y que no se ha omitido ni
+falseado información que deba
+contener esta declaración, siendo fiel
+expresión de la verdad.
+931
+Declaración Jurada en
+Pesos con centavos
+S.U.S.S.
+C.U.I.T. 	30-70967266-1
+Mes - Año 	Orig. (0) - Rect. (1/9): 0
+01/2025 	Servicios Eventuales: No
+Empleados en nómina: 	8
+Suma de Rem. 1: 	5.450.203,80
+Suma de Rem. 2: 	5.450.203,80
+Suma de Rem. 3: 	5.450.203,80
+Suma de Rem. 4: 	9.927.292,38
+Suma de Rem. 5: 	5.450.203,80
+Suma de Rem. 6: 	0,00
+Apellido y Nombre o Razón Social: 	Nro.
+Verificador:
+Suma de Rem. 7: 	0,00
+SURVISION S A 	449873 Suma de Rem. 8: 	9.927.291,97
+Suma de Rem. 9: 	5.450.203,80
+Suma de Rem. 10: 	5.418.686,83
+Domicilio Fiscal: 3 DE FEBRERO 448 SAN RAFAEL 	V 47
+I - REGIMEN NACIONAL DE SEGURIDAD SOCIAL 	II - REGIMEN NACIONAL DE OBRAS SOCIALES
+a1 - Total de aportes 	807.701,36 a1 - Total de aportes 	253.145,96
+a2 - Aportes a favor 	0,00 a2 - Aportes a favor 	0,00
+a3 - Aportes S.S. a pagar 	807.701,36 a3 - Aportes O.S. a pagar 	253.145,96
+b - Asignaciones familiares pagadas 	0,00 b1 - Total de contribuciones 	506.291,89
+b1 - Total de contribuciones 	1.064.709,28 b2 - Excedentes de contribuciones a favor 	0,00
+b2 - Asignaciones compensadas 	0,00
+b3 - Detracción art. 23 Ley 27.541 	1.800,00 	Subtotal contribuciones O.S. 	506.291,89
+Retenciones 	0,00
+Subtotal contribuciones S.S. 	1.062.909,28 	Contribuciones O.S. a pagar 	506.291,89
+Retenciones 	0,00
+Contribuciones S.S. a pagar 	1.062.909,28
+III - RETENCIONES 	IV - VALES ALIMENTARIOS / CAJAS DE ALIMENTOS
+Saldo retenciones período anterior 	0,00 	Monto base de cálculo 	0,00
+Retenciones del período 	0,00 	Contribuciones, Vales Alimentarios
+Total retenciones 	0,00 	y/o Cajas de Alimentos a pagar 	0,00
+Percepciones de Vales Aliment. 	0,00
+Retenciones aplicadas a Seguridad Social 	0,00
+Retenciones aplicadas a Obra Social 	0,00 V - RENATRE
+Saldo de retenciones a período futuro 	0,00 	Total Contribuciones RENATRE 	0,00
+Total Seg. Sepelio UATRE 	0,00
+VI - LEY DE RIESGOS DE TRABAJO 	VII - SEGURO DE VIDA
+Cantidad de CUILES con ART 	8 9.376,00 	Cuiles c/S.C.V.O. - Prima 	8 - 1.407,12
+Remun. con ART 	5.450.203,80 144.430,40 	Costo Emisión: 	0,00
+L.R.T. total a pagar 	153.806,40 	S.C.V.O. a Pagar: 	1.407,12
+Ley 25.922 Encuadre: No Corresponde 	Porcentaje: 0,00 	Resultado:
+0,00
+Ley 27.430 - Monto Total Detraido: 31.516,56
+VIII - MONTOS QUE SE INGRESAN
+351 - Contribuciones de Seguridad Social 	1.062.909,28 302 - Aportes de Obra Social 	253.145,96
+301 - Aportes de Seguridad Social 	807.701,36 270 - Vales Alimentarios/Cajas de alimentos 	0,00
+360 - Contribuciones RENATRE 	0,00 312 - L.R.T. 	153.806,40
+352 - Contribuciones de Obra Social 	506.291,89 028 - Seguro Colectivo de Vida Obligatorio 	1.407,12
+935 - Seg. Sepelio UATRE 	0,00
+Forma de Pago: Efectivo
+
+-- 1 of 1 --
+

@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env.local
+.env.*.local
+
+# Testing
+coverage
+
+# Storybook
+storybook-static
+
+# Secrets (NO commitear)
+.env
+**/.env
+
+# Backups y artefactos del refactor/verificacion
+_backup_pre_modular_*.zip
+*_VERIF.pdf
+Reporte_Sueldos_*.pdf

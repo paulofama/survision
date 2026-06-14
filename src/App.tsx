@@ -1,0 +1,328 @@
+// ============================================
+// APP.TSX - ROUTER PRINCIPAL CON AUTENTICACIÓN
+// Sistema de Costos - Instituto Dr. Mercado
+// v4.1 - Con Evolución Temporal del Análisis Marginal
+// ============================================
+// RUTA DESTINO: src/App.tsx
+// ============================================
+
+import React, { Suspense, lazy } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Layout from './components/layout/Layout';
+
+// Context Providers
+import { TipoCambioProvider } from './context/TipoCambioContext';
+import { AuthProvider } from './context/AuthContext';
+
+// Componentes de autenticación
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+
+// Páginas principales
+import PrestacionesPage from './pages/PrestacionesPage';
+import InsumosVariablesPage from './pages/InsumosVariablesPage';
+
+// Prestaciones Realizadas (también usado como Dashboard temporal)
+import PrestacionesRealizadasPage from './pages/PrestacionesRealizadasPage';
+
+// Páginas de Costos
+import PoolsConfigPage from './pages/PoolsConfigPage';
+import HonorariosPage from './pages/HonorariosPage';
+import RecetasCostosPage from './pages/RecetasCostosPage';
+import CostosFijosPage from './pages/CostosFijosPage';
+
+// ============================================
+// PRESUPUESTADOR
+// ============================================
+import Presupuestador from './pages/Presupuestador';
+import BusquedaPresupuestosPage from './pages/BusquedaPresupuestosPage';
+
+// ============================================
+// ANÁLISIS MARGINAL - MULTIPÁGINA
+// ============================================
+import DashboardMarginalPage from './pages/analisis-marginal/DashboardMarginalPage';
+import PorPrestacionPageMarginal from './pages/analisis-marginal/PorPrestacionPage';
+import PorPrestadorPageMarginal from './pages/analisis-marginal/PorPrestadorPage';
+import PorObraSocialPageMarginal from './pages/analisis-marginal/PorObraSocialPage';
+import PorGrupoPageMarginal from './pages/analisis-marginal/PorGrupoPage';
+import EvolucionTemporalPageMarginal from './pages/analisis-marginal/EvolucionTemporalPage';
+
+// ============================================
+// ANÁLISIS - PÁGINAS IMPLEMENTADAS
+// ============================================
+import DashboardAnalisisPage from './pages/DashboardAnalisisPage';
+import {
+  AnalisisPorObraSocialPage,
+  AnalisisPorPrestadorPage,
+  AnalisisPorPrestacionPage,
+  AnalisisPorGrupoPage
+} from './pages/analisis';
+import EvolucionTemporalPage from './pages/EvolucionTemporalPage';
+import AnalisisTurnosPage from './pages/AnalisisTurnosPage';
+
+// Páginas de Administración - UNIFICADA
+import GestionAccesosPage from './pages/GestionAccesosPage';
+
+// Páginas Coming Soon
+import ComingSoonPage from './pages/ComingSoonPage';
+
+// ============================================
+// TESORERÍA - LAZY LOADING (Safe Import)
+// ============================================
+const TesoreriaDashboardPage = lazy(() =>
+  import('@modules/tesoreria/pages/TesoreriaDashboardPage').catch(() => ({
+    default: () => <ComingSoonPage title="Tesorería - Dashboard" />
+  }))
+);
+
+const CajaMovimientosPage = lazy(() =>
+  import('@modules/tesoreria/pages/CajaMovimientosPage').catch(() => ({
+    default: () => <ComingSoonPage title="Movimientos de Caja" />
+  }))
+);
+
+const SaldoHistoricoPage = lazy(() =>
+  import('@modules/tesoreria/pages/SaldoHistoricoPage').catch(() => ({
+    default: () => <ComingSoonPage title="Saldo Histórico" />
+  }))
+);
+
+// ============================================
+// DERIVACIONES - LAZY LOADING
+// ============================================
+const DerivacionesLiquidacionPage = lazy(() => 
+  import('./pages/DerivacionesLiquidacionPage').catch(() => ({
+    default: () => <ComingSoonPage title="Liquidación Derivaciones" />
+  }))
+);
+
+// ============================================
+// LIQUIDACIÓN DE HONORARIOS - LAZY LOADING
+// ============================================
+const LiqHonorariosPage = lazy(() => 
+  import('./pages/liq-honorarios/LiqHonorariosPage').catch(() => ({
+    default: () => <ComingSoonPage title="Liquidación de Honorarios" />
+  }))
+);
+
+// ============================================
+// INFORMES - LAZY LOADING
+// ============================================
+const InformesPage = lazy(() => 
+  import('./pages/InformesPage').catch(() => ({
+    default: () => <ComingSoonPage title="Informes de Gestión" />
+  }))
+);
+
+const InformesEjecutivosPage = lazy(() => 
+  import('./pages/InformesEjecutivosPage').catch(() => ({
+    default: () => <ComingSoonPage title="Informes Ejecutivos" />
+  }))
+);
+
+// ============================================
+// SEGUIMIENTO DE PACIENTES - LAZY LOADING
+// ============================================
+const SeguimientoPacientesPage = lazy(() =>
+  import('./pages/SeguimientoPacientesPage').catch(() => ({
+    default: () => <ComingSoonPage title="Seguimiento de Pacientes" />
+  }))
+);
+
+// ============================================
+// SUELDOS - MODULO NUEVO (Fase 1) - LAZY LOADING
+// ============================================
+const SueldosDashboardPage = lazy(() =>
+  import('./pages/sueldos/DashboardSueldosPage').catch(() => ({
+    default: () => <ComingSoonPage />
+  }))
+);
+
+const SueldosEmpleadosPage = lazy(() =>
+  import('./pages/sueldos/EmpleadosPage').catch(() => ({
+    default: () => <ComingSoonPage />
+  }))
+);
+
+const SueldosEmpleadoFormPage = lazy(() =>
+  import('./pages/sueldos/EmpleadoFormPage').catch(() => ({
+    default: () => <ComingSoonPage />
+  }))
+);
+
+const SueldosMesDetallePage = lazy(() =>
+  import('./pages/sueldos/MesDetallePage').catch(() => ({
+    default: () => <ComingSoonPage />
+  }))
+);
+
+const SueldosReportesPage = lazy(() =>
+  import('./pages/sueldos/ReportesSueldosPage').catch(() => ({
+    default: () => <ComingSoonPage />
+  }))
+);
+
+// ============================================
+// COMPONENTE DE CARGA
+// ============================================
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <span className="text-gray-500">Cargando...</span>
+    </div>
+  </div>
+);
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <TipoCambioProvider>
+        <Routes>
+          {/* Ruta de Login - Sin Layout */}
+          <Route path="/login" element={<LoginPage />} />
+          
+          {/* ============================================ */}
+          {/* INFORMES EJECUTIVOS - SIN LAYOUT */}
+          {/* Pantalla completa con su propio sistema de auth */}
+          {/* ============================================ */}
+          <Route path="/informes/ejecutivo" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <InformesEjecutivosPage />
+            </Suspense>
+          } />
+          
+          {/* Rutas Protegidas - Con Layout */}
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Routes>
+                      {/* Principal */}
+                      <Route path="/" element={<PrestacionesRealizadasPage />} />
+                      <Route path="/prestaciones" element={<PrestacionesPage />} />
+                      <Route path="/insumos-variables" element={<InsumosVariablesPage />} />
+                      
+                      {/* Prestaciones Realizadas */}
+                      <Route path="/prestaciones-realizadas" element={<PrestacionesRealizadasPage />} />
+                      
+                      {/* Costos */}
+                      <Route path="/pools" element={<PoolsConfigPage />} />
+                      <Route path="/honorarios" element={<HonorariosPage />} />
+                      <Route path="/recetas-costos" element={<RecetasCostosPage />} />
+                      <Route path="/costos-fijos" element={<CostosFijosPage />} />
+
+                      {/* ============================================ */}
+                      {/* SUELDOS - MODULO NUEVO (Fase 1 + Fase 2)     */}
+                      {/* ============================================ */}
+                      <Route path="/sueldos" element={<SueldosDashboardPage />} />
+                      <Route path="/sueldos/empleados" element={<SueldosEmpleadosPage />} />
+                      <Route path="/sueldos/empleados/nuevo" element={<SueldosEmpleadoFormPage />} />
+                      <Route path="/sueldos/empleados/:id" element={<SueldosEmpleadoFormPage />} />
+                      <Route path="/sueldos/mes/:anio/:mes" element={<SueldosMesDetallePage />} />
+                      <Route path="/sueldos/reportes" element={<SueldosReportesPage />} />
+
+                      {/* ============================================ */}
+                      {/* ANÁLISIS MARGINAL - RUTAS MULTIPÁGINA */}
+                      {/* ============================================ */}
+                      <Route path="/analisis-marginal" element={<DashboardMarginalPage />} />
+                      <Route path="/analisis-marginal/por-prestacion" element={<PorPrestacionPageMarginal />} />
+                      <Route path="/analisis-marginal/por-prestador" element={<PorPrestadorPageMarginal />} />
+                      <Route path="/analisis-marginal/por-obra-social" element={<PorObraSocialPageMarginal />} />
+                      <Route path="/analisis-marginal/por-grupo" element={<PorGrupoPageMarginal />} />
+                      <Route path="/analisis-marginal/evolucion" element={<EvolucionTemporalPageMarginal />} />
+                      
+                      {/* ============================================ */}
+                      {/* ANÁLISIS - PÁGINAS IMPLEMENTADAS */}
+                      {/* ============================================ */}
+                      <Route path="/analisis" element={<DashboardAnalisisPage />} />
+                      <Route path="/analisis/por-prestacion" element={<AnalisisPorPrestacionPage />} />
+                      <Route path="/analisis/por-prestador" element={<AnalisisPorPrestadorPage />} />
+                      <Route path="/analisis/por-obra-social" element={<AnalisisPorObraSocialPage />} />
+                      <Route path="/analisis/por-grupo" element={<AnalisisPorGrupoPage />} />
+                      <Route path="/analisis/evolucion" element={<EvolucionTemporalPage />} />
+                      
+                      {/* Rutas legacy (por compatibilidad) */}
+                      <Route path="/analisis/obra-social" element={<AnalisisPorObraSocialPage />} />
+                      <Route path="/analisis/prestador" element={<AnalisisPorPrestadorPage />} />
+                      <Route path="/analisis/turnos" element={<AnalisisTurnosPage />} />
+                      
+                      {/* ============================================ */}
+                      {/* TESORERÍA - LAZY LOADED */}
+                      {/* ============================================ */}
+                      <Route path="/tesoreria" element={<TesoreriaDashboardPage />} />
+                      <Route path="/tesoreria/caja/movimientos" element={<CajaMovimientosPage />} />
+                      <Route path="/tesoreria/caja/saldo-historico" element={<SaldoHistoricoPage />} />
+                      <Route path="/tesoreria/bancos" element={<ComingSoonPage title="Bancos" />} />
+                      
+                      {/* ============================================ */}
+                      {/* DERIVACIONES */}
+                      {/* ============================================ */}
+                      <Route path="/derivaciones/liquidacion" element={<DerivacionesLiquidacionPage />} />
+                      
+                      {/* ============================================ */}
+                      {/* LIQUIDACIÓN DE HONORARIOS */}
+                      {/* ============================================ */}
+                      <Route path="/liquidaciones/honorarios" element={<LiqHonorariosPage />} />
+                      
+                      {/* ============================================ */}
+                      {/* INFORMES DE GESTIÓN */}
+                      {/* ============================================ */}
+                      <Route path="/informes" element={
+                        <ProtectedRoute modulo="informes">
+                          <InformesPage />
+                        </ProtectedRoute>
+                      } />
+                      
+                      {/* ============================================ */}
+                      {/* SEGUIMIENTO DE PACIENTES */}
+                      {/* ============================================ */}
+                      <Route path="/seguimiento-pacientes" element={
+                        <ProtectedRoute modulo="informes">
+                          <SeguimientoPacientesPage />
+                        </ProtectedRoute>
+                      } />
+                      
+                      {/* ============================================ */}
+                      {/* PRESUPUESTADOR */}
+                      {/* ============================================ */}
+                      <Route path="/presupuestos" element={<Presupuestador />} />
+                      <Route path="/presupuestos/busqueda" element={<BusquedaPresupuestosPage />} />
+                      
+                      {/* ============================================ */}
+                      {/* ADMINISTRACIÓN - Gestión de Accesos Unificada */}
+                      {/* ============================================ */}
+                      <Route 
+                        path="/gestion-accesos" 
+                        element={
+                          <ProtectedRoute requiereAdmin>
+                            <GestionAccesosPage />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Coming Soon */}
+                      <Route path="/turnos" element={<ComingSoonPage title="Gestión de Turnos" />} />
+                      <Route path="/configuracion" element={<ComingSoonPage title="Configuración" />} />
+                      
+                      {/* Fallback */}
+                      <Route path="*" element={<PrestacionesRealizadasPage />} />
+                    </Routes>
+                  </Suspense>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </TipoCambioProvider>
+    </AuthProvider>
+  );
+};
+
+export default App;
