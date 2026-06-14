@@ -19,11 +19,11 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import LoginPage from '@modules/accesos/pages/LoginPage';
 
 // Páginas principales
-import PrestacionesPage from './pages/PrestacionesPage';
+import PrestacionesPage from '@modules/prestaciones/pages/PrestacionesPage';
 import InsumosVariablesPage from './pages/InsumosVariablesPage';
 
 // Prestaciones Realizadas (también usado como Dashboard temporal)
-import PrestacionesRealizadasPage from './pages/PrestacionesRealizadasPage';
+import PrestacionesRealizadasPage from '@modules/prestaciones/pages/PrestacionesRealizadasPage';
 
 // Páginas de Costos
 import PoolsConfigPage from './pages/PoolsConfigPage';

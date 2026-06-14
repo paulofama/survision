@@ -1,7 +1,7 @@
-// ============================================
-// PÁGINA: Prestaciones Realizadas
+﻿// ============================================
+// PÃGINA: Prestaciones Realizadas
 // Sistema de Costos - Instituto Dr. Mercado
-// VERSIÓN 3.0 - Diseño Moderno
+// VERSIÃ“N 3.0 - DiseÃ±o Moderno
 // ============================================
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -25,8 +25,8 @@ import {
   WifiOff,
   LayoutList
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '../hooks/useMovimientosPrestaciones';
-import { FiltroSelect, StatCard } from '../components/ui';
+import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
+import { FiltroSelect, StatCard } from '@/components/ui';
 
 // ============================================
 // COMPONENTE PRINCIPAL
@@ -52,19 +52,19 @@ const PrestacionesRealizadasPage: React.FC = () => {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [busquedaLocal, setBusquedaLocal] = useState('');
 
-  // Inicializar filtros con año y mes actual al cargar
+  // Inicializar filtros con aÃ±o y mes actual al cargar
   useEffect(() => {
     const fechaActual = new Date();
     const anioActual = fechaActual.getFullYear().toString();
     const mesActual = (fechaActual.getMonth() + 1).toString();
     
-    // Solo aplicar si los filtros están vacíos (primera carga)
+    // Solo aplicar si los filtros estÃ¡n vacÃ­os (primera carga)
     if (!filtros.anio && !filtros.mes) {
       aplicarFiltros({ anio: anioActual, mes: mesActual });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filtrado local por búsqueda de texto
+  // Filtrado local por bÃºsqueda de texto
   const prestacionesFiltradas = useMemo(() => {
     if (!busquedaLocal.trim()) return prestaciones;
     
@@ -112,8 +112,8 @@ const PrestacionesRealizadasPage: React.FC = () => {
     if (prestacionesFiltradas.length === 0) return;
 
     const headers = [
-      'Práctica', 'Fecha', 'Hora', 'Paciente', 'Prestador', 'Derivador',
-      'O.S. Nombre', 'Prestación', 'Coseguro', 'Cobertura', 'Total', 'Atendió'
+      'PrÃ¡ctica', 'Fecha', 'Hora', 'Paciente', 'Prestador', 'Derivador',
+      'O.S. Nombre', 'PrestaciÃ³n', 'Coseguro', 'Cobertura', 'Total', 'AtendiÃ³'
     ];
 
     const rows = prestacionesFiltradas.map(p => [
@@ -168,7 +168,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Indicador de conexión */}
+            {/* Indicador de conexiÃ³n */}
             <div className={`
               flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold
               transition-all duration-300 shadow-sm
@@ -181,7 +181,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
               {isConnected ? 'Conectado' : 'Desconectado'}
             </div>
 
-            {/* Botón refrescar */}
+            {/* BotÃ³n refrescar */}
             <button
               onClick={refetch}
               disabled={loading}
@@ -195,7 +195,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
               Actualizar
             </button>
 
-            {/* Botón exportar */}
+            {/* BotÃ³n exportar */}
             <button
               onClick={exportarCSV}
               disabled={prestacionesFiltradas.length === 0}
@@ -212,11 +212,11 @@ const PrestacionesRealizadasPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Estadísticas KPIs */}
+      {/* EstadÃ­sticas KPIs */}
       <div className="px-6 py-5">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard
-            title="Prácticas del Día"
+            title="PrÃ¡cticas del DÃ­a"
             value={estadisticas?.practicas_hoy || 0}
             subtitle={getFechaHoy()}
             icon={<Activity className="h-5 w-5" />}
@@ -299,7 +299,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
         <div className="mx-6 mb-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <FiltroSelect
-              label="Año"
+              label="AÃ±o"
               value={filtros.anio}
               onChange={(v) => {
                 if (!v) {
@@ -330,7 +330,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
 
             <div className="relative">
               <FiltroSelect
-                label="Día"
+                label="DÃ­a"
                 value={filtros.dia}
                 onChange={(v) => aplicarFiltros({ dia: v })}
                 options={(opcionesFiltros.dias || []).map(d => ({ value: d.value, label: d.label }))}
@@ -339,7 +339,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
                 disabled={loadingFiltros || !filtros.anio || !filtros.mes}
               />
               {(!filtros.anio || !filtros.mes) && (
-                <p className="text-[10px] text-amber-600 mt-1 font-medium">⚠️ Requiere año y mes</p>
+                <p className="text-[10px] text-amber-600 mt-1 font-medium">âš ï¸ Requiere aÃ±o y mes</p>
               )}
             </div>
             
@@ -376,7 +376,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-100">
             <FiltroSelect
-              label="Grupo de Prácticas"
+              label="Grupo de PrÃ¡cticas"
               value={filtros.grupoPracticas}
               onChange={(v) => aplicarFiltros({ grupoPracticas: v })}
               options={opcionesFiltros.gruposPracticas.map(g => ({ value: g.id, label: g.nombre }))}
@@ -387,13 +387,13 @@ const PrestacionesRealizadasPage: React.FC = () => {
             <div className="flex flex-col">
               <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Activity className="h-3 w-3" />
-                Prestación
+                PrestaciÃ³n
               </label>
               <input
                 type="text"
                 value={filtros.prestacion}
                 onChange={(e) => aplicarFiltros({ prestacion: e.target.value })}
-                placeholder="Buscar prestación..."
+                placeholder="Buscar prestaciÃ³n..."
                 className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm
                            focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
                            transition-all duration-200 hover:border-slate-300 shadow-sm"
@@ -428,7 +428,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Búsqueda rápida local */}
+      {/* BÃºsqueda rÃ¡pida local */}
       <div className="mx-6 mb-4">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center gap-4">
@@ -438,7 +438,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
                 type="text"
                 value={busquedaLocal}
                 onChange={(e) => setBusquedaLocal(e.target.value)}
-                placeholder="Buscar por paciente, prestador, obra social, prestación, código, ID..."
+                placeholder="Buscar por paciente, prestador, obra social, prestaciÃ³n, cÃ³digo, ID..."
                 className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm
                            focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
                            transition-all duration-200 bg-slate-50 hover:bg-white"
@@ -451,7 +451,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
               {prestaciones.length === 500 && (
                 <span className="flex items-center gap-1.5 text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full font-semibold">
                   <AlertCircle className="h-3.5 w-3.5" />
-                  Límite alcanzado
+                  LÃ­mite alcanzado
                 </span>
               )}
             </div>
@@ -489,11 +489,11 @@ const PrestacionesRealizadasPage: React.FC = () => {
                   <th className="px-2 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider w-28">Prestador</th>
                   <th className="px-2 py-3 text-center font-semibold text-slate-600 text-xs uppercase tracking-wider w-16">Deriv.</th>
                   <th className="px-2 py-3 text-center font-semibold text-slate-600 text-xs uppercase tracking-wider w-28">O. Social</th>
-                  <th className="px-2 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Prestación</th>
+                  <th className="px-2 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">PrestaciÃ³n</th>
                   <th className="px-2 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider w-24">Coseguro</th>
                   <th className="px-2 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider w-24">Cobertura</th>
                   <th className="px-2 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider w-28">Total</th>
-                  <th className="px-2 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider w-20">Atendió</th>
+                  <th className="px-2 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider w-20">AtendiÃ³</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -514,7 +514,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
                           <FileSpreadsheet className="h-10 w-10 text-slate-400" />
                         </div>
                         <p className="font-semibold text-slate-700">No se encontraron prestaciones</p>
-                        <p className="text-sm text-slate-500">Intenta ajustar los filtros de búsqueda</p>
+                        <p className="text-sm text-slate-500">Intenta ajustar los filtros de bÃºsqueda</p>
                       </div>
                     </td>
                   </tr>
@@ -529,7 +529,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
                       <td className="px-2 py-2 text-slate-500 whitespace-nowrap text-xs text-center">{p.hora}</td>
                       <td className="px-2 py-2 text-slate-900 font-medium text-xs">{p.apellido_nombre}</td>
                       <td className="px-2 py-2 text-slate-600 text-xs truncate max-w-[112px]" title={p.prestador}>{p.prestador}</td>
-                      <td className="px-2 py-2 text-slate-400 text-xs text-center">{p.derivador || '—'}</td>
+                      <td className="px-2 py-2 text-slate-400 text-xs text-center">{p.derivador || 'â€”'}</td>
                       <td className="px-2 py-2 text-center">
                         <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 truncate max-w-[100px]" title={p.os_nombre}>
                           {p.os_nombre}
@@ -537,10 +537,10 @@ const PrestacionesRealizadasPage: React.FC = () => {
                       </td>
                       <td className="px-2 py-2 text-slate-700 text-xs">{p.prestacion}</td>
                       <td className="px-2 py-2 text-right font-mono text-xs text-slate-600">
-                        {p.coseguro > 0 ? `$ ${p.coseguro.toLocaleString('es-AR')}` : '—'}
+                        {p.coseguro > 0 ? `$ ${p.coseguro.toLocaleString('es-AR')}` : 'â€”'}
                       </td>
                       <td className="px-2 py-2 text-right font-mono text-xs text-slate-600">
-                        {p.cobertura > 0 ? `$ ${p.cobertura.toLocaleString('es-AR')}` : '—'}
+                        {p.cobertura > 0 ? `$ ${p.cobertura.toLocaleString('es-AR')}` : 'â€”'}
                       </td>
                       <td className="px-2 py-2 text-right font-mono text-xs font-semibold text-slate-900">
                         $ {p.total > 0 ? p.total.toLocaleString('es-AR') : '0'}
