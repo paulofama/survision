@@ -1,13 +1,13 @@
-// ============================================
-// ANÁLISIS POR PRESTACIÓN
+﻿// ============================================
+// ANÃLISIS POR GRUPO DE PRÃCTICAS
 // Sistema de Costos - Instituto Dr. Mercado
-// VERSIÓN 3.0 - TOTALES DESDE SERVIDOR
+// VERSIÃ“N 3.0 - TOTALES DESDE SERVIDOR
 // ============================================
 // CAMBIO v3.0: Los KPIs ahora usan `totalesPeriodo` y
-// `statsPorPrestacion` del servidor, NO calculan sobre
+// `statsPorGrupo` del servidor, NO calculan sobre
 // datos paginados del frontend.
 // ============================================
-// RUTA: src/pages/analisis/AnalisisPorPrestacionPage.tsx
+// RUTA: src/pages/analisis/AnalisisPorGrupoPage.tsx
 // ============================================
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -16,7 +16,7 @@ import {
   RefreshCw,
   Download,
   Calendar,
-  Activity,
+  FolderTree,
   TrendingUp,
   DollarSign,
   Users,
@@ -26,22 +26,22 @@ import {
   Wifi,
   WifiOff,
   ChevronDown,
-  Building2,
-  UserCheck,
-  Hash
+  Hash,
+  Activity,
+  Layers
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '../../hooks/useMovimientosPrestaciones';
-import { FiltroSelect, StatCard } from '../../components/ui';
+import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
+import { FiltroSelect, StatCard } from '@/components/ui';
 
 // ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 
-const AnalisisPorPrestacionPage: React.FC = () => {
+const AnalisisPorGrupoPage: React.FC = () => {
   const {
     prestaciones,
-    totalesPeriodo,        // ★ v3.0: Totales del servidor
-    statsPorPrestacion,    // ★ v3.0: Datos agrupados del servidor
+    totalesPeriodo,        // â˜… v3.0: Totales del servidor
+    statsPorGrupo,         // â˜… v3.0: Datos agrupados del servidor
     opcionesFiltros,
     filtros,
     aplicarFiltros,
@@ -69,23 +69,21 @@ const AnalisisPorPrestacionPage: React.FC = () => {
   }, []);
 
   // ============================================
-  // FILTRAR DATOS POR BÚSQUEDA LOCAL
-  // (Solo para la tabla, NO para KPIs)
+  // FILTRAR DATOS POR BÃšSQUEDA LOCAL
   // ============================================
 
   const datosFiltrados = useMemo(() => {
-    if (!statsPorPrestacion || statsPorPrestacion.length === 0) return [];
+    if (!statsPorGrupo || statsPorGrupo.length === 0) return [];
     
-    if (!busquedaLocal.trim()) return statsPorPrestacion;
+    if (!busquedaLocal.trim()) return statsPorGrupo;
     
     const termino = busquedaLocal.toLowerCase();
-    return statsPorPrestacion.filter(p =>
-      p.prestacion?.toLowerCase().includes(termino) ||
-      p.codigo?.toLowerCase().includes(termino)
+    return statsPorGrupo.filter(g =>
+      g.grupo_nombre?.toLowerCase().includes(termino)
     );
-  }, [statsPorPrestacion, busquedaLocal]);
+  }, [statsPorGrupo, busquedaLocal]);
 
-  // Top 10 para gráfico (de datos filtrados por búsqueda)
+  // Top 10 para grÃ¡fico
   const top10 = datosFiltrados.slice(0, 10);
 
   // ============================================
@@ -115,27 +113,26 @@ const AnalisisPorPrestacionPage: React.FC = () => {
 
   const getBarColor = (index: number): string => {
     const colors = [
-      'bg-cyan-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500',
-      'bg-blue-500', 'bg-orange-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500'
+      'bg-amber-500', 'bg-emerald-500', 'bg-blue-500', 'bg-violet-500', 'bg-rose-500',
+      'bg-cyan-500', 'bg-orange-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500'
     ];
     return colors[index % colors.length];
   };
 
-  // Período actual para mostrar
   const periodoTexto = filtros.anio && filtros.mes 
     ? `${getNombreMes(filtros.mes)} ${filtros.anio}`
     : filtros.anio 
-      ? `Año ${filtros.anio}`
-      : 'Todos los períodos';
+      ? `AÃ±o ${filtros.anio}`
+      : 'Todos los perÃ­odos';
 
   // Exportar a CSV
   const exportarCSV = () => {
     if (datosFiltrados.length === 0) return;
-    const headers = ['#', 'Código', 'Prestación', 'Cantidad', '%', 'Promedio', 'Coseguro', 'Cobertura', 'Total'];
+    const headers = ['#', 'Grupo', 'Tipos', 'Cantidad', '%', 'Promedio', 'Coseguro', 'Cobertura', 'Total'];
     const rows = datosFiltrados.map((item, idx) => [
       idx + 1, 
-      item.codigo, 
-      `"${item.prestacion}"`, 
+      `"${item.grupo_nombre}"`, 
+      item.tipos_prestacion,
       item.cantidad,
       item.porcentaje, 
       item.promedio?.toFixed(0) || 0, 
@@ -147,7 +144,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `analisis-prestaciones-${filtros.anio || 'todos'}-${filtros.mes || 'todos'}.csv`;
+    link.download = `analisis-grupos-${filtros.anio || 'todos'}-${filtros.mes || 'todos'}.csv`;
     link.click();
   };
 
@@ -161,19 +158,19 @@ const AnalisisPorPrestacionPage: React.FC = () => {
       <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg shadow-cyan-500/20">
-              <Activity className="h-6 w-6 text-white" />
+            <div className="p-2.5 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg shadow-amber-500/20">
+              <Layers className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">Análisis por Prestación</h1>
+              <h1 className="text-2xl font-bold text-slate-800">AnÃ¡lisis por Grupo de PrÃ¡cticas</h1>
               <p className="text-sm text-slate-500 mt-0.5">
-                Desglose de ingresos por tipo de práctica médica
+                Desglose de ingresos por categorÃ­a de prestaciones
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Indicador de conexión */}
+            {/* Indicador de conexiÃ³n */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
               isConnected 
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -187,7 +184,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
               onClick={() => setMostrarFiltros(!mostrarFiltros)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
                 mostrarFiltros
-                  ? 'bg-cyan-50 border-cyan-200 text-cyan-700'
+                  ? 'bg-amber-50 border-amber-200 text-amber-700'
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -199,7 +196,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
             <button
               onClick={refetch}
               disabled={loading || loadingStats}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-300 text-white rounded-lg transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg transition-colors shadow-sm"
             >
               <RefreshCw className={`h-4 w-4 ${(loading || loadingStats) ? 'animate-spin' : ''}`} />
               Actualizar
@@ -220,13 +217,13 @@ const AnalisisPorPrestacionPage: React.FC = () => {
         {mostrarFiltros && (
           <div className="mt-4 pt-4 border-t border-slate-100">
             <div className="flex flex-wrap items-end gap-4">
-              {/* Año */}
+              {/* AÃ±o */}
               <div className="w-32">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Año</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">AÃ±o</label>
                 <select
                   value={filtros.anio}
                   onChange={(e) => aplicarFiltros({ anio: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   disabled={loadingFiltros}
                 >
                   <option value="">Todos</option>
@@ -242,7 +239,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                 <select
                   value={filtros.mes}
                   onChange={(e) => aplicarFiltros({ mes: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   disabled={loadingFiltros}
                 >
                   <option value="">Todos</option>
@@ -258,7 +255,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                 <select
                   value={filtros.obraSocialId}
                   onChange={(e) => aplicarFiltros({ obraSocialId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   disabled={loadingFiltros}
                 >
                   <option value="">Todas</option>
@@ -274,7 +271,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                 <select
                   value={filtros.prestadorId}
                   onChange={(e) => aplicarFiltros({ prestadorId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   disabled={loadingFiltros}
                 >
                   <option value="">Todos</option>
@@ -284,7 +281,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Búsqueda local */}
+              {/* BÃºsqueda local */}
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Buscar</label>
                 <div className="relative">
@@ -293,8 +290,8 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                     type="text"
                     value={busquedaLocal}
                     onChange={(e) => setBusquedaLocal(e.target.value)}
-                    placeholder="Filtrar por código o nombre..."
-                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    placeholder="Filtrar por nombre del grupo..."
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -319,19 +316,19 @@ const AnalisisPorPrestacionPage: React.FC = () => {
       <div className="flex-1 overflow-auto p-6 space-y-6">
         
         {/* ==================== STATS CARDS ==================== */}
-        {/* ★★★ v3.0: Usando totalesPeriodo del servidor ★★★ */}
+        {/* â˜…â˜…â˜… v3.0: Usando totalesPeriodo del servidor â˜…â˜…â˜… */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard
-            title="Tipos de Prestación"
-            value={statsPorPrestacion.length}
+            title="Grupos"
+            value={statsPorGrupo.length}
             subtitle={periodoTexto}
-            icon={<Activity className="h-5 w-5" />}
-            variant="cyan"
+            icon={<Layers className="h-5 w-5" />}
+            variant="amber"
           />
           <StatCard
-            title="Total Realizadas"
+            title="Total PrÃ¡cticas"
             value={formatNumber(totalesPeriodo.practicas)}
-            subtitle="Prácticas"
+            subtitle="Realizadas"
             icon={<Hash className="h-5 w-5" />}
             variant="violet"
           />
@@ -340,7 +337,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
             value={formatCurrency(totalesPeriodo.coseguro)}
             subtitle="Copago pacientes"
             icon={<Users className="h-5 w-5" />}
-            variant="amber"
+            variant="cyan"
           />
           <StatCard
             title="Cobertura"
@@ -358,22 +355,22 @@ const AnalisisPorPrestacionPage: React.FC = () => {
           />
         </div>
 
-        {/* ==================== GRÁFICO TOP 10 ==================== */}
+        {/* ==================== GRÃFICO TOP 10 ==================== */}
         {top10.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-cyan-500" />
-              Top 10 Prestaciones por Ingresos
+              <TrendingUp className="h-5 w-5 text-amber-500" />
+              Top 10 Grupos por Ingresos
             </h3>
             <div className="space-y-3">
               {top10.map((item, idx) => (
-                <div key={item.codigo} className="flex items-center gap-3">
+                <div key={item.grupo_id || item.grupo_nombre} className="flex items-center gap-3">
                   <span className="w-6 text-sm font-bold text-slate-400 text-right">#{idx + 1}</span>
-                  <span className="w-20 text-xs font-mono text-cyan-600 bg-cyan-50 px-2 py-1 rounded truncate" title={item.codigo}>
-                    {item.codigo}
+                  <span className="w-64 text-sm font-medium text-slate-700 truncate" title={item.grupo_nombre}>
+                    {item.grupo_nombre}
                   </span>
-                  <span className="w-48 text-sm font-medium text-slate-700 truncate" title={item.prestacion}>
-                    {item.prestacion}
+                  <span className="w-16 text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded text-center">
+                    {item.tipos_prestacion} tipos
                   </span>
                   <div className="flex-1 h-8 bg-slate-100 rounded-lg overflow-hidden relative">
                     <div
@@ -396,16 +393,16 @@ const AnalisisPorPrestacionPage: React.FC = () => {
         {/* ==================== TABLA DETALLE ==================== */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-800">Detalle por Prestación</h3>
+            <h3 className="text-lg font-semibold text-slate-800">Detalle por Grupo</h3>
             <span className="text-sm text-slate-500">
-              {datosFiltrados.length} tipos · {formatNumber(totalesPeriodo.practicas)} realizadas
+              {datosFiltrados.length} grupos Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas
             </span>
           </div>
           
           {(loading || loadingStats) ? (
             <div className="flex items-center justify-center py-16">
               <div className="flex flex-col items-center gap-3">
-                <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-sm text-slate-500">Cargando datos...</span>
               </div>
             </div>
@@ -419,7 +416,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
           ) : datosFiltrados.length === 0 ? (
             <div className="flex items-center justify-center py-16">
               <div className="flex flex-col items-center gap-3 text-slate-400">
-                <Activity className="h-12 w-12" />
+                <Layers className="h-12 w-12" />
                 <span className="text-sm">No hay datos para mostrar</span>
               </div>
             </div>
@@ -430,8 +427,8 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                   <thead className="bg-slate-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-12">#</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">Código</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Prestación</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Grupo</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">Tipos</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">Cantidad</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">Promedio</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-32">Coseguro</th>
@@ -442,16 +439,12 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {datosFiltrados.map((item, idx) => (
-                      <tr key={item.codigo} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={item.grupo_id || item.grupo_nombre} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3 text-sm text-slate-400 font-medium">{idx + 1}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-cyan-100 text-cyan-700 text-xs font-mono font-semibold rounded">
-                            {item.codigo}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.prestacion}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.grupo_nombre}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600 text-right">{item.tipos_prestacion}</td>
                         <td className="px-4 py-3 text-sm text-slate-600 text-right font-medium">{formatNumber(item.cantidad)}</td>
-                        <td className="px-4 py-3 text-sm text-cyan-600 text-right font-medium">{formatCurrency(item.promedio || 0)}</td>
+                        <td className="px-4 py-3 text-sm text-amber-600 text-right font-medium">{formatCurrency(item.promedio || 0)}</td>
                         <td className="px-4 py-3 text-sm text-slate-600 text-right">{formatCurrency(item.coseguro)}</td>
                         <td className="px-4 py-3 text-sm text-slate-600 text-right">{formatCurrency(item.cobertura)}</td>
                         <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right">{formatCurrency(item.total_ingresos)}</td>
@@ -459,7 +452,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-cyan-500 rounded-full transition-all"
+                                className="h-full bg-amber-500 rounded-full transition-all"
                                 style={{ width: `${Math.min(parseFloat(item.porcentaje), 100)}%` }}
                               />
                             </div>
@@ -475,7 +468,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                     <tr className="font-bold">
                       <td colSpan={3} className="px-4 py-3 text-sm text-slate-700">TOTALES</td>
                       <td className="px-4 py-3 text-sm text-slate-700 text-right">{formatNumber(totalesPeriodo.practicas)}</td>
-                      <td className="px-4 py-3 text-sm text-cyan-700 text-right">
+                      <td className="px-4 py-3 text-sm text-amber-700 text-right">
                         {formatCurrency(totalesPeriodo.practicas > 0 ? totalesPeriodo.ingresos / totalesPeriodo.practicas : 0)}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700 text-right">{formatCurrency(totalesPeriodo.coseguro)}</td>
@@ -499,7 +492,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
             Fuente: SQL Server Local - GECLISA
           </span>
           <span className="font-medium">
-            {statsPorPrestacion.length} tipos · {formatNumber(totalesPeriodo.practicas)} realizadas · {formatCurrency(totalesPeriodo.ingresos)}
+            {statsPorGrupo.length} grupos Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas Â· {formatCurrency(totalesPeriodo.ingresos)}
           </span>
         </div>
       </div>
@@ -507,4 +500,4 @@ const AnalisisPorPrestacionPage: React.FC = () => {
   );
 };
 
-export default AnalisisPorPrestacionPage;
+export default AnalisisPorGrupoPage;

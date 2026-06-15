@@ -1,11 +1,11 @@
-// ============================================
-// PÁGINA: ANÁLISIS POR PRESTADOR
+﻿// ============================================
+// PÃGINA: ANÃLISIS POR PRESTADOR
 // Sistema de Costos - Instituto Dr. Mercado
-// VERSIÓN 3.0 - TOTALES DESDE SERVIDOR
+// VERSIÃ“N 3.0 - TOTALES DESDE SERVIDOR
 // ============================================
 // CAMBIO v3.0: KPIs desde totalesPeriodo del servidor,
-// 3 filtros dinámicos (Año+Mes+OS), tfoot, indicador
-// conexión, footer, barra productividad proporcional.
+// 3 filtros dinÃ¡micos (AÃ±o+Mes+OS), tfoot, indicador
+// conexiÃ³n, footer, barra productividad proporcional.
 // ============================================
 // RUTA: src/pages/analisis/AnalisisPorPrestadorPage.tsx
 // ============================================
@@ -28,8 +28,8 @@ import {
   ChevronDown,
   AlertCircle
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '../../hooks/useMovimientosPrestaciones';
-import ComparativaInteligente from '../../components/ComparativaInteligente';
+import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
+import ComparativaInteligente from '@/components/ComparativaInteligente';
 
 const AnalisisPorPrestadorPage: React.FC = () => {
   const {
@@ -52,7 +52,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
 
-  // ★ v3.0: Filtros por defecto al cargar
+  // â˜… v3.0: Filtros por defecto al cargar
   useEffect(() => {
     const fechaActual = new Date();
     const anioActual = fechaActual.getFullYear().toString();
@@ -81,7 +81,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
   const cantidadPrestadores = statsPorPrestador.length;
   const top5 = prestadoresFiltrados.slice(0, 5);
 
-  // ★ v3.0: Barra productividad proporcional al máximo
+  // â˜… v3.0: Barra productividad proporcional al mÃ¡ximo
   const maxPorcentaje = useMemo(() => {
     return Math.max(...prestadoresFiltrados.map(p => parseFloat(p.porcentaje || '0')), 1);
   }, [prestadoresFiltrados]);
@@ -112,7 +112,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
 
   const periodoTexto = filtros.anio && filtros.mes
     ? `${getNombreMes(filtros.mes)} ${filtros.anio}`
-    : filtros.anio ? `Año ${filtros.anio}` : 'Todos los períodos';
+    : filtros.anio ? `AÃ±o ${filtros.anio}` : 'Todos los perÃ­odos';
 
   const handleSort = (field: 'cantidad' | 'total_ingresos') => {
     if (sortField === field) {
@@ -152,15 +152,15 @@ const AnalisisPorPrestadorPage: React.FC = () => {
               <Users className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">Análisis por Prestador</h1>
+              <h1 className="text-2xl font-bold text-slate-800">AnÃ¡lisis por Prestador</h1>
               <p className="text-sm text-slate-500 mt-0.5">
-                Productividad de profesionales · {periodoTexto}
+                Productividad de profesionales Â· {periodoTexto}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Indicador de conexión */}
+            {/* Indicador de conexiÃ³n */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
               isConnected
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -203,13 +203,13 @@ const AnalisisPorPrestadorPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ==================== FILTROS (3: Año + Mes + OS) ==================== */}
+        {/* ==================== FILTROS (3: AÃ±o + Mes + OS) ==================== */}
         {mostrarFiltros && (
           <div className="mt-4 pt-4 border-t border-slate-100">
             <div className="flex flex-wrap items-end gap-4">
-              {/* Año */}
+              {/* AÃ±o */}
               <div className="w-32">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Año</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">AÃ±o</label>
                 <select
                   value={filtros.anio}
                   onChange={(e) => aplicarFiltros({ anio: e.target.value })}
@@ -255,7 +255,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Búsqueda local */}
+              {/* BÃºsqueda local */}
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Buscar</label>
                 <div className="relative">
@@ -287,7 +287,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
       <div className="flex-1 overflow-auto p-6 space-y-6">
 
         {/* Comparativa Inteligente */}
-        <ComparativaInteligente titulo="Comparativa del Período" compacto={true} mostrarProgreso={true} />
+        <ComparativaInteligente titulo="Comparativa del PerÃ­odo" compacto={true} mostrarProgreso={true} />
 
         {/* ==================== STAT CARDS ==================== */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -297,7 +297,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
               <UserCheck className="h-4 w-4 text-purple-500" />
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(totalesPeriodo.practicas)}</p>
-            <p className="text-xs text-slate-400 mt-1">Prácticas realizadas</p>
+            <p className="text-xs text-slate-400 mt-1">PrÃ¡cticas realizadas</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
@@ -352,7 +352,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
                       index === 2 ? 'text-orange-400' :
                       'text-purple-400'
                     }`}>
-                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                      {index === 0 ? 'ðŸ¥‡' : index === 1 ? 'ðŸ¥ˆ' : index === 2 ? 'ðŸ¥‰' : `#${index + 1}`}
                     </span>
                     <span className="text-xs bg-gray-100 px-2 py-1 rounded">
                       {prestador.porcentaje}%
@@ -382,7 +382,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
           <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-800">Detalle por Prestador</h3>
             <span className="text-sm text-slate-500">
-              {prestadoresFiltrados.length} profesionales · {formatNumber(totalesPeriodo.practicas)} prácticas
+              {prestadoresFiltrados.length} profesionales Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas
             </span>
           </div>
 
@@ -438,7 +438,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
                               index === 1 ? 'text-gray-400' :
                               'text-orange-400'
                             }`}>
-                              {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                              {index === 0 ? 'ðŸ¥‡' : index === 1 ? 'ðŸ¥ˆ' : 'ðŸ¥‰'}
                             </span>
                           ) : (
                             index + 1
@@ -496,7 +496,7 @@ const AnalisisPorPrestadorPage: React.FC = () => {
             Fuente: SQL Server Local - GECLISA
           </span>
           <span className="font-medium">
-            {cantidadPrestadores} profesionales · {formatNumber(totalesPeriodo.practicas)} prácticas · {formatCurrency(totalesPeriodo.ingresos)}
+            {cantidadPrestadores} profesionales Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas Â· {formatCurrency(totalesPeriodo.ingresos)}
           </span>
         </div>
       </div>

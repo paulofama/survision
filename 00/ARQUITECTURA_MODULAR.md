@@ -70,8 +70,20 @@ src/
   - `seguimiento` (1 page + hook)
   - `presupuestador` (2 pages)
   - `turnos` (AnalisisTurnos ruteada; **Diagnostico/DetalleAtenciones movidas pero SIN rutear** → decidir wirear o borrar)
-- ⬜ Pendiente: módulos grandes (`insumos`, `prestaciones`, `analisis`, `analisis-marginal`, `liquidaciones`, `informes`, `accesos`) + mover `sueldos` a `modules/` + crear `shared/`.
-- 📉 Progreso: páginas sueltas en `src/pages` 30 → 20; hooks sueltos 26 → 24.
+  - `accesos` (GestionAccesos + Login + useRoles)
+  - `liquidaciones` (honorarios + derivaciones + sub-paquete liq-honorarios)
+  - `prestaciones` (2 pages; hooks compartidos quedan en @/hooks)
+- ⬜ **Pendiente — cluster analítico entrelazado** (requiere cuidado/decisiones):
+  - `analisis` — OJO: páginas sueltas (AnalisisObraSocial, AnalisisPrestador, PorPrestacion, DashboardAnalisis, EvolucionTemporal) Y subcarpeta `pages/analisis/` (AnalisisPorX) → **posible duplicación a resolver antes de mover.**
+  - `analisis-marginal` — subcarpeta `pages/analisis-marginal/` + loose AnalisisMarginalPage + componentes compartidos `MarginalLayout`, `InformeGestionModal` + utils `generarInformeGestion`/`pdfGeneratorInformeGestion`.
+  - `informes` — InformesPage, InformesEjecutivos + useInformeGestion (comparte InformeGestion con analisis-marginal).
+  - `insumos` — InsumosVariables, Pools, Recetas, CostosFijos + muchos hooks/modals (60+ errores TS) ; usePrestaciones compartido.
+  - `sueldos` → mover a `modules/sueldos` (grande, muchos cross-refs internos pero autocontenido). `SueldosPage.tsx` loose parece la vieja (verificar si está muerta).
+  - `ComingSoonPage` y la capa shared (lib/context/ui/layout) → quedan accesibles vía `@/`.
+- 📉 Progreso: páginas sueltas en `src/pages` 30 → 14; hooks sueltos 26 → 22 aprox.
+
+### Hooks COMPARTIDOS detectados (NO mover a un módulo; viven en @/hooks)
+`useHonorariosConfig` (honorarios + analisis-marginal + evolucion), `usePrestaciones` (prestaciones + insumos/recetas), `useMovimientosPrestaciones`, `useEvolucionMensual`. Regla: **antes de mover un hook, grep TODO src por importadores; si lo usan 2+ dominios → es shared.**
 
 > **Lección (importante para el mapeo):** algunos imports usan **comillas dobles**
 > (`from "../lib/x"`). Al mapear dependencias de un módulo, grep con `from ['"]\.\.?/`

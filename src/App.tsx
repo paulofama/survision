@@ -50,14 +50,14 @@ import EvolucionTemporalPageMarginal from './pages/analisis-marginal/EvolucionTe
 // ============================================
 // ANÁLISIS - PÁGINAS IMPLEMENTADAS
 // ============================================
-import DashboardAnalisisPage from './pages/DashboardAnalisisPage';
+import DashboardAnalisisPage from '@modules/analisis/pages/DashboardAnalisisPage';
 import {
   AnalisisPorObraSocialPage,
   AnalisisPorPrestadorPage,
   AnalisisPorPrestacionPage,
   AnalisisPorGrupoPage
-} from './pages/analisis';
-import EvolucionTemporalPage from './pages/EvolucionTemporalPage';
+} from '@modules/analisis';
+import EvolucionTemporalPage from '@modules/analisis/pages/EvolucionTemporalPage';
 import AnalisisTurnosPage from '@modules/turnos/pages/AnalisisTurnosPage';
 
 // Páginas de Administración - UNIFICADA
