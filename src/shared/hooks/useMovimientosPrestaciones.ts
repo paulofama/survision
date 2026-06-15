@@ -303,6 +303,7 @@ export const useMovimientosPrestaciones = () => {
       
       if (filtros.anio) params.append('anio', filtros.anio);
       if (filtros.mes) params.append('mes', filtros.mes);
+      if (filtros.dia) params.append('dia', filtros.dia);
       if (filtros.obraSocialId) params.append('osId', filtros.obraSocialId);
       if (filtros.prestadorId) params.append('prestador', filtros.prestadorId);
       if (filtros.grupoPracticas) params.append('grupoPracticas', filtros.grupoPracticas);

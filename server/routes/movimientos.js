@@ -35,6 +35,7 @@ router.get('/', async (req, res) => {
       prestador,
       anio,
       mes,
+      dia,
       grupoPracticas,
       prestacion,
       paciente,
@@ -113,6 +114,11 @@ router.get('/', async (req, res) => {
     if (mes) {
       query += ` AND MONTH(m.Me_Fecha) = @mes`;
       params.mes = parseInt(mes);
+    }
+
+    if (dia) {
+      query += ` AND DAY(m.Me_Fecha) = @dia`;
+      params.dia = parseInt(dia);
     }
 
     if (osId) {
@@ -1001,11 +1007,14 @@ router.get('/filtros', async (req, res) => {
       { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' }
     ];
 
+    const dias = Array.from({ length: 31 }, (_, i) => ({ value: i + 1, label: String(i + 1) }));
+
     res.json({
       success: true,
       data: {
         anios: resultAnios.recordset.map(r => r.anio),
         meses,
+        dias,
         obrasSociales: resultOS.recordset.map(r => ({ id: r.id, sigla: r.sigla?.trim() || '', nombre: r.nombre?.trim() || '' })),
         prestadores: resultPrestadores.recordset.map(r => ({ id: r.id, nombre: r.nombre?.trim() || '' })),
         grupos: resultGrupos.recordset.map(r => ({ id: r.id, nombre: r.nombre?.trim() || '' })),
