@@ -62,7 +62,7 @@ cd C:\IA\COSTOS\sistema-costos; npm.cmd run dev
    - Enero: minuta cargada (netos+SS+sindicato). **F.931 = VEP** (no real) → falta el F.931 real de enero para generar el asiento.
    - **Feb y Mar: F.931 reales CARGADOS** (`REVISADO_CONFIRMADO`, vía `scripts/cargar-f931-2026.js`), con liquidacion contenedora VACIO. **Sin minuta (netos)** → no se generan asientos aún.
    - Para completar 2026 faltan: **F.931 real de enero** + **minuta de feb/mar+** (netos por empleado). Con eso: `cargar-minuta-2026.js --write` (toma todas las hojas MM-2026) y luego generar asientos (adaptar `generar-asientos-2025.js` → 2026).
-3. Sueldos: agregar **"Castillo Romina"** al maestro (falta en ene/feb/mar-2025; bruto/reparto incompletos esos meses).
+3. ✅ **(HECHO 2026-06-15)** Sueldos: **"Castillo Romina"** agregada al maestro (Telefonista, cuenta 4.1.1.08, inactiva, egreso ~mar-2025; datos personales con placeholder NOT NULL — no estaba en la planilla). Se recargaron sus netos de ene/feb/mar-2025 y se **regeneraron los 3 asientos** (RECONCILIABLE, cuadran). Scripts: `cargar-castillo-romina.cjs`, `regenerar-asientos-2025-q1.cjs`.
 4. (cosmético) Quitar el alias `@/` (ya sin uso, todo es `@shared`/`@modules`); re-homologar hooks/modales compartidos a su módulo si se quiere más pureza.
 
 ---
