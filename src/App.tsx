@@ -20,16 +20,16 @@ import LoginPage from '@modules/accesos/pages/LoginPage';
 
 // Páginas principales
 import PrestacionesPage from '@modules/prestaciones/pages/PrestacionesPage';
-import InsumosVariablesPage from './pages/InsumosVariablesPage';
+import InsumosVariablesPage from '@modules/insumos/pages/InsumosVariablesPage';
 
 // Prestaciones Realizadas (también usado como Dashboard temporal)
 import PrestacionesRealizadasPage from '@modules/prestaciones/pages/PrestacionesRealizadasPage';
 
 // Páginas de Costos
-import PoolsConfigPage from './pages/PoolsConfigPage';
+import PoolsConfigPage from '@modules/insumos/pages/PoolsConfigPage';
 import HonorariosPage from '@modules/liquidaciones/pages/HonorariosPage';
-import RecetasCostosPage from './pages/RecetasCostosPage';
-import CostosFijosPage from './pages/CostosFijosPage';
+import RecetasCostosPage from '@modules/insumos/pages/RecetasCostosPage';
+import CostosFijosPage from '@modules/insumos/pages/CostosFijosPage';
 
 // ============================================
 // PRESUPUESTADOR

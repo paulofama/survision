@@ -1,7 +1,7 @@
-// ============================================
-// PÁGINA: Configuración de Pools de Insumos
+﻿// ============================================
+// PÃGINA: ConfiguraciÃ³n de Pools de Insumos
 // Sistema de Costos - Instituto Dr. Mercado
-// CON FUNCIONALIDAD DE IMPRESIÓN Y CREACIÓN
+// CON FUNCIONALIDAD DE IMPRESIÃ“N Y CREACIÃ“N
 // ============================================
 
 import React, { useState } from 'react';
@@ -22,10 +22,10 @@ import {
   FileText,
   Save
 } from 'lucide-react';
-import { usePools } from '../hooks/usePools';
-import { useInsumosVariables } from '../hooks/useInsumosVariables';
-import type { PoolConItems, PoolItemConInsumo } from '../types/pools';
-import type { InsumoVariable } from '../types';
+import { usePools } from '@/hooks/usePools';
+import { useInsumosVariables } from '@/hooks/useInsumosVariables';
+import type { PoolConItems, PoolItemConInsumo } from '@/types/pools';
+import type { InsumoVariable } from '@/types';
 
 // ============================================
 // COLORES POR POOL
@@ -33,13 +33,13 @@ import type { InsumoVariable } from '../types';
 
 const POOL_COLORS: Record<string, string> = {
   'Insumos Generales en Consultorio': 'border-l-blue-500 bg-blue-50',
-  'Insumos Generales en Quirófano': 'border-l-green-500 bg-green-50',
+  'Insumos Generales en QuirÃ³fano': 'border-l-green-500 bg-green-50',
   'Kit Parabulbar': 'border-l-purple-500 bg-purple-50',
   'Kit Para RFG': 'border-l-indigo-500 bg-indigo-50',
   'Re Esterilizable Catarata': 'border-l-yellow-500 bg-yellow-50',
   'Re Esterilizable Retina': 'border-l-orange-500 bg-orange-50',
   'Re Esterilizable + Lavado': 'border-l-red-500 bg-red-50',
-  'Kit Sedación': 'border-l-amber-500 bg-amber-50',
+  'Kit SedaciÃ³n': 'border-l-amber-500 bg-amber-50',
 };
 
 const getPoolColor = (nombre: string): string => {
@@ -47,7 +47,7 @@ const getPoolColor = (nombre: string): string => {
 };
 
 // ============================================
-// FUNCIONES DE IMPRESIÓN DE POOLS
+// FUNCIONES DE IMPRESIÃ“N DE POOLS
 // ============================================
 
 const formatCurrencyPrint = (amount: number): string => {
@@ -69,7 +69,7 @@ const getFechaActual = (): string => {
   });
 };
 
-const FOOTER_TEXT = 'Sistema de Costos - Desarrollo | P. Famá';
+const FOOTER_TEXT = 'Sistema de Costos - Desarrollo | P. FamÃ¡';
 
 // Imprimir un pool individual con detalle
 const imprimirPool = (pool: PoolConItems) => {
@@ -140,17 +140,17 @@ const imprimirPool = (pool: PoolConItems) => {
         ${pool.descripcion ? `<div class="pool-desc">${pool.descripcion}</div>` : ''}
         <div class="pool-stats">
           <div class="stat-item"><span class="stat-label">Total de Insumos</span><span class="stat-value">${totalItems}</span></div>
-          <div class="stat-item"><span class="stat-label">Prácticas/Mes</span><span class="stat-value">${pool.total_practicas_mes || 0}</span></div>
+          <div class="stat-item"><span class="stat-label">PrÃ¡cticas/Mes</span><span class="stat-value">${pool.total_practicas_mes || 0}</span></div>
           <div class="stat-item"><span class="stat-label">Costo Total Pool</span><span class="stat-value highlight">${formatCurrencyPrint(costoTotal)}</span></div>
-          <div class="stat-item"><span class="stat-label">Costo por Práctica</span><span class="stat-value highlight">${formatCurrencyPrint(pool.costo_por_practica || 0)}</span></div>
+          <div class="stat-item"><span class="stat-label">Costo por PrÃ¡ctica</span><span class="stat-value highlight">${formatCurrencyPrint(pool.costo_por_practica || 0)}</span></div>
         </div>
       </div>
       <table>
         <thead>
           <tr>
             <th style="width: 40px;">#</th>
-            <th style="width: 80px;">Código</th>
-            <th>Descripción</th>
+            <th style="width: 80px;">CÃ³digo</th>
+            <th>DescripciÃ³n</th>
             <th style="width: 100px;">Precio Unit.</th>
             <th style="width: 70px;">Cant.</th>
             <th style="width: 70px;">Factor</th>
@@ -240,9 +240,9 @@ const imprimirPoolsResumen = (pools: PoolConItems[]) => {
             <th style="width: 40px;">#</th>
             <th>Nombre del Pool</th>
             <th style="width: 80px;">Insumos</th>
-            <th style="width: 90px;">Práct/Mes</th>
+            <th style="width: 90px;">PrÃ¡ct/Mes</th>
             <th style="width: 120px;">Costo Total</th>
-            <th style="width: 120px;">Costo/Práctica</th>
+            <th style="width: 120px;">Costo/PrÃ¡ctica</th>
           </tr>
         </thead>
         <tbody>
@@ -297,16 +297,16 @@ const imprimirPoolsDetalle = (pools: PoolConItems[]) => {
           <h2>${poolIndex + 1}. ${pool.nombre}</h2>
           <div class="pool-stats-inline">
             <span><strong>${pool.items.length}</strong> insumos</span>
-            <span><strong>${pool.total_practicas_mes || 0}</strong> práct/mes</span>
+            <span><strong>${pool.total_practicas_mes || 0}</strong> prÃ¡ct/mes</span>
             <span>Total: <strong style="color: #059669;">${formatCurrencyPrint(pool.costo_total || 0)}</strong></span>
-            <span>Por práctica: <strong style="color: #7c3aed;">${formatCurrencyPrint(pool.costo_por_practica || 0)}</strong></span>
+            <span>Por prÃ¡ctica: <strong style="color: #7c3aed;">${formatCurrencyPrint(pool.costo_por_practica || 0)}</strong></span>
           </div>
         </div>
         <table>
           <thead><tr>
             <th style="width: 25px;">#</th>
-            <th style="width: 65px;">Código</th>
-            <th>Descripción</th>
+            <th style="width: 65px;">CÃ³digo</th>
+            <th>DescripciÃ³n</th>
             <th style="width: 85px;">Precio Unit.</th>
             <th style="width: 45px;">Cant.</th>
             <th style="width: 85px;">Costo</th>
@@ -463,7 +463,7 @@ const PoolsConfigPage: React.FC = () => {
     }
   };
 
-  // Insumos filtrados para agregar (excluye los que ya están en el pool)
+  // Insumos filtrados para agregar (excluye los que ya estÃ¡n en el pool)
   const getInsumosDisponibles = (poolId: string): InsumoVariable[] => {
     const pool = pools.find(p => p.id === poolId);
     const idsEnPool = pool?.items.map(i => i.insumo_id) || [];
@@ -498,7 +498,7 @@ const PoolsConfigPage: React.FC = () => {
   };
 
   const handleRemoveInsumo = async (poolId: string, insumoId: string, descripcion: string) => {
-    if (!confirm(`¿Eliminar "${descripcion}" del pool?`)) return;
+    if (!confirm(`Â¿Eliminar "${descripcion}" del pool?`)) return;
     
     try {
       await removeItemFromPool(poolId, insumoId);
@@ -554,7 +554,7 @@ const PoolsConfigPage: React.FC = () => {
   };
 
   const handleCreatePool = async () => {
-    // Validación
+    // ValidaciÃ³n
     if (!newPoolForm.nombre.trim()) {
       showMessage('El nombre del pool es requerido', 'error');
       return;
@@ -677,7 +677,7 @@ const PoolsConfigPage: React.FC = () => {
             <div>
               <h3 className="font-semibold text-gray-900">{pool.nombre}</h3>
               <p className="text-sm text-gray-500">
-                {pool.items.length} insumos • {pool.total_practicas_mes || 0} prácticas/mes
+                {pool.items.length} insumos â€¢ {pool.total_practicas_mes || 0} prÃ¡cticas/mes
               </p>
             </div>
           </div>
@@ -688,7 +688,7 @@ const PoolsConfigPage: React.FC = () => {
               <p className="font-bold text-green-600">{formatCurrency(pool.costo_total)}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">Por Práctica</p>
+              <p className="text-sm text-gray-500">Por PrÃ¡ctica</p>
               <p className="font-bold text-blue-600">{formatCurrency(pool.costo_por_practica || 0)}</p>
             </div>
             {isExpanded ? (
@@ -716,7 +716,7 @@ const PoolsConfigPage: React.FC = () => {
                 <span>Agregar Insumo</span>
               </button>
 
-              {/* BOTÓN DE IMPRESIÓN */}
+              {/* BOTÃ“N DE IMPRESIÃ“N */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -736,7 +736,7 @@ const PoolsConfigPage: React.FC = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Buscar insumo por código o descripción..."
+                    placeholder="Buscar insumo por cÃ³digo o descripciÃ³n..."
                     value={searchInsumo}
                     onChange={(e) => setSearchInsumo(e.target.value)}
                     className="w-full pl-10 pr-10 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -791,13 +791,13 @@ const PoolsConfigPage: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">CÃ³digo</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">DescripciÃ³n</th>
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
                       <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
                       <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Factor</th>
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Costo</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acción</th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">AcciÃ³n</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -876,21 +876,21 @@ const PoolsConfigPage: React.FC = () => {
                   type="text"
                   value={newPoolForm.nombre}
                   onChange={(e) => handleNewPoolFormChange('nombre', e.target.value)}
-                  placeholder="Ej: Kit Sedación, Re Esterilizable Córnea..."
+                  placeholder="Ej: Kit SedaciÃ³n, Re Esterilizable CÃ³rnea..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   autoFocus
                 />
               </div>
 
-              {/* Descripción */}
+              {/* DescripciÃ³n */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descripción
+                  DescripciÃ³n
                 </label>
                 <textarea
                   value={newPoolForm.descripcion}
                   onChange={(e) => handleNewPoolFormChange('descripcion', e.target.value)}
-                  placeholder="Descripción opcional del pool..."
+                  placeholder="DescripciÃ³n opcional del pool..."
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
                 />
@@ -920,7 +920,7 @@ const PoolsConfigPage: React.FC = () => {
               {/* Info */}
               <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-800">
-                  <strong>💡 Tip:</strong> Una vez creado el pool, podrás agregar insumos haciendo clic en él y usando el botón "Agregar Insumo".
+                  <strong>ðŸ’¡ Tip:</strong> Una vez creado el pool, podrÃ¡s agregar insumos haciendo clic en Ã©l y usando el botÃ³n "Agregar Insumo".
                 </p>
               </div>
             </div>
@@ -969,14 +969,14 @@ const PoolsConfigPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Layers className="h-8 w-8 text-purple-600" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Configuración de Pools</h1>
+            <h1 className="text-2xl font-bold text-gray-900">ConfiguraciÃ³n de Pools</h1>
             <p className="text-sm text-gray-500">
               Agrupa insumos de consumo mensual para prorratear entre prestaciones
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {/* BOTÓN NUEVO POOL */}
+          {/* BOTÃ“N NUEVO POOL */}
           <button
             onClick={handleOpenNewPoolModal}
             disabled={loading}
@@ -1055,7 +1055,7 @@ const PoolsConfigPage: React.FC = () => {
         </div>
       )}
 
-      {/* Estadísticas - más compactas */}
+      {/* EstadÃ­sticas - mÃ¡s compactas */}
       <div className="grid grid-cols-4 gap-3 mb-4">
         <div className="bg-white p-3 rounded-lg shadow-sm border">
           <div className="flex items-center space-x-3">
@@ -1135,7 +1135,7 @@ const PoolsConfigPage: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State - ACTUALIZADO CON BOTÓN */}
+      {/* Empty State - ACTUALIZADO CON BOTÃ“N */}
       {!loading && !error && pools.length === 0 && (
         <div className="bg-white rounded-lg shadow-sm p-12 text-center">
           <Layers className="h-16 w-16 text-gray-300 mx-auto mb-4" />

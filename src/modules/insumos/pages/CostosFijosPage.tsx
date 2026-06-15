@@ -1,8 +1,8 @@
-// ===========================================================
+﻿// ===========================================================
 // CostosFijosPage.tsx - v2.4
 // Sistema de Costos Fijos - Instituto Dr. Mercado
-// Menú contextual de clasificación en primera columna
-// v2.4: Columna "Tipo" informativa (Fijo / Variable / vacío)
+// MenÃº contextual de clasificaciÃ³n en primera columna
+// v2.4: Columna "Tipo" informativa (Fijo / Variable / vacÃ­o)
 // ===========================================================
 // RUTA DESTINO: src/pages/CostosFijosPage.tsx
 // ===========================================================
@@ -36,7 +36,7 @@ import {
   ChevronRight as ChevronRightSmall,
   RotateCcw
 } from 'lucide-react';
-import useErogaciones, { Erogacion, TipoCosto, SubcategoriaVariable } from '../hooks/useErogaciones';
+import useErogaciones, { Erogacion, TipoCosto, SubcategoriaVariable } from '@/hooks/useErogaciones';
 
 // ===========================================================
 // HELPERS
@@ -64,7 +64,7 @@ const formatDate = (fecha: string): string => {
 const fuenteConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   'MovProv': { label: 'Proveedor', color: 'bg-blue-100 text-blue-800', icon: <Package className="w-3 h-3" /> },
   'MovValoresEnca': { label: 'Egreso Caja', color: 'bg-amber-100 text-amber-800', icon: <Wallet className="w-3 h-3" /> },
-  'LiqComp': { label: 'Liquidación', color: 'bg-purple-100 text-purple-800', icon: <FileText className="w-3 h-3" /> },
+  'LiqComp': { label: 'LiquidaciÃ³n', color: 'bg-purple-100 text-purple-800', icon: <FileText className="w-3 h-3" /> },
 };
 
 // ===========================================================
@@ -99,9 +99,9 @@ export default function CostosFijosPage() {
   const [filtroClasificacion, setFiltroClasificacion] = useState<'todas' | 'fijos' | 'variables' | 'sin_clasificar'>('todas');
   const [filtroCategoria, setFiltroCategoria] = useState<string>('');
 
-  // Menú de clasificación: { clave, nivel }
+  // MenÃº de clasificaciÃ³n: { clave, nivel }
   // nivel: 'tipo' = elegir Fijo/Variable/Sin clasificar
-  // nivel: 'categoria' = elegir categoría (submenu de Fijo)
+  // nivel: 'categoria' = elegir categorÃ­a (submenu de Fijo)
   // nivel: 'subcategoria' = elegir honorarios/insumos (submenu de Variable)
   const [menuAbierto, setMenuAbierto] = useState<{ clave: string; nivel: 'tipo' | 'categoria' | 'subcategoria' } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -117,7 +117,7 @@ export default function CostosFijosPage() {
     cargarErogaciones();
   }, []);
 
-  // Cerrar menú con Escape
+  // Cerrar menÃº con Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuAbierto(null);
@@ -150,7 +150,7 @@ export default function CostosFijosPage() {
   }, [erogaciones, filtroTexto, filtroFuente, filtroClasificacion, filtroCategoria]);
 
   // ============================================
-  // NAVEGACIÓN DE PERÍODO
+  // NAVEGACIÃ“N DE PERÃODO
   // ============================================
 
   const irAMesAnterior = () => {
@@ -164,7 +164,7 @@ export default function CostosFijosPage() {
   };
 
   // ============================================
-  // HANDLERS DEL MENÚ
+  // HANDLERS DEL MENÃš
   // ============================================
 
   const handleAbrirMenu = (erogacion: Erogacion) => {
@@ -181,7 +181,7 @@ export default function CostosFijosPage() {
     const clave = `${erogacion.fuente}_${erogacion.id_geclisa}`;
 
     if (tipo === 'fijo') {
-      // Mostrar segundo nivel: seleccionar categoría
+      // Mostrar segundo nivel: seleccionar categorÃ­a
       setMenuAbierto({ clave, nivel: 'categoria' });
       return;
     }
@@ -192,7 +192,7 @@ export default function CostosFijosPage() {
       return;
     }
 
-    // Sin clasificar → aplicar directo
+    // Sin clasificar â†’ aplicar directo
     setMenuAbierto(null);
     await clasificarErogacion(erogacion, tipo);
   };
@@ -208,7 +208,7 @@ export default function CostosFijosPage() {
   };
 
   // ============================================
-  // RENDER: Icono según estado
+  // RENDER: Icono segÃºn estado
   // ============================================
 
   const renderIconoEstado = (erogacion: Erogacion) => {
@@ -233,7 +233,7 @@ export default function CostosFijosPage() {
   };
 
   // ============================================
-  // RENDER: Menú contextual de clasificación
+  // RENDER: MenÃº contextual de clasificaciÃ³n
   // ============================================
 
   const renderMenuClasificacion = (erogacion: Erogacion) => {
@@ -254,7 +254,7 @@ export default function CostosFijosPage() {
             Clasificar como
           </div>
 
-          {/* Opción: Costo Fijo */}
+          {/* OpciÃ³n: Costo Fijo */}
           <button
             onClick={() => handleSeleccionarTipo(erogacion, 'fijo')}
             className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between gap-2 transition-colors ${
@@ -270,7 +270,7 @@ export default function CostosFijosPage() {
             <ChevronRightSmall className="w-3.5 h-3.5 text-gray-400" />
           </button>
 
-          {/* Opción: Variable */}
+          {/* OpciÃ³n: Variable */}
           <button
             onClick={() => handleSeleccionarTipo(erogacion, 'variable')}
             className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between gap-2 transition-colors ${
@@ -286,7 +286,7 @@ export default function CostosFijosPage() {
             <ChevronRightSmall className="w-3.5 h-3.5 text-gray-400" />
           </button>
 
-          {/* Separador + Opción: Sin clasificar (solo si ya está clasificado) */}
+          {/* Separador + OpciÃ³n: Sin clasificar (solo si ya estÃ¡ clasificado) */}
           {tipoActual !== 'sin_clasificar' && (
             <>
               <div className="border-t border-gray-100 my-1" />
@@ -295,7 +295,7 @@ export default function CostosFijosPage() {
                 className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 text-gray-500"
               >
                 <RotateCcw className="w-4 h-4 text-gray-400" />
-                <span>Quitar clasificación</span>
+                <span>Quitar clasificaciÃ³n</span>
               </button>
             </>
           )}
@@ -303,7 +303,7 @@ export default function CostosFijosPage() {
       );
     }
 
-    // NIVEL 2: Elegir categoría (para Fijo)
+    // NIVEL 2: Elegir categorÃ­a (para Fijo)
     if (menuAbierto.nivel === 'categoria') {
       return (
         <div
@@ -311,7 +311,7 @@ export default function CostosFijosPage() {
           className="absolute left-10 top-0 z-50 bg-white border border-gray-200 rounded-lg shadow-xl py-1 w-56 max-h-80 overflow-y-auto animate-in fade-in"
           style={{ animation: 'fadeIn 0.15s ease-out' }}
         >
-          {/* Header con botón volver */}
+          {/* Header con botÃ³n volver */}
           <div className="px-3 py-1.5 flex items-center justify-between border-b border-gray-100">
             <button
               onClick={() => setMenuAbierto({ clave, nivel: 'tipo' })}
@@ -321,7 +321,7 @@ export default function CostosFijosPage() {
               Volver
             </button>
             <span className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">
-              Categoría
+              CategorÃ­a
             </span>
           </div>
 
@@ -349,7 +349,7 @@ export default function CostosFijosPage() {
       );
     }
 
-    // NIVEL 2b: Elegir subcategoría (para Variable)
+    // NIVEL 2b: Elegir subcategorÃ­a (para Variable)
     if (menuAbierto.nivel === 'subcategoria') {
       return (
         <div
@@ -400,7 +400,7 @@ export default function CostosFijosPage() {
   };
 
   // ============================================
-  // RENDER: Fondo de fila según clasificación
+  // RENDER: Fondo de fila segÃºn clasificaciÃ³n
   // ============================================
 
   const getRowBg = (erogacion: Erogacion): string => {
@@ -424,7 +424,7 @@ export default function CostosFijosPage() {
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Clasificación de Erogaciones</h1>
+          <h1 className="text-2xl font-bold text-gray-800">ClasificaciÃ³n de Erogaciones</h1>
           <p className="text-sm text-gray-500 mt-1">Click en el icono de cada fila para clasificar</p>
         </div>
 
@@ -450,7 +450,7 @@ export default function CostosFijosPage() {
           <button
             onClick={() => setMostrarReglas(!mostrarReglas)}
             className={`p-2 rounded-lg transition-colors ml-1 ${mostrarReglas ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Reglas de auto-clasificación"
+            title="Reglas de auto-clasificaciÃ³n"
           >
             <Settings2 className="w-5 h-5" />
           </button>
@@ -471,14 +471,14 @@ export default function CostosFijosPage() {
         </div>
       )}
 
-      {/* BANNER AUTO-PARAMETRIZACIÓN */}
+      {/* BANNER AUTO-PARAMETRIZACIÃ“N */}
       {pendienteGuardarDefault && (
         <div className="mb-4 px-4 py-3 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-between">
           <div className="flex items-center gap-2 text-violet-700 text-sm">
             <Bot className="w-4 h-4" />
             <span>
-              ¿Recordar que <strong>"{pendienteGuardarDefault.proveedor_nombre}"</strong> siempre es{' '}
-              <strong>Costo Fijo → {pendienteGuardarDefault.categoria_nombre}</strong>?
+              Â¿Recordar que <strong>"{pendienteGuardarDefault.proveedor_nombre}"</strong> siempre es{' '}
+              <strong>Costo Fijo â†’ {pendienteGuardarDefault.categoria_nombre}</strong>?
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -486,7 +486,7 @@ export default function CostosFijosPage() {
               onClick={confirmarGuardarDefault}
               className="px-3 py-1 bg-violet-600 text-white text-sm rounded-lg hover:bg-violet-700 flex items-center gap-1"
             >
-              <BookmarkPlus className="w-3 h-3" /> Sí, recordar
+              <BookmarkPlus className="w-3 h-3" /> SÃ­, recordar
             </button>
             <button onClick={() => setPendienteGuardarDefault(null)} className="p-1 hover:bg-violet-200 rounded">
               <X className="w-4 h-4 text-violet-500" />
@@ -500,13 +500,13 @@ export default function CostosFijosPage() {
         <div className="mb-4 p-4 bg-white border rounded-lg shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-              <Bot className="w-4 h-4" /> Reglas de Auto-clasificación
+              <Bot className="w-4 h-4" /> Reglas de Auto-clasificaciÃ³n
             </h3>
             <span className="text-xs text-gray-500">{proveedoresDefault.length} reglas</span>
           </div>
           {proveedoresDefault.length === 0 ? (
             <p className="text-sm text-gray-500 italic">
-              No hay reglas definidas. Clasificá un gasto como fijo y te preguntará si querés recordarlo.
+              No hay reglas definidas. ClasificÃ¡ un gasto como fijo y te preguntarÃ¡ si querÃ©s recordarlo.
             </p>
           ) : (
             <div className="space-y-2">
@@ -609,7 +609,7 @@ export default function CostosFijosPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar proveedor, descripción..."
+              placeholder="Buscar proveedor, descripciÃ³n..."
               value={filtroTexto}
               onChange={(e) => setFiltroTexto(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none"
@@ -660,7 +660,7 @@ export default function CostosFijosPage() {
               onChange={(e) => setFiltroCategoria(e.target.value)}
               className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-300 outline-none"
             >
-              <option value="">Todas las categorías</option>
+              <option value="">Todas las categorÃ­as</option>
               {categorias.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.nombre}</option>
               ))}
@@ -698,7 +698,7 @@ export default function CostosFijosPage() {
             <p className="font-medium">No hay erogaciones para mostrar</p>
             <p className="text-sm mt-1">
               {erogaciones.length > 0
-                ? 'Probá ajustando los filtros'
+                ? 'ProbÃ¡ ajustando los filtros'
                 : `No se encontraron datos para ${MESES[mes - 1]} ${anio}`}
             </p>
           </div>
@@ -712,9 +712,9 @@ export default function CostosFijosPage() {
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fuente</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Proveedor / Descripción</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Proveedor / DescripciÃ³n</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-24">Tipo</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Categoría</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">CategorÃ­a</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Monto</th>
                 </tr>
               </thead>
@@ -729,7 +729,7 @@ export default function CostosFijosPage() {
 
                   return (
                     <tr key={clave} className={`${getRowBg(erogacion)} transition-colors`}>
-                      {/* Columna clasificación con menú */}
+                      {/* Columna clasificaciÃ³n con menÃº */}
                       <td className="px-3 py-2.5 relative">
                         {renderIconoEstado(erogacion)}
                         {renderMenuClasificacion(erogacion)}
@@ -760,7 +760,7 @@ export default function CostosFijosPage() {
                         )}
                       </td>
 
-                      {/* Tipo (Fijo / Variable / vacío) */}
+                      {/* Tipo (Fijo / Variable / vacÃ­o) */}
                       <td className="px-3 py-2.5">
                         {erogacion.tipo_costo === 'fijo' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
@@ -775,7 +775,7 @@ export default function CostosFijosPage() {
                         ) : null}
                       </td>
 
-                      {/* Categoría */}
+                      {/* CategorÃ­a */}
                       <td className="px-3 py-2.5">
                         {erogacion.tipo_costo === 'fijo' && erogacion.categoria_costo_fijo_nombre ? (
                           <span
@@ -804,7 +804,7 @@ export default function CostosFijosPage() {
                               : 'Variable'}
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">—</span>
+                          <span className="text-xs text-gray-400 italic">â€”</span>
                         )}
                       </td>
 
@@ -823,7 +823,7 @@ export default function CostosFijosPage() {
         )}
       </div>
 
-      {/* Overlay para cerrar menú */}
+      {/* Overlay para cerrar menÃº */}
       {menuAbierto && (
         <div className="fixed inset-0 z-40" onClick={() => setMenuAbierto(null)} />
       )}

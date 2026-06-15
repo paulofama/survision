@@ -1,7 +1,7 @@
-// ============================================
-// PÁGINA: Recetas de Costos por Práctica
+﻿// ============================================
+// PÃGINA: Recetas de Costos por PrÃ¡ctica
 // Sistema de Costos - Instituto Dr. Mercado
-// VERSIÓN: Modal de Configuración + Tabla Expandida
+// VERSIÃ“N: Modal de ConfiguraciÃ³n + Tabla Expandida
 // ============================================
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -27,24 +27,24 @@ import {
   ChevronUp,
   Printer
 } from 'lucide-react';
-import { useRecetasCostos } from '../hooks/useRecetasCostos';
-import { usePools } from '../hooks/usePools';
-import { useInsumosVariables } from '../hooks/useInsumosVariables';
-import { usePrestaciones } from '../hooks/usePrestaciones';
+import { useRecetasCostos } from '@/hooks/useRecetasCostos';
+import { usePools } from '@/hooks/usePools';
+import { useInsumosVariables } from '@/hooks/useInsumosVariables';
+import { usePrestaciones } from '@/hooks/usePrestaciones';
 import type {
   CategoriaPractica,
   NuevaPracticaReceta,
   RecetaCompleta,
   PracticaRecetaConCostos
-} from '../types/recetas';
+} from '@/types/recetas';
 import {
   CATEGORIAS_PRACTICAS,
   formatCategoria,
   getCategoriaColor
-} from '../types/recetas';
+} from '@/types/recetas';
 
 // ============================================
-// HELPER: Detectar categoría por nombre
+// HELPER: Detectar categorÃ­a por nombre
 // ============================================
 
 const detectarCategoriaPorNombre = (nombre: string): CategoriaPractica => {
@@ -82,7 +82,7 @@ const formatCurrency = (value: number) => {
 };
 
 // ============================================
-// FUNCIÓN: Imprimir Receta de Costos
+// FUNCIÃ“N: Imprimir Receta de Costos
 // ============================================
 
 const imprimirReceta = (receta: RecetaCompleta) => {
@@ -169,7 +169,7 @@ const imprimirReceta = (receta: RecetaCompleta) => {
     <body>
       <div class="header">
         <div class="logo-title">INSTITUTO DR. MERCADO</div>
-        <div class="subtitle">Sistema de Costos - Receta de Costos por Práctica</div>
+        <div class="subtitle">Sistema de Costos - Receta de Costos por PrÃ¡ctica</div>
       </div>
 
       <div class="practica-info">
@@ -189,22 +189,22 @@ const imprimirReceta = (receta: RecetaCompleta) => {
           <div class="resumen-value">${formatCurrency(receta.totales?.costo_insumos_directos || 0)}</div>
         </div>
         <div class="resumen-item total">
-          <div class="resumen-label">Costo Total por Práctica</div>
+          <div class="resumen-label">Costo Total por PrÃ¡ctica</div>
           <div class="resumen-value">${formatCurrency(receta.totales?.costo_total_por_practica || 0)}</div>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title pools">📦 Pools de Insumos (${pools.length})</div>
+        <div class="section-title pools">ðŸ“¦ Pools de Insumos (${pools.length})</div>
         <table>
           <thead>
             <tr>
               <th style="text-align: center;">#</th>
               <th>Nombre del Pool</th>
               <th style="text-align: right;">Costo Total Pool</th>
-              <th style="text-align: center;">Práct/Mes</th>
+              <th style="text-align: center;">PrÃ¡ct/Mes</th>
               <th style="text-align: center;">% Asignado</th>
-              <th style="text-align: right; width: 100px;">Costo/Práctica</th>
+              <th style="text-align: right; width: 100px;">Costo/PrÃ¡ctica</th>
             </tr>
           </thead>
           <tbody>
@@ -215,16 +215,16 @@ const imprimirReceta = (receta: RecetaCompleta) => {
       </div>
 
       <div class="section">
-        <div class="section-title insumos">💉 Insumos Directos (${insumos.length})</div>
+        <div class="section-title insumos">ðŸ’‰ Insumos Directos (${insumos.length})</div>
         <table>
           <thead>
             <tr>
               <th style="text-align: center;">#</th>
-              <th style="width: 80px;">Código</th>
-              <th>Descripción</th>
+              <th style="width: 80px;">CÃ³digo</th>
+              <th>DescripciÃ³n</th>
               <th style="text-align: right;">Precio Unit.</th>
               <th style="text-align: center;">Cantidad</th>
-              <th style="text-align: right; width: 100px;">Costo/Práctica</th>
+              <th style="text-align: right; width: 100px;">Costo/PrÃ¡ctica</th>
             </tr>
           </thead>
           <tbody>
@@ -236,7 +236,7 @@ const imprimirReceta = (receta: RecetaCompleta) => {
 
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Costos - Desarrollo | P. FamÃ¡</span>
       </div>
 
       <script>window.onload = function() { window.print(); }</script>
@@ -252,7 +252,7 @@ const imprimirReceta = (receta: RecetaCompleta) => {
 };
 
 // ============================================
-// FUNCIÓN DE IMPRESIÓN DE TODAS LAS RECETAS
+// FUNCIÃ“N DE IMPRESIÃ“N DE TODAS LAS RECETAS
 // ============================================
 
 const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
@@ -273,7 +273,7 @@ const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
   };
   const costoTotalGeneral = recetas.reduce((sum, r) => sum + r.costo_total, 0);
 
-  // Generar secciones por categoría
+  // Generar secciones por categorÃ­a
   const categorias: Array<{ nombre: string; color: string; bgColor: string }> = [
     { nombre: 'Cirugias', color: '#dc2626', bgColor: '#fef2f2' },
     { nombre: 'Estudios', color: '#2563eb', bgColor: '#eff6ff' },
@@ -305,8 +305,8 @@ const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
         <table>
           <thead style="background: ${cat.color};">
             <tr>
-              <th style="width: 80px;">Código</th>
-              <th>Práctica</th>
+              <th style="width: 80px;">CÃ³digo</th>
+              <th>PrÃ¡ctica</th>
               <th style="width: 70px; text-align: center;">Cant/Mes</th>
               <th style="width: 100px; text-align: right;">Pools</th>
               <th style="width: 100px; text-align: right;">Insumos</th>
@@ -431,7 +431,7 @@ const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
     <body>
       <div class="header">
         <div class="logo-title">INSTITUTO DR. MERCADO</div>
-        <div class="subtitle">Reporte Completo - Recetas de Costos por Práctica</div>
+        <div class="subtitle">Reporte Completo - Recetas de Costos por PrÃ¡ctica</div>
       </div>
 
       <div class="resumen-general">
@@ -440,7 +440,7 @@ const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
           <div class="resumen-value">${totalRecetas}</div>
         </div>
         <div class="resumen-item">
-          <div class="resumen-label">Cirugías</div>
+          <div class="resumen-label">CirugÃ­as</div>
           <div class="resumen-value">${recetasPorCategoria.Cirugias}</div>
         </div>
         <div class="resumen-item">
@@ -462,7 +462,7 @@ const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
 
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Costos - Desarrollo | P. FamÃ¡</span>
       </div>
 
       <script>
@@ -480,7 +480,7 @@ const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
 };
 
 // ============================================
-// FUNCIÓN: Imprimir RESUMEN de todas las recetas
+// FUNCIÃ“N: Imprimir RESUMEN de todas las recetas
 // ============================================
 
 const imprimirRecetasResumen = (recetas: RecetaCompleta[]) => {
@@ -530,7 +530,7 @@ const imprimirRecetasResumen = (recetas: RecetaCompleta[]) => {
         </div>
         <table>
           <thead style="background: ${cat.color}; color: white;">
-            <tr><th style="width: 80px;">Código</th><th>Práctica</th><th style="width: 70px; text-align: center;">Cant/Mes</th><th style="width: 100px; text-align: right;">Pools</th><th style="width: 100px; text-align: right;">Insumos</th><th style="width: 100px; text-align: right;">Costo Total</th></tr>
+            <tr><th style="width: 80px;">CÃ³digo</th><th>PrÃ¡ctica</th><th style="width: 70px; text-align: center;">Cant/Mes</th><th style="width: 100px; text-align: right;">Pools</th><th style="width: 100px; text-align: right;">Insumos</th><th style="width: 100px; text-align: right;">Costo Total</th></tr>
           </thead>
           <tbody>
             ${filasHTML}
@@ -574,7 +574,7 @@ const imprimirRecetasResumen = (recetas: RecetaCompleta[]) => {
       </div>
       <div class="resumen-general">
         <div class="resumen-item"><div class="resumen-label">Total Recetas</div><div class="resumen-value">${totalRecetas}</div></div>
-        <div class="resumen-item"><div class="resumen-label">Cirugías</div><div class="resumen-value">${recetasPorCategoria.Cirugias}</div></div>
+        <div class="resumen-item"><div class="resumen-label">CirugÃ­as</div><div class="resumen-value">${recetasPorCategoria.Cirugias}</div></div>
         <div class="resumen-item"><div class="resumen-label">Estudios</div><div class="resumen-value">${recetasPorCategoria.Estudios}</div></div>
         <div class="resumen-item"><div class="resumen-label">Consultas</div><div class="resumen-value">${recetasPorCategoria.Consultas}</div></div>
       </div>
@@ -585,7 +585,7 @@ const imprimirRecetasResumen = (recetas: RecetaCompleta[]) => {
       </div>
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Costos - Desarrollo | P. FamÃ¡</span>
       </div>
       <script>window.onload = function() { window.print(); }</script>
     </body>
@@ -597,7 +597,7 @@ const imprimirRecetasResumen = (recetas: RecetaCompleta[]) => {
 };
 
 // ============================================
-// FUNCIÓN: Imprimir DETALLE COMPLETO de todas las recetas
+// FUNCIÃ“N: Imprimir DETALLE COMPLETO de todas las recetas
 // ============================================
 
 const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
@@ -625,23 +625,23 @@ const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
 
     const poolsHTML = pools.length > 0 ? `
       <div style="margin-top: 10px;">
-        <div style="font-weight: 600; font-size: 11px; color: #7c3aed; margin-bottom: 5px;">📦 Pools (${pools.length})</div>
+        <div style="font-weight: 600; font-size: 11px; color: #7c3aed; margin-bottom: 5px;">ðŸ“¦ Pools (${pools.length})</div>
         <table style="font-size: 10px;">
-          <thead style="background: #7c3aed; color: white;"><tr><th>Pool</th><th style="text-align: center; width: 60px;">% Asig</th><th style="text-align: right; width: 80px;">Costo/Práct</th></tr></thead>
+          <thead style="background: #7c3aed; color: white;"><tr><th>Pool</th><th style="text-align: center; width: 60px;">% Asig</th><th style="text-align: right; width: 80px;">Costo/PrÃ¡ct</th></tr></thead>
           <tbody>${pools.map(p => `<tr><td style="padding: 4px;">${p.pool_nombre}</td><td style="padding: 4px; text-align: center;">${p.porcentaje_asignacion}%</td><td style="padding: 4px; text-align: right;">${formatCurrency(p.costo_por_practica)}</td></tr>`).join('')}</tbody>
         </table>
       </div>
-    ` : `<div style="margin-top: 10px; padding: 8px; background: #f3f4f6; border-radius: 4px; color: #6b7280; font-size: 10px;">📦 Sin pools asignados</div>`;
+    ` : `<div style="margin-top: 10px; padding: 8px; background: #f3f4f6; border-radius: 4px; color: #6b7280; font-size: 10px;">ðŸ“¦ Sin pools asignados</div>`;
 
     const insumosHTML = insumos.length > 0 ? `
       <div style="margin-top: 10px;">
-        <div style="font-weight: 600; font-size: 11px; color: #059669; margin-bottom: 5px;">💉 Insumos (${insumos.length})</div>
+        <div style="font-weight: 600; font-size: 11px; color: #059669; margin-bottom: 5px;">ðŸ’‰ Insumos (${insumos.length})</div>
         <table style="font-size: 10px;">
-          <thead style="background: #059669; color: white;"><tr><th style="width: 60px;">Código</th><th>Descripción</th><th style="text-align: center; width: 40px;">Cant</th><th style="text-align: right; width: 70px;">Costo</th></tr></thead>
+          <thead style="background: #059669; color: white;"><tr><th style="width: 60px;">CÃ³digo</th><th>DescripciÃ³n</th><th style="text-align: center; width: 40px;">Cant</th><th style="text-align: right; width: 70px;">Costo</th></tr></thead>
           <tbody>${insumos.map(i => `<tr><td style="padding: 4px; font-family: monospace;">${i.insumo_codigo}</td><td style="padding: 4px;">${i.insumo_nombre || i.insumo_descripcion}</td><td style="padding: 4px; text-align: center;">${i.cantidad_por_practica}</td><td style="padding: 4px; text-align: right;">${formatCurrency(i.costo_por_practica || 0)}</td></tr>`).join('')}</tbody>
         </table>
       </div>
-    ` : `<div style="margin-top: 10px; padding: 8px; background: #f3f4f6; border-radius: 4px; color: #6b7280; font-size: 10px;">💉 Sin insumos directos asignados</div>`;
+    ` : `<div style="margin-top: 10px; padding: 8px; background: #f3f4f6; border-radius: 4px; color: #6b7280; font-size: 10px;">ðŸ’‰ Sin insumos directos asignados</div>`;
 
     return `
       <div class="receta-section" style="${recetaIndex > 0 ? 'page-break-before: always;' : ''}">
@@ -702,7 +702,7 @@ const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
       ${recetasSections}
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Costos - Desarrollo | P. FamÃ¡</span>
       </div>
       <script>window.onload = function() { window.print(); }</script>
     </body>
@@ -714,7 +714,7 @@ const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
 };
 
 // ============================================
-// COMPONENTE: Modal para crear/editar receta básica
+// COMPONENTE: Modal para crear/editar receta bÃ¡sica
 // ============================================
 
 interface RecetaModalProps {
@@ -819,7 +819,7 @@ const RecetaModal: React.FC<RecetaModalProps> = ({
     e.preventDefault();
     
     if (!formData.codigo_practica || !formData.nombre_practica) {
-      setError('Código y nombre son requeridos');
+      setError('CÃ³digo y nombre son requeridos');
       return;
     }
     
@@ -862,11 +862,11 @@ const RecetaModal: React.FC<RecetaModalProps> = ({
             </div>
           )}
 
-          {/* Búsqueda de prestaciones (solo en modo crear) */}
+          {/* BÃºsqueda de prestaciones (solo en modo crear) */}
           {!isEditing && (
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                🔍 Buscar Prestación (GECLISA)
+                ðŸ” Buscar PrestaciÃ³n (GECLISA)
               </label>
               <input
                 ref={searchRef}
@@ -880,7 +880,7 @@ const RecetaModal: React.FC<RecetaModalProps> = ({
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowSuggestions(true)}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Escribir código o nombre..."
+                placeholder="Escribir cÃ³digo o nombre..."
               />
               
               {/* Dropdown de sugerencias */}
@@ -907,7 +907,7 @@ const RecetaModal: React.FC<RecetaModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Código *
+                CÃ³digo *
               </label>
               <input
                 type="text"
@@ -929,27 +929,27 @@ const RecetaModal: React.FC<RecetaModalProps> = ({
                 onChange={e => setFormData({ ...formData, cantidad_mensual_estimada: parseInt(e.target.value) || 1 })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 min="1"
-                placeholder="Prácticas/mes"
+                placeholder="PrÃ¡cticas/mes"
               />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre de la Práctica *
+              Nombre de la PrÃ¡ctica *
             </label>
             <input
               type="text"
               value={formData.nombre_practica}
               onChange={e => setFormData({ ...formData, nombre_practica: e.target.value.toUpperCase() })}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej: FACOEMULSIFICACIÓN"
+              placeholder="Ej: FACOEMULSIFICACIÃ“N"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Categoría *
+              CategorÃ­a *
             </label>
             <select
               value={formData.categoria}
@@ -1000,7 +1000,7 @@ const RecetaModal: React.FC<RecetaModalProps> = ({
 };
 
 // ============================================
-// COMPONENTE: Modal de Configuración (Pools + Insumos)
+// COMPONENTE: Modal de ConfiguraciÃ³n (Pools + Insumos)
 // ============================================
 
 interface ConfigModalProps {
@@ -1131,7 +1131,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
 
         {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* SECCIÓN: POOLS */}
+          {/* SECCIÃ“N: POOLS */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -1193,8 +1193,8 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{pool.pool_nombre}</p>
                       <p className="text-sm text-gray-500 mt-1">
-                        Pool total: {formatCurrency(pool.costo_total_pool)} •{' '}
-                        {pool.total_practicas_pool || '?'} prácticas/mes •{' '}
+                        Pool total: {formatCurrency(pool.costo_total_pool)} â€¢{' '}
+                        {pool.total_practicas_pool || '?'} prÃ¡cticas/mes â€¢{' '}
                         {pool.porcentaje_asignacion}% asignado
                       </p>
                     </div>
@@ -1203,7 +1203,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                         <p className="text-lg font-bold text-purple-700">
                           {formatCurrency(pool.costo_por_practica)}
                         </p>
-                        <p className="text-xs text-gray-500">/práctica</p>
+                        <p className="text-xs text-gray-500">/prÃ¡ctica</p>
                       </div>
                       <button
                         onClick={() => onEliminarPool(pool.id)}
@@ -1229,12 +1229,12 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
               <div className="p-6 bg-gray-50 rounded-lg text-center">
                 <Package className="h-10 w-10 mx-auto text-gray-300 mb-2" />
                 <p className="text-gray-500">No hay pools asignados</p>
-                <p className="text-sm text-gray-400">Los pools se prorratean entre todas las prácticas que los usan</p>
+                <p className="text-sm text-gray-400">Los pools se prorratean entre todas las prÃ¡cticas que los usan</p>
               </div>
             )}
           </div>
 
-          {/* SECCIÓN: INSUMOS DIRECTOS */}
+          {/* SECCIÃ“N: INSUMOS DIRECTOS */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -1307,11 +1307,11 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                         {insumo.insumo_codigo} - {insumo.insumo_nombre || insumo.insumo_descripcion}
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {formatCurrency(insumo.insumo_precio_unitario || 0)} × {insumo.cantidad_por_practica} {insumo.insumo_unidad}
+                        {formatCurrency(insumo.insumo_precio_unitario || 0)} Ã— {insumo.cantidad_por_practica} {insumo.insumo_unidad}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      {/* Edición de cantidad */}
+                      {/* EdiciÃ³n de cantidad */}
                       {editandoInsumoId === insumo.id ? (
                         <div className="flex items-center gap-2">
                           <input
@@ -1366,7 +1366,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                         <p className="text-lg font-bold text-green-700">
                           {formatCurrency(insumo.costo_por_practica || 0)}
                         </p>
-                        <p className="text-xs text-gray-500">/práctica</p>
+                        <p className="text-xs text-gray-500">/prÃ¡ctica</p>
                       </div>
                       <button
                         onClick={() => onEliminarInsumo(insumo.id)}
@@ -1393,13 +1393,13 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
               <div className="p-6 bg-gray-50 rounded-lg text-center">
                 <Syringe className="h-10 w-10 mx-auto text-gray-300 mb-2" />
                 <p className="text-gray-500">No hay insumos directos asignados</p>
-                <p className="text-sm text-gray-400">Los insumos directos se multiplican por la cantidad por práctica</p>
+                <p className="text-sm text-gray-400">Los insumos directos se multiplican por la cantidad por prÃ¡ctica</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Footer con botón de impresión */}
+        {/* Footer con botÃ³n de impresiÃ³n */}
         <div className="px-6 py-4 border-t bg-gray-50 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-3">
             <button
@@ -1411,7 +1411,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
             </button>
             <p className="text-sm text-gray-500">
               <Info className="h-4 w-4 inline mr-1" />
-              Los costos se actualizan automáticamente
+              Los costos se actualizan automÃ¡ticamente
             </p>
           </div>
           <button
@@ -1489,7 +1489,7 @@ const RecetasCostosPage: React.FC = () => {
   };
 
   const handleEliminarReceta = async (id: string) => {
-    if (!confirm('¿Eliminar esta receta? Se perderán todas las configuraciones de costos.')) return;
+    if (!confirm('Â¿Eliminar esta receta? Se perderÃ¡n todas las configuraciones de costos.')) return;
     await eliminarReceta(id);
     setSuccessMessage('Receta eliminada correctamente');
     setTimeout(() => setSuccessMessage(null), 3000);
@@ -1501,7 +1501,7 @@ const RecetasCostosPage: React.FC = () => {
     setShowConfigModal(true);
   };
 
-  // Handlers para el modal de configuración
+  // Handlers para el modal de configuraciÃ³n
   const handleAgregarPool = async (poolId: string) => {
     if (!recetaConfigurar) return;
     await agregarPoolAReceta({ receta_id: recetaConfigurar.id, pool_id: poolId });
@@ -1551,7 +1551,7 @@ const RecetasCostosPage: React.FC = () => {
     const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
     
     if (!ventanaImpresion) {
-      alert('El navegador bloqueó la ventana de impresión. Por favor habilita los popups para este sitio.');
+      alert('El navegador bloqueÃ³ la ventana de impresiÃ³n. Por favor habilita los popups para este sitio.');
       setLoadingPrint(false);
       return;
     }
@@ -1562,7 +1562,7 @@ const RecetasCostosPage: React.FC = () => {
         <head><title>Cargando...</title></head>
         <body style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
           <div style="text-align: center;">
-            <div style="font-size: 24px; color: #2563eb; margin-bottom: 10px;">⏳</div>
+            <div style="font-size: 24px; color: #2563eb; margin-bottom: 10px;">â³</div>
             <div style="font-size: 18px; color: #374151;">Cargando detalles de ${recetas.length} recetas...</div>
             <div style="font-size: 14px; color: #6b7280; margin-top: 5px;">Por favor espere</div>
           </div>
@@ -1622,7 +1622,7 @@ const RecetasCostosPage: React.FC = () => {
     }
   };
   
-  // Función auxiliar para generar el HTML en la ventana ya abierta
+  // FunciÃ³n auxiliar para generar el HTML en la ventana ya abierta
   const generarHTMLDetalle = (recetas: RecetaCompleta[], ventana: Window) => {
     const fechaActual = new Date().toLocaleDateString('es-AR', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -1645,7 +1645,7 @@ const RecetasCostosPage: React.FC = () => {
       // Pools en formato compacto horizontal
       const poolsHTML = pools.length > 0 ? `
         <div style="margin-top: 4px;">
-          <span style="font-weight: 600; font-size: 8px; color: #7c3aed;">📦 POOLS:</span>
+          <span style="font-weight: 600; font-size: 8px; color: #7c3aed;">ðŸ“¦ POOLS:</span>
           <table style="font-size: 8px; width: 100%; border-collapse: collapse; margin-top: 2px;">
             <thead style="background: #7c3aed; color: white;"><tr><th style="padding: 2px 3px; text-align: left;">Pool</th><th style="padding: 2px; text-align: center; width: 40px;">%</th><th style="padding: 2px 3px; text-align: right; width: 65px;">Costo</th></tr></thead>
             <tbody>${pools.map(p => `<tr style="background: #faf5ff;"><td style="padding: 2px 3px; border-bottom: 1px solid #e9d5ff;">${p.pool_nombre}</td><td style="padding: 2px; text-align: center; border-bottom: 1px solid #e9d5ff;">${p.porcentaje_asignacion}%</td><td style="padding: 2px 3px; text-align: right; border-bottom: 1px solid #e9d5ff;">${formatCurrency(p.costo_por_practica || 0)}</td></tr>`).join('')}</tbody>
@@ -1656,9 +1656,9 @@ const RecetasCostosPage: React.FC = () => {
       // Insumos en formato compacto
       const insumosHTML = insumos.length > 0 ? `
         <div style="margin-top: 4px;">
-          <span style="font-weight: 600; font-size: 8px; color: #059669;">💉 INSUMOS:</span>
+          <span style="font-weight: 600; font-size: 8px; color: #059669;">ðŸ’‰ INSUMOS:</span>
           <table style="font-size: 8px; width: 100%; border-collapse: collapse; margin-top: 2px;">
-            <thead style="background: #059669; color: white;"><tr><th style="padding: 2px 3px; width: 50px;">Código</th><th style="padding: 2px 3px; text-align: left;">Descripción</th><th style="padding: 2px; text-align: center; width: 30px;">Cant</th><th style="padding: 2px 3px; text-align: right; width: 65px;">Costo</th></tr></thead>
+            <thead style="background: #059669; color: white;"><tr><th style="padding: 2px 3px; width: 50px;">CÃ³digo</th><th style="padding: 2px 3px; text-align: left;">DescripciÃ³n</th><th style="padding: 2px; text-align: center; width: 30px;">Cant</th><th style="padding: 2px 3px; text-align: right; width: 65px;">Costo</th></tr></thead>
             <tbody>${insumos.map(i => `<tr style="background: #f0fdf4;"><td style="padding: 2px 3px; font-family: monospace; font-size: 7px; border-bottom: 1px solid #bbf7d0;">${i.insumo_codigo}</td><td style="padding: 2px 3px; border-bottom: 1px solid #bbf7d0; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${(i.insumo_nombre || i.insumo_descripcion || '').substring(0, 40)}</td><td style="padding: 2px; text-align: center; border-bottom: 1px solid #bbf7d0;">${i.cantidad_por_practica}</td><td style="padding: 2px 3px; text-align: right; border-bottom: 1px solid #bbf7d0;">${formatCurrency(i.costo_por_practica || 0)}</td></tr>`).join('')}</tbody>
           </table>
         </div>
@@ -1730,7 +1730,7 @@ const RecetasCostosPage: React.FC = () => {
         ${recetasSections}
         <div class="footer">
           <span>Generado: ${fechaActual}</span>
-          <span>Sistema de Costos - Desarrollo | P. Famá</span>
+          <span>Sistema de Costos - Desarrollo | P. FamÃ¡</span>
         </div>
         <script>window.onload = function() { window.print(); }</script>
       </body>
@@ -1761,7 +1761,7 @@ const RecetasCostosPage: React.FC = () => {
             Recetas de Costos
           </h1>
           <p className="text-gray-500 mt-1">
-            Configura los costos de cada práctica (pools + insumos directos)
+            Configura los costos de cada prÃ¡ctica (pools + insumos directos)
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -1796,7 +1796,7 @@ const RecetasCostosPage: React.FC = () => {
                       <FileText className="h-4 w-4 text-green-600" />
                       <div>
                         <p className="font-medium">Resumen de Recetas</p>
-                        <p className="text-xs text-gray-500">Listado por categoría sin detalle</p>
+                        <p className="text-xs text-gray-500">Listado por categorÃ­a sin detalle</p>
                       </div>
                     </button>
                     <button
@@ -1832,7 +1832,7 @@ const RecetasCostosPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Mensaje de éxito */}
+      {/* Mensaje de Ã©xito */}
       {successMessage && (
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
           <CheckCircle className="h-5 w-5" />
@@ -1840,24 +1840,24 @@ const RecetasCostosPage: React.FC = () => {
         </div>
       )}
 
-      {/* Estadísticas */}
+      {/* EstadÃ­sticas */}
       <div className="grid grid-cols-5 gap-4">
         <div className="bg-white rounded-lg p-4 shadow-sm border">
           <p className="text-sm text-gray-500">Total Recetas</p>
           <p className="text-2xl font-bold text-gray-900">{estadisticas?.total_recetas || 0}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <p className="text-sm text-gray-500">🔪 Cirugías</p>
+          <p className="text-sm text-gray-500">ðŸ”ª CirugÃ­as</p>
           <p className="text-2xl font-bold text-red-600">{estadisticas?.recetas_por_categoria?.Cirugias || 0}</p>
           <p className="text-xs text-gray-500">Prom: {formatCurrency(estadisticas?.costo_promedio_cirugia || 0)}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <p className="text-sm text-gray-500">🔬 Estudios</p>
+          <p className="text-sm text-gray-500">ðŸ”¬ Estudios</p>
           <p className="text-2xl font-bold text-blue-600">{estadisticas?.recetas_por_categoria?.Estudios || 0}</p>
           <p className="text-xs text-gray-500">Prom: {formatCurrency(estadisticas?.costo_promedio_estudio || 0)}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <p className="text-sm text-gray-500">👨‍⚕️ Consultas</p>
+          <p className="text-sm text-gray-500">ðŸ‘¨â€âš•ï¸ Consultas</p>
           <p className="text-2xl font-bold text-green-600">{estadisticas?.recetas_por_categoria?.Consultas || 0}</p>
           <p className="text-xs text-gray-500">Prom: {formatCurrency(estadisticas?.costo_promedio_consulta || 0)}</p>
         </div>
@@ -1878,7 +1878,7 @@ const RecetasCostosPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por código o nombre..."
+                placeholder="Buscar por cÃ³digo o nombre..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -1890,7 +1890,7 @@ const RecetasCostosPage: React.FC = () => {
             onChange={e => setFiltroCategoria(e.target.value as CategoriaPractica | '')}
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Todas las categorías</option>
+            <option value="">Todas las categorÃ­as</option>
             {CATEGORIAS_PRACTICAS.map(cat => (
               <option key={cat} value={cat}>{formatCategoria(cat)}</option>
             ))}
@@ -1904,9 +1904,9 @@ const RecetasCostosPage: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CÃ³digo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CategorÃ­a</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant/Mes</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pools</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Insumos</th>
@@ -1985,7 +1985,7 @@ const RecetasCostosPage: React.FC = () => {
                         <button
                           onClick={() => handleEditarReceta(receta)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Editar datos básicos"
+                          title="Editar datos bÃ¡sicos"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
@@ -2011,10 +2011,10 @@ const RecetasCostosPage: React.FC = () => {
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-blue-600 mt-0.5" />
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">¿Cómo funcionan las recetas de costos?</p>
+            <p className="font-medium mb-1">Â¿CÃ³mo funcionan las recetas de costos?</p>
             <ul className="list-disc list-inside space-y-1 text-blue-700">
-              <li><strong>Pools:</strong> El costo del pool se divide por la cantidad mensual estimada de prácticas (prorrateo)</li>
-              <li><strong>Insumos Directos:</strong> Se multiplica precio × cantidad por cada práctica</li>
+              <li><strong>Pools:</strong> El costo del pool se divide por la cantidad mensual estimada de prÃ¡cticas (prorrateo)</li>
+              <li><strong>Insumos Directos:</strong> Se multiplica precio Ã— cantidad por cada prÃ¡ctica</li>
               <li><strong>Costo Total:</strong> Suma de Pools + Insumos Directos</li>
             </ul>
           </div>
