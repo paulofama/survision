@@ -26,6 +26,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isOnline: boolean;
+  error?: string | null;
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   tienePermiso: (modulo: ModuloSistema) => boolean;

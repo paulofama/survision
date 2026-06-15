@@ -4,7 +4,7 @@
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   DollarSign,
   Users,
@@ -55,7 +55,7 @@ interface FormPrestador {
 const HonorariosPage: React.FC = () => {
   // Hook de datos
   const {
-    configuraciones,
+    configuraciones: configuracionesServer,
     prestadores,
     estadisticas,
     loading,
@@ -71,6 +71,11 @@ const HonorariosPage: React.FC = () => {
     simularHonorario,
     refetch
   } = useHonorariosConfig();
+
+  // Copia local editable de las configuraciones (para edición inline de %).
+  // Se sincroniza con lo que devuelve el hook; al Guardar se persiste con actualizarConfiguracion.
+  const [configuraciones, setConfiguraciones] = useState<HonorarioConfig[]>([]);
+  useEffect(() => { setConfiguraciones(configuracionesServer); }, [configuracionesServer]);
 
   // Estados locales
   const [tabActiva, setTabActiva] = useState<TabActiva>('configuracion');

@@ -421,7 +421,7 @@ const Sidebar: React.FC = () => {
                 </p>
               </div>
               {!isOnline && (
-                <WifiOff className="h-4 w-4 text-yellow-400" title="Sin conexión" />
+                <span title="Sin conexión" className="inline-flex"><WifiOff className="h-4 w-4 text-yellow-400" /></span>
               )}
             </div>
           ) : (
