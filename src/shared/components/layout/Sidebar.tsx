@@ -198,7 +198,8 @@ const navItems: NavItem[] = [
     requierePermiso: 'liquidaciones',
     subItems: [
       { path: '/derivaciones/liquidacion', label: 'Derivaciones', icon: FileText },
-      { path: '/liquidaciones/honorarios', label: 'Honorarios', icon: FileText }
+      { path: '/liquidaciones/honorarios', label: 'Honorarios', icon: FileText },
+      { path: '/honorarios', label: 'Config. Honorarios', icon: Calculator }
     ]
   },
 
