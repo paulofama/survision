@@ -17,9 +17,9 @@
 2. **Refactor de modularización COMPLETO**: de carpetas-por-tipo a **12 módulos** en `src/modules/` + **`src/shared/`**. `src/` quedó limpio (`modules/`, `shared/`, `test/`, App/main).
 3. **Git instalado** + repo inicializado (15 commits, rollback granular). `.env`/secrets ignorados.
 4. **Limpieza**: borrados duplicados/código muerto; -errores.
-5. **Errores TS: 340 → 136** (con cambios seguros).
+5. **Errores TS: 340 → 0 (completado 2026-06-15).** `npm run build` (tsc && vite build) pasa limpio.
 
-**Estado: el sistema funciona** (verificado visualmente, acentos OK). `vite build` verde. Git limpio.
+**Estado: el sistema funciona** (verificado visualmente, acentos OK). `npm run build` verde. Git limpio. (Pendiente: verificar en vivo los 2 bugs reales arreglados — ver §3.)
 
 ---
 
@@ -45,20 +45,19 @@ cd C:\IA\COSTOS\sistema-costos; npm.cmd run dev
 
 ## 3. DÓNDE QUEDAMOS — próximo trabajo
 
-**Bajar los 136 errores TS pre-existentes restantes** (para que `npm run build` con `tsc` pase).
-- Son **deuda de modelo de datos LEGACY** (código viejo, NO de Sueldos): `RecetasCostosPage` (27), `ExcelMasterImportModal` (27), `useInsumosVariables` (15), `PrestacionesRealizadas` (14), `PoolsConfig` (13), etc.
-- Categorías: TS2322 (~60, type no asignable), TS2339 (~39, propiedad inexistente), TS7006 (~15, any implícito).
-- **NO son mecánicos.** Hay que alinear los types con lo que los hooks realmente devuelven (`useRecetasCostos` 823 líneas, `usePools`, `useInsumosVariables` como fuente de verdad) y **distinguir type-incompleto de bug real**.
-- **Bug real ya detectado**: `HonorariosPage` llama `setConfiguraciones` (setter inexistente) — TS2552. Decidir si es bug a arreglar o código muerto.
-- **Tipos faltantes**: `ExcelInsumoRow` / `ImportacionExcelResult` no existen en `@shared/types` (ExcelMasterImportModal los importa) — crear o ubicar.
-- **Enfoque sugerido**: módulo por módulo (empezar por **insumos**), leyendo los hooks como fuente de verdad, verificando con `npm run type-check` + `npx vite build` tras cada cambio. Consultar a Paulo en los casos que parezcan bugs reales.
-- Cómo medir: `npm.cmd run type-check 2>&1 | Select-String 'error TS' | Measure-Object`.
+✅ **HECHO (2026-06-15): errores TS 136→0. `npm run build` (tsc && vite build) pasa LIMPIO.** Commits por cluster: `df626a3` recetas, `05c8abe` insumos, `7c91856` prestaciones, `c5f7751` analisis-marginal, `0c8f290` final. Detalle en memoria `project-modularizacion`.
+
+⚠️ **2 BUGS REALES arreglados (estaban escondidos entre los errores TS) — VERIFICAR:**
+1. **Prestaciones Realizadas → cablear al backend (decisión de Paulo).** La página leía campos/filtros (`derivador`, `atendio`, filtros `prestacion/paciente/derivadorId`) que `/movimientos` no daba. Se extendió `server/routes/movimientos.js`: SELECT `derivador` (LEFT JOIN `EntidadesDerivantes`) + `atendio` (de `Usu_Alta`); filtros server-side (LIKE); `/filtros` ahora trae `derivadores`. **PENDIENTE: probar en vivo contra GECLISA** (el SQL no se pudo testear — Claude no llega a SQL Server). **Confirmar que "Atendió" = `Usu_Alta`** es la semántica correcta. Reiniciar backend (nodemon recarga solo) y abrir Prestaciones Realizadas.
+2. **HonorariosPage edición inline de %**: faltaba el estado local (tiraba ReferenceError al editar). Arreglado con copia local que espeja el hook. **Verificar** editar % socio/no-socio + Guardar.
+
+**Cómo medir:** `npm.cmd run type-check 2>&1 | Select-String 'error TS' | Measure-Object`.
 
 ---
 
 ## 4. Pendientes (prioridad)
 
-1. **(principal)** Bajar los 136 errores TS legacy → ver §3.
+1. ✅ **(principal, HECHO)** Errores TS legacy 136→0. Falta solo **verificar en vivo** los 2 bugs reales arreglados (§3): Prestaciones Realizadas contra GECLISA + edición inline de % en HonorariosPage.
 2. Sueldos: cuando lleguen, cargar **F.931 real de enero-2026** (reemplazar el VEP) y la **minuta de feb-2026+** para generar asientos 2026.
 3. Sueldos: agregar **"Castillo Romina"** al maestro (falta en ene/feb/mar-2025; bruto/reparto incompletos esos meses).
 4. (cosmético) Quitar el alias `@/` (ya sin uso, todo es `@shared`/`@modules`); re-homologar hooks/modales compartidos a su módulo si se quiere más pureza.
