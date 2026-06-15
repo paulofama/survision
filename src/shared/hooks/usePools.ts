@@ -84,7 +84,7 @@ export const usePools = (): UsePoolsReturn => {
           .eq('activo', true);
 
         if (!rpError && rpData) {
-          recetasPoolsData = rpData as RecetaPoolData[];
+          recetasPoolsData = rpData as unknown as RecetaPoolData[];
         }
       } catch (rpErr) {
         // Si la tabla no existe o hay error, continuamos sin prorrateo

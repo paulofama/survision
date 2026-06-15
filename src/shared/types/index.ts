@@ -17,16 +17,18 @@ export interface DatabaseEntity {
 // SEGMENTOS HOMOGÉNEOS (TITLE CASE)
 // ============================================
 
-export type InsumoSegmento = 
-  | 'Insumos Generales En Consultorio'
-  | 'Insumos Generales En Quirófano'
+// Valores reales que escribe el dropdown de InsumoModal a la BD (fuente de verdad).
+export type InsumoSegmento =
+  | 'IG En Consultorio'
+  | 'IG En Quirófano'
   | 'Kit Parabulbar'
-  | 'Kit Para RFG'
-  | 'Implantes Quirúrgicos'
-  | 'Re Esterilizable Catarata'
-  | 'Re Esterilizable Retina'
+  | 'KIT para RFG'
+  | 'Implante'
+  | 'Re Esterilizables'
   | 'Re Esterilizable + Lavado'
-  | 'Kit Sedación';
+  | 'Medicamentos'
+  | 'Descartables'
+  | 'Kit De Faco';
 
 // ============================================
 // INSUMOS VARIABLES
@@ -55,20 +57,46 @@ export interface NuevoInsumoVariable {
 }
 
 // ============================================
+// IMPORTACIÓN MASIVA DESDE EXCEL (ExcelMasterImportModal)
+// ============================================
+
+// Fila de insumo parseada desde una hoja del Excel del sistema viejo.
+export interface ExcelInsumoRow {
+  codigo: string;
+  descripcion: string;
+  precio_unitario: number;
+  unidad: string;
+  consumo: string;
+  cantidad: number;
+}
+
+// Resultado de importar un segmento (una hoja) del Excel.
+export interface ImportacionExcelResult {
+  exitosos: number;
+  errores: number;
+  duplicados: number;
+  detalles: {
+    fila: number;
+    error: string;
+    insumo?: ExcelInsumoRow;
+  }[];
+}
+
+// ============================================
 // CONFIGURACIÓN HOMOGÉNEA DE SEGMENTOS
 // ============================================
 
 export const SEGMENTOS_CONFIG = {
-  'Insumos Generales En Consultorio': {
+  'IG En Consultorio': {
     color: 'bg-blue-100 text-blue-800',
     prefijo: 'IGC',
-    descripcion: 'Insumos para uso en consultorios',
+    descripcion: 'Insumos generales para uso en consultorios',
     orden: 1,
   },
-  'Insumos Generales En Quirófano': {
+  'IG En Quirófano': {
     color: 'bg-green-100 text-green-800',
     prefijo: 'IGQ',
-    descripcion: 'Insumos para uso en quirófano',
+    descripcion: 'Insumos generales para uso en quirófano',
     orden: 2,
   },
   'Kit Parabulbar': {
@@ -77,41 +105,47 @@ export const SEGMENTOS_CONFIG = {
     descripcion: 'Kit para anestesia parabulbar',
     orden: 3,
   },
-  'Kit Para RFG': {
+  'KIT para RFG': {
     color: 'bg-indigo-100 text-indigo-800',
     prefijo: 'RFG',
     descripcion: 'Kit para retinofluoresceíngrafía',
     orden: 4,
   },
-  'Implantes Quirúrgicos': {
+  'Implante': {
     color: 'bg-pink-100 text-pink-800',
     prefijo: 'IMP',
     descripcion: 'Implantes para cirugías oftálmicas',
     orden: 5,
   },
-  'Re Esterilizable Catarata': {
+  'Re Esterilizables': {
     color: 'bg-yellow-100 text-yellow-800',
-    prefijo: 'REC',
-    descripcion: 'Instrumental resterilizable para catarata',
+    prefijo: 'RES',
+    descripcion: 'Instrumental resterilizable',
     orden: 6,
-  },
-  'Re Esterilizable Retina': {
-    color: 'bg-orange-100 text-orange-800',
-    prefijo: 'RER',
-    descripcion: 'Instrumental resterilizable para retina',
-    orden: 7,
   },
   'Re Esterilizable + Lavado': {
     color: 'bg-red-100 text-red-800',
     prefijo: 'REL',
     descripcion: 'Instrumental resterilizable con lavado especial',
+    orden: 7,
+  },
+  'Medicamentos': {
+    color: 'bg-teal-100 text-teal-800',
+    prefijo: 'MED',
+    descripcion: 'Medicamentos',
     orden: 8,
   },
-  'Kit Sedación': {
+  'Descartables': {
     color: 'bg-gray-100 text-gray-800',
-    prefijo: 'SED',
-    descripcion: 'Kit para sedación en procedimientos',
+    prefijo: 'DES',
+    descripcion: 'Material descartable',
     orden: 9,
+  },
+  'Kit De Faco': {
+    color: 'bg-orange-100 text-orange-800',
+    prefijo: 'FACO',
+    descripcion: 'Kit para facoemulsificación',
+    orden: 10,
   },
 } as const;
 
@@ -120,15 +154,16 @@ export const SEGMENTOS_CONFIG = {
 // ============================================
 
 export const segmentoColors: Record<InsumoSegmento, string> = {
-  'Insumos Generales En Consultorio': 'bg-blue-100 text-blue-800',
-  'Insumos Generales En Quirófano': 'bg-green-100 text-green-800',
+  'IG En Consultorio': 'bg-blue-100 text-blue-800',
+  'IG En Quirófano': 'bg-green-100 text-green-800',
   'Kit Parabulbar': 'bg-purple-100 text-purple-800',
-  'Kit Para RFG': 'bg-indigo-100 text-indigo-800',
-  'Implantes Quirúrgicos': 'bg-pink-100 text-pink-800',
-  'Re Esterilizable Catarata': 'bg-yellow-100 text-yellow-800',
-  'Re Esterilizable Retina': 'bg-orange-100 text-orange-800',
+  'KIT para RFG': 'bg-indigo-100 text-indigo-800',
+  'Implante': 'bg-pink-100 text-pink-800',
+  'Re Esterilizables': 'bg-yellow-100 text-yellow-800',
   'Re Esterilizable + Lavado': 'bg-red-100 text-red-800',
-  'Kit Sedación': 'bg-gray-100 text-gray-800',
+  'Medicamentos': 'bg-teal-100 text-teal-800',
+  'Descartables': 'bg-gray-100 text-gray-800',
+  'Kit De Faco': 'bg-orange-100 text-orange-800',
 };
 
 // ============================================
@@ -136,15 +171,16 @@ export const segmentoColors: Record<InsumoSegmento, string> = {
 // ============================================
 
 export const SEGMENTOS_ORDENADOS: InsumoSegmento[] = [
-  'Insumos Generales En Consultorio',
-  'Insumos Generales En Quirófano',
+  'IG En Consultorio',
+  'IG En Quirófano',
   'Kit Parabulbar',
-  'Kit Para RFG',
-  'Implantes Quirúrgicos',
-  'Re Esterilizable Catarata',
-  'Re Esterilizable Retina',
+  'KIT para RFG',
+  'Implante',
+  'Re Esterilizables',
   'Re Esterilizable + Lavado',
-  'Kit Sedación',
+  'Medicamentos',
+  'Descartables',
+  'Kit De Faco',
 ];
 
 // ============================================
