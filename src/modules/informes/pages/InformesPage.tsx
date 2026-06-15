@@ -1,6 +1,6 @@
-// ============================================================
-// PÁGINA: INFORMES DE GESTIÓN
-// Panel principal para selección y descarga de informes
+﻿// ============================================================
+// PÃGINA: INFORMES DE GESTIÃ“N
+// Panel principal para selecciÃ³n y descarga de informes
 // Instituto Dr. Mercado - Sistema de Costos
 // ============================================================
 
@@ -27,9 +27,9 @@ import {
   INFORMES_DISPONIBLES,
   MESES_NOMBRE,
   type TipoInforme,
-} from '../types/informes';
+} from '@/types/informes';
 
-// ---- Mapa de íconos ----
+// ---- Mapa de Ã­conos ----
 const ICON_MAP: Record<string, React.ElementType> = {
   FileBarChart,
   TrendingUp,
@@ -39,9 +39,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 // ---- Componente principal ----
 const InformesPage: React.FC = () => {
-  // Estado de selección
+  // Estado de selecciÃ³n
   const [mesSeleccionado, setMesSeleccionado] = useState<number>(
-    new Date().getMonth() // Mes anterior por defecto (0-indexed, así que getMonth() da el anterior)
+    new Date().getMonth() // Mes anterior por defecto (0-indexed, asÃ­ que getMonth() da el anterior)
   );
   const [anioSeleccionado, setAnioSeleccionado] = useState<number>(
     mesSeleccionado === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()
@@ -51,7 +51,7 @@ const InformesPage: React.FC = () => {
   // Hook de datos
   const { estado, datos, error, progreso, cargarInforme, limpiar } = useInformeGestion();
 
-  // Años disponibles
+  // AÃ±os disponibles
   const aniosDisponibles = useMemo(() => {
     const actual = new Date().getFullYear();
     return [actual - 2, actual - 1, actual];
@@ -115,9 +115,9 @@ const InformesPage: React.FC = () => {
             <BarChart3 className="w-6 h-6 text-blue-700" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Informes de Gestión</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Informes de GestiÃ³n</h1>
             <p className="text-sm text-gray-500">
-              Generación y descarga de informes directivos
+              GeneraciÃ³n y descarga de informes directivos
             </p>
           </div>
         </div>
@@ -148,10 +148,10 @@ const InformesPage: React.FC = () => {
         </div>
 
         {/* ============================================ */}
-        {/* COLUMNA DERECHA: Panel de configuración */}
+        {/* COLUMNA DERECHA: Panel de configuraciÃ³n */}
         {/* ============================================ */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Tarjeta de configuración */}
+          {/* Tarjeta de configuraciÃ³n */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Header tarjeta */}
             <div className="bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-4">
@@ -163,12 +163,12 @@ const InformesPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Selectores de período */}
+            {/* Selectores de perÃ­odo */}
             <div className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Calendar className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">
-                  Seleccionar período
+                  Seleccionar perÃ­odo
                 </span>
               </div>
 
@@ -194,10 +194,10 @@ const InformesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Selector de año */}
+                {/* Selector de aÃ±o */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">
-                    Año
+                    AÃ±o
                   </label>
                   <div className="relative">
                     <select
@@ -224,21 +224,21 @@ const InformesPage: React.FC = () => {
                     <p className="font-medium mb-1">Este informe incluye:</p>
                     <ul className="space-y-0.5 text-blue-700">
                       <li>
-                        • Comparativa{' '}
+                        â€¢ Comparativa{' '}
                         <strong>
                           {MESES_NOMBRE[mesSeleccionado]} {anioSeleccionado}
                         </strong>{' '}
                         vs mes anterior
                       </li>
                       <li>
-                        • Acumulado{' '}
+                        â€¢ Acumulado{' '}
                         <strong>
                           Ene-{MESES_NOMBRE[mesSeleccionado]?.substring(0, 3)} {anioSeleccionado}
                         </strong>{' '}
-                        vs mismo período {anioSeleccionado - 1}
+                        vs mismo perÃ­odo {anioSeleccionado - 1}
                       </li>
-                      <li>• Desglose por Obra Social, Prestador y Práctica</li>
-                      <li>• KPIs principales con indicadores de variación</li>
+                      <li>â€¢ Desglose por Obra Social, Prestador y PrÃ¡ctica</li>
+                      <li>â€¢ KPIs principales con indicadores de variaciÃ³n</li>
                     </ul>
                   </div>
                 </div>
@@ -271,7 +271,7 @@ const InformesPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Mensaje de éxito */}
+              {/* Mensaje de Ã©xito */}
               {estado === 'listo' && datos && (
                 <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
@@ -288,7 +288,7 @@ const InformesPage: React.FC = () => {
                           </strong>
                         </span>
                         <span>
-                          Prácticas:{' '}
+                          PrÃ¡cticas:{' '}
                           <strong>
                             {datos.resumenMensual.actual.totalPracticas.toLocaleString('es-AR')}
                           </strong>
@@ -313,7 +313,7 @@ const InformesPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Botones de acción */}
+              {/* Botones de acciÃ³n */}
               <div className="flex gap-3">
                 {estado !== 'listo' ? (
                   <button
@@ -349,7 +349,7 @@ const InformesPage: React.FC = () => {
                       className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
                     >
                       <Clock className="w-4 h-4" />
-                      Otro período
+                      Otro perÃ­odo
                     </button>
                   </>
                 )}
@@ -357,7 +357,7 @@ const InformesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Preview rápido de datos (si están listos) */}
+          {/* Preview rÃ¡pido de datos (si estÃ¡n listos) */}
           {estado === 'listo' && datos && <PreviewRapido datos={datos} />}
         </div>
       </div>
@@ -415,7 +415,7 @@ const InformeCard: React.FC<{
             </span>
             {informe.proximamente && (
               <span className="text-[10px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
-                Próximamente
+                PrÃ³ximamente
               </span>
             )}
           </div>
@@ -426,7 +426,7 @@ const InformeCard: React.FC<{
   );
 };
 
-// ---- Preview rápido ----
+// ---- Preview rÃ¡pido ----
 const PreviewRapido: React.FC<{ datos: any }> = ({ datos }) => {
   const fmtMoneda = (n: number) =>
     new Intl.NumberFormat('es-AR', {
@@ -463,7 +463,7 @@ const PreviewRapido: React.FC<{ datos: any }> = ({ datos }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-        Vista previa - KPIs del período
+        Vista previa - KPIs del perÃ­odo
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
@@ -475,7 +475,7 @@ const PreviewRapido: React.FC<{ datos: any }> = ({ datos }) => {
                 kpi.variacion >= 0 ? 'text-green-600' : 'text-red-600'
               }`}
             >
-              {kpi.variacion >= 0 ? '▲' : '▼'}{' '}
+              {kpi.variacion >= 0 ? 'â–²' : 'â–¼'}{' '}
               {kpi.variacion >= 0 ? '+' : ''}
               {kpi.variacion.toFixed(1)}% vs mes ant.
             </p>

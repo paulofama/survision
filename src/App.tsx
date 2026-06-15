@@ -109,13 +109,13 @@ const LiqHonorariosPage = lazy(() =>
 // INFORMES - LAZY LOADING
 // ============================================
 const InformesPage = lazy(() => 
-  import('./pages/InformesPage').catch(() => ({
+  import('@modules/informes/pages/InformesPage').catch(() => ({
     default: () => <ComingSoonPage title="Informes de Gestión" />
   }))
 );
 
 const InformesEjecutivosPage = lazy(() => 
-  import('./pages/InformesEjecutivosPage').catch(() => ({
+  import('@modules/informes/pages/InformesEjecutivosPage').catch(() => ({
     default: () => <ComingSoonPage title="Informes Ejecutivos" />
   }))
 );

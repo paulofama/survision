@@ -1,5 +1,5 @@
-// ============================================================
-// PDF GENERATOR - INFORME DE GESTIÓN MENSUAL
+﻿// ============================================================
+// PDF GENERATOR - INFORME DE GESTIÃ“N MENSUAL
 // Instituto Dr. Mercado - Sistema de Costos
 // ============================================================
 //
@@ -14,19 +14,19 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { DatosInformeGestion, MetricasResumen } from '../types/informes';
+import type { DatosInformeGestion, MetricasResumen } from '@/types/informes';
 
 // ============================================================
-// EVOLUCIÓN 12 MESES — Tipos para gráficos de líneas
+// EVOLUCIÃ“N 12 MESES â€” Tipos para grÃ¡ficos de lÃ­neas
 // ============================================================
 // Se agrega como propiedad OPCIONAL al objeto DatosInformeGestion
-// (vía casteo en runtime). Si no viene definida, los gráficos
-// simplemente no se dibujan y el informe queda igual a la versión
+// (vÃ­a casteo en runtime). Si no viene definida, los grÃ¡ficos
+// simplemente no se dibujan y el informe queda igual a la versiÃ³n
 // anterior (retrocompatible 100%).
 //
 // El backend debe devolver esta estructura. Las cantidades se
 // calculan desde MovEnca (atenciones para OS/Prestador) y MovPrac
-// (cantidad de prácticas para Top 10 prácticas), sin importes.
+// (cantidad de prÃ¡cticas para Top 10 prÃ¡cticas), sin importes.
 // ============================================================
 
 interface MesEvolucion {
@@ -36,20 +36,20 @@ interface MesEvolucion {
 }
 
 interface SerieEvolucion {
-  nombre: string;    // sigla de OS / nombre prestador / nombre práctica
+  nombre: string;    // sigla de OS / nombre prestador / nombre prÃ¡ctica
   total: number;     // suma de los 12 meses (para ordenar y truncar)
   serie: number[];   // 12 valores (cantidades), uno por mes en orden
 }
 
 interface EvolucionMensual12M {
-  meses: MesEvolucion[];                    // 12 elementos, orden cronológico
+  meses: MesEvolucion[];                    // 12 elementos, orden cronolÃ³gico
   obrasSociales: SerieEvolucion[];          // ya filtrado: top 10 por total
   prestadores: SerieEvolucion[];            // todos los activos
   practicas: SerieEvolucion[];              // ya filtrado: top 10 por total
 }
 
 // ============================================================
-// CRUCE PRÁCTICAS × OBRAS SOCIALES (matriz mes actual)
+// CRUCE PRÃCTICAS Ã— OBRAS SOCIALES (matriz mes actual)
 // ============================================================
 interface ColumnaOS {
   osId: number;
@@ -68,16 +68,16 @@ interface FilaPracticaCruce {
   nomNombre: string;
   totalCantidad: number;
   totalFacturado: number;
-  // Map por clave: osId (número como string) o "OTRAS"
+  // Map por clave: osId (nÃºmero como string) o "OTRAS"
   celdas: { [key: string]: CeldaCruce };
 }
 
 interface CruceOSxPracticas {
-  columnasOS: ColumnaOS[];          // top 10 OS por facturación del mes
-  filasPracticas: FilaPracticaCruce[]; // todas las prácticas, ordenadas DESC por facturación
+  columnasOS: ColumnaOS[];          // top 10 OS por facturaciÃ³n del mes
+  filasPracticas: FilaPracticaCruce[]; // todas las prÃ¡cticas, ordenadas DESC por facturaciÃ³n
 }
 
-// ---- Constantes de diseño ----
+// ---- Constantes de diseÃ±o ----
 const COLORS = {
   primary: [37, 99, 235] as [number, number, number],       // blue-600
   primaryDark: [29, 78, 216] as [number, number, number],    // blue-700
@@ -93,8 +93,8 @@ const COLORS = {
   border: [203, 213, 225] as [number, number, number],      // slate-300
 };
 
-// ---- Paleta de 10 colores distintivos para series del gráfico ----
-// Elegidos para máximo contraste entre sí, accesibles en B/N también
+// ---- Paleta de 10 colores distintivos para series del grÃ¡fico ----
+// Elegidos para mÃ¡ximo contraste entre sÃ­, accesibles en B/N tambiÃ©n
 const SERIE_COLORS: [number, number, number][] = [
   [37, 99, 235],    // blue-600
   [220, 38, 38],    // red-600
@@ -138,20 +138,20 @@ const fmtVariacion = (n: number): string => {
 };
 
 // ============================================================
-// FUNCIÓN PRINCIPAL
+// FUNCIÃ“N PRINCIPAL
 // ============================================================
 export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   const doc = new jsPDF('portrait', 'mm', 'a4');
   let yPos = MARGIN.top;
 
   // ============================================================
-  // PÁGINA 1: PORTADA + RESUMEN EJECUTIVO
+  // PÃGINA 1: PORTADA + RESUMEN EJECUTIVO
   // ============================================================
   dibujarPortada(doc, datos);
   doc.addPage();
 
   // ============================================================
-  // PÁGINA 2: RESUMEN EJECUTIVO CON KPIs
+  // PÃGINA 2: RESUMEN EJECUTIVO CON KPIs
   // ============================================================
   yPos = MARGIN.top;
   yPos = dibujarHeaderPagina(doc, yPos, 'RESUMEN EJECUTIVO', datos.periodo.label);
@@ -192,7 +192,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   );
 
   // ============================================================
-  // SECCIÓN: ANÁLISIS POR OBRA SOCIAL
+  // SECCIÃ“N: ANÃLISIS POR OBRA SOCIAL
   // ============================================================
 
   // OS - Desglose
@@ -243,7 +243,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
     nameMaxLen: 20,
   });
 
-  // OS - Gráfico Evolución 12 meses (cantidades)
+  // OS - GrÃ¡fico EvoluciÃ³n 12 meses (cantidades)
   const evolucion12M = (datos as any).evolucion12Meses as EvolucionMensual12M | undefined;
   if (evolucion12M?.obrasSociales?.length) {
     yPos += 4;
@@ -258,7 +258,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   }
 
   // ============================================================
-  // SECCIÓN: ANÁLISIS POR PRESTADOR
+  // SECCIÃ“N: ANÃLISIS POR PRESTADOR
   // ============================================================
 
   // Prestadores - Desglose
@@ -309,7 +309,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
     nameMaxLen: 20,
   });
 
-  // Prestadores - Gráfico Evolución 12 meses (cantidades, todos los prestadores)
+  // Prestadores - GrÃ¡fico EvoluciÃ³n 12 meses (cantidades, todos los prestadores)
   if (evolucion12M?.prestadores?.length) {
     yPos += 4;
     yPos = dibujarGraficoEvolucion12M(doc, yPos, {
@@ -323,16 +323,16 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   }
 
   // ============================================================
-  // SECCIÓN: ANÁLISIS POR PRÁCTICA
+  // SECCIÃ“N: ANÃLISIS POR PRÃCTICA
   // ============================================================
 
-  // Prácticas - Desglose
+  // PrÃ¡cticas - Desglose
   doc.addPage();
   yPos = MARGIN.top;
   yPos = dibujarHeaderPagina(doc, yPos, 'TOP PRACTICAS POR FACTURACION', datos.periodo.label);
   yPos = dibujarTablaPracticas(doc, yPos, datos.porPractica.mesActual, datos.periodo.label);
 
-  // Prácticas - Comparativo Mensual
+  // PrÃ¡cticas - Comparativo Mensual
   if (yPos > 180) {
     doc.addPage();
     yPos = MARGIN.top;
@@ -354,7 +354,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
     nameMaxLen: 20,
   });
 
-  // Prácticas - Comparativo Anual
+  // PrÃ¡cticas - Comparativo Anual
   if (yPos > 180) {
     doc.addPage();
     yPos = MARGIN.top;
@@ -376,7 +376,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
     nameMaxLen: 20,
   });
 
-  // Prácticas - Gráfico Evolución 12 meses (cantidades, top 10 por cantidad total)
+  // PrÃ¡cticas - GrÃ¡fico EvoluciÃ³n 12 meses (cantidades, top 10 por cantidad total)
   if (evolucion12M?.practicas?.length) {
     yPos += 4;
     yPos = dibujarGraficoEvolucion12M(doc, yPos, {
@@ -390,7 +390,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   }
 
   // ============================================================
-  // SECCIÓN: OBRAS SOCIALES × PRESTACIONES (matriz cruzada)
+  // SECCIÃ“N: OBRAS SOCIALES Ã— PRESTACIONES (matriz cruzada)
   // ============================================================
   const cruceOSxPracticas = (datos as any).cruceOSxPracticas as CruceOSxPracticas | undefined;
   if (cruceOSxPracticas?.filasPracticas?.length && cruceOSxPracticas?.columnasOS?.length) {
@@ -398,14 +398,14 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   }
 
   // ============================================================
-  // PÁGINA FINAL: ANÁLISIS EJECUTIVO Y CONCLUSIONES
+  // PÃGINA FINAL: ANÃLISIS EJECUTIVO Y CONCLUSIONES
   // ============================================================
   doc.addPage();
   yPos = MARGIN.top;
   yPos = dibujarHeaderPagina(doc, yPos, 'ANALISIS EJECUTIVO Y CONCLUSIONES', datos.periodo.label);
   yPos = dibujarAnalisisEjecutivo(doc, yPos, datos);
 
-  // ---- Agregar números de página a todas las páginas ----
+  // ---- Agregar nÃºmeros de pÃ¡gina a todas las pÃ¡ginas ----
   const totalPages = doc.getNumberOfPages();
   for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i);
@@ -426,28 +426,28 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
   doc.setFillColor(...COLORS.headerBg);
   doc.rect(0, 0, 210, 100, 'F');
 
-  // Línea decorativa
+  // LÃ­nea decorativa
   doc.setFillColor(...COLORS.primary);
   doc.rect(0, 100, 210, 3, 'F');
 
-  // Título instituto
+  // TÃ­tulo instituto
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
   doc.text('INSTITUTO DR. MERCADO', 105, 35, { align: 'center' });
 
-  // Título informe
+  // TÃ­tulo informe
   doc.setFontSize(28);
   doc.setFont('helvetica', 'bold');
   doc.text('INFORME DE', 105, 55, { align: 'center' });
   doc.text('GESTION MENSUAL', 105, 68, { align: 'center' });
 
-  // Período
+  // PerÃ­odo
   doc.setFontSize(18);
   doc.setFont('helvetica', 'normal');
   doc.text(datos.periodo.label.toUpperCase(), 105, 85, { align: 'center' });
 
-  // Sección de datos debajo
+  // SecciÃ³n de datos debajo
   doc.setTextColor(...COLORS.textDark);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
@@ -479,7 +479,7 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
   const actual = datos.resumenMensual.actual;
   const anterior = datos.resumenMensual.anterior;
 
-  // Título sección
+  // TÃ­tulo secciÃ³n
   doc.setTextColor(...COLORS.primaryDark);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
@@ -531,7 +531,7 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
   doc.setFontSize(10);
   doc.text(fmtNumero(anterior.totalAtenciones), cardX1 + cardW - 6, cardY + 31, { align: 'right' });
 
-  // Variación atenciones
+  // VariaciÃ³n atenciones
   const varAtenc = anterior.totalAtenciones !== 0
     ? ((actual.totalAtenciones - anterior.totalAtenciones) / Math.abs(anterior.totalAtenciones)) * 100
     : 0;
@@ -575,7 +575,7 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
   doc.setFontSize(9);
   doc.text(fmtMoneda(anterior.totalFacturado), cardX2 + cardW - 6, cardY + 31, { align: 'right' });
 
-  // Variación facturado
+  // VariaciÃ³n facturado
   const varFact = anterior.totalFacturado !== 0
     ? ((actual.totalFacturado - anterior.totalFacturado) / Math.abs(anterior.totalFacturado)) * 100
     : 0;
@@ -585,7 +585,7 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
   doc.setFont('helvetica', 'bold');
   doc.text(`${varFact >= 0 ? '+' : ''}${varFact.toFixed(1)}%`, cardX2 + cardW / 2, cardY + 44, { align: 'center' });
 
-  // Fecha de generación
+  // Fecha de generaciÃ³n
   doc.setTextColor(...COLORS.textMuted);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
@@ -602,7 +602,7 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
     { align: 'center' }
   );
 
-  // Footer portada (solo una línea limpia)
+  // Footer portada (solo una lÃ­nea limpia)
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.3);
   doc.line(MARGIN.left, 280, MARGIN.left + CONTENT_WIDTH, 280);
@@ -628,7 +628,7 @@ function dibujarHeaderPagina(doc: jsPDF, y: number, titulo: string, subtitulo: s
   doc.setFont('helvetica', 'normal');
   doc.text(subtitulo, MARGIN.left + CONTENT_WIDTH - 5, y + 7, { align: 'right' });
 
-  // Línea debajo
+  // LÃ­nea debajo
   doc.setDrawColor(...COLORS.primary);
   doc.setLineWidth(0.5);
   doc.line(MARGIN.left, y + 11, MARGIN.left + CONTENT_WIDTH, y + 11);
@@ -682,7 +682,7 @@ function dibujarTarjetasKPI(
     doc.setFillColor(...COLORS.lightBg);
     doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'F');
 
-    // Borde superior color según variación
+    // Borde superior color segÃºn variaciÃ³n
     const borderColor = kpi.variacion >= 0 ? COLORS.success : COLORS.danger;
     doc.setFillColor(...borderColor);
     doc.rect(x, y, cardWidth, 1.5, 'F');
@@ -699,7 +699,7 @@ function dibujarTarjetasKPI(
     doc.setFont('helvetica', 'bold');
     doc.text(kpi.valor, x + cardWidth / 2, y + 13, { align: 'center' });
 
-    // Variación
+    // VariaciÃ³n
     doc.setTextColor(...(kpi.variacion >= 0 ? COLORS.success : COLORS.danger));
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
@@ -734,7 +734,7 @@ function dibujarTablaResumenComparativo(
     ['Ticket Promedio', fmtMoneda(actual.ticketPromedio), fmtMoneda(anterior.ticketPromedio)],
   ];
 
-  // Agregar columna de variación
+  // Agregar columna de variaciÃ³n
   const filasConVariacion = filas.map((fila, i) => {
     const valActual = [
       actual.totalAtenciones, actual.pacientesUnicos, actual.totalPracticas,
@@ -798,8 +798,8 @@ function dibujarTablaResumenComparativo(
 
 // ============================================================
 // TABLA OBRA SOCIAL - MODIFICADA
-// Se quitó: columna "Práct." (redundante) y "Honorarios"
-// Se agregó: columna "%" (% de atenciones sobre el total)
+// Se quitÃ³: columna "PrÃ¡ct." (redundante) y "Honorarios"
+// Se agregÃ³: columna "%" (% de atenciones sobre el total)
 // ============================================================
 function dibujarTablaOS(
   doc: jsPDF,
@@ -867,8 +867,8 @@ function dibujarTablaOS(
 }
 
 // ============================================================
-// FUNCIÓN GENÉRICA COMPARATIVA
-// Usada para las 6 tablas: OS/Prestadores/Prácticas x Mensual/Anual
+// FUNCIÃ“N GENÃ‰RICA COMPARATIVA
+// Usada para las 6 tablas: OS/Prestadores/PrÃ¡cticas x Mensual/Anual
 // Formato: # | Entidad | Cant Act | Cant Ant | Var% | Fact Act | Fact Ant | Var%
 // ============================================================
 function dibujarTablaComparativa(
@@ -1096,7 +1096,7 @@ function dibujarTablaPracticas(
 }
 
 // ============================================================
-// ANÁLISIS EJECUTIVO - Generación automática de insights
+// ANÃLISIS EJECUTIVO - GeneraciÃ³n automÃ¡tica de insights
 // ============================================================
 
 interface BloqueAnalisis {
@@ -1172,7 +1172,7 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   });
 
   // ===========================================================
-  // BLOQUE 2: SEÑALES POSITIVAS
+  // BLOQUE 2: SEÃ‘ALES POSITIVAS
   // ===========================================================
   const positivas: string[] = [];
 
@@ -1215,7 +1215,7 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   });
 
   // ===========================================================
-  // BLOQUE 3: ALERTAS Y PUNTOS CRÍTICOS
+  // BLOQUE 3: ALERTAS Y PUNTOS CRÃTICOS
   // ===========================================================
   const alertas: string[] = [];
 
@@ -1226,7 +1226,7 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   if ((pctA.totalAtenciones || 0) < -5)
     alertas.push(`El acumulado interanual de atenciones muestra retroceso (${pct(pctA.totalAtenciones)}).`);
 
-  // Prestadores con caída
+  // Prestadores con caÃ­da
   if (preAct.length > 0 && preAnt.length > 0) {
     const cayeron = preAct.filter(p => {
       const prev = preAnt.find((a: any) => a.preId === p.preId);
@@ -1251,7 +1251,7 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   });
 
   // ===========================================================
-  // BLOQUE 4: ANÁLISIS DIMENSIONAL
+  // BLOQUE 4: ANÃLISIS DIMENSIONAL
   // ===========================================================
   const dimensional: string[] = [];
 
@@ -1282,7 +1282,7 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
     );
   }
 
-  // Prácticas
+  // PrÃ¡cticas
   const pracAct = datos.porPractica?.mesActual || [];
   if (pracAct.length > 0) {
     const topPrac = pracAct.sort((a, b) => (b.cantidad || 0) - (a.cantidad || 0))[0];
@@ -1301,7 +1301,7 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   }
 
   // ===========================================================
-  // BLOQUE 5: CONCLUSIÓN
+  // BLOQUE 5: CONCLUSIÃ“N
   // ===========================================================
   const conclusion: string[] = [];
   const indicadoresPos = [
@@ -1338,7 +1338,7 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
 
 function dibujarAnalisisEjecutivo(doc: jsPDF, y: number, datos: DatosInformeGestion): number {
   const bloques = generarBloques(datos);
-  const maxY = 265; // Límite antes de footer
+  const maxY = 265; // LÃ­mite antes de footer
 
   for (const bloque of bloques) {
     // Estimar altura del bloque
@@ -1353,18 +1353,18 @@ function dibujarAnalisisEjecutivo(doc: jsPDF, y: number, datos: DatosInformeGest
     doc.setFillColor(...bloque.color);
     doc.rect(MARGIN.left, y, 3, alturaEstimada - 2, 'F');
 
-    // Título del bloque
+    // TÃ­tulo del bloque
     doc.setTextColor(...bloque.color);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text(bloque.titulo, MARGIN.left + 7, y + 5);
 
-    // Línea bajo título
+    // LÃ­nea bajo tÃ­tulo
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.3);
     doc.line(MARGIN.left + 7, y + 7, MARGIN.left + CONTENT_WIDTH - 5, y + 7);
 
-    // Párrafos
+    // PÃ¡rrafos
     doc.setTextColor(...COLORS.textDark);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -1378,7 +1378,7 @@ function dibujarAnalisisEjecutivo(doc: jsPDF, y: number, datos: DatosInformeGest
         yTexto = y + 5;
       }
 
-      // Viñeta
+      // ViÃ±eta
       doc.setFillColor(...bloque.color);
       doc.circle(MARGIN.left + 9, yTexto - 1.2, 0.8, 'F');
 
@@ -1392,7 +1392,7 @@ function dibujarAnalisisEjecutivo(doc: jsPDF, y: number, datos: DatosInformeGest
     y = yTexto + 4;
   }
 
-  // --- Firma de generación ---
+  // --- Firma de generaciÃ³n ---
   if (y + 15 > maxY) {
     doc.addPage();
     y = MARGIN.top + 10;
@@ -1417,40 +1417,40 @@ function dibujarAnalisisEjecutivo(doc: jsPDF, y: number, datos: DatosInformeGest
 
 
 // ============================================================
-// GRÁFICO DE EVOLUCIÓN 12 MESES — Líneas múltiples nativas en jsPDF
+// GRÃFICO DE EVOLUCIÃ“N 12 MESES â€” LÃ­neas mÃºltiples nativas en jsPDF
 // ============================================================
-// Dibuja un gráfico de líneas para una sección (OS / Prestador / Práctica).
-// Diseño consistente con el resto del PDF: caja blanca con borde gris,
-// ejes con grid, líneas de 0.7pt, puntos circulares de 1pt en cada mes,
-// punto destacado en el último mes (mes del informe).
+// Dibuja un grÃ¡fico de lÃ­neas para una secciÃ³n (OS / Prestador / PrÃ¡ctica).
+// DiseÃ±o consistente con el resto del PDF: caja blanca con borde gris,
+// ejes con grid, lÃ­neas de 0.7pt, puntos circulares de 1pt en cada mes,
+// punto destacado en el Ãºltimo mes (mes del informe).
 // Siempre trabaja con CANTIDADES, nunca con importes.
 //
-// Si la altura disponible no alcanza, salta de página automáticamente
-// y repite el header de la sección.
+// Si la altura disponible no alcanza, salta de pÃ¡gina automÃ¡ticamente
+// y repite el header de la secciÃ³n.
 // ============================================================
 function dibujarGraficoEvolucion12M(
   doc: jsPDF,
   y: number,
   config: {
     titulo: string;
-    sectionHeaderTitle: string;  // por si necesita repetir header al saltar página
+    sectionHeaderTitle: string;  // por si necesita repetir header al saltar pÃ¡gina
     periodoLabel: string;
     meses: MesEvolucion[];
     series: SerieEvolucion[];
     sufijoLeyenda?: string;       // ej: "(Top 10 por cantidad)"
   }
 ): number {
-  // ---- Validación defensiva ----
+  // ---- ValidaciÃ³n defensiva ----
   if (!config.meses?.length || !config.series?.length) return y;
 
-  // ---- Cálculo de altura total que va a ocupar el gráfico ----
+  // ---- CÃ¡lculo de altura total que va a ocupar el grÃ¡fico ----
   const numSeries = config.series.length;
   const filasLeyenda = Math.ceil(numSeries / 2);   // 2 columnas
   const altoLeyenda = filasLeyenda * 4 + 4;        // 4mm por fila + padding
-  const altoGrafico = 70;                           // alto del área del chart
-  const altoTotal = 7 + altoGrafico + altoLeyenda + 6;  // título + chart + leyenda + margen
+  const altoGrafico = 70;                           // alto del Ã¡rea del chart
+  const altoTotal = 7 + altoGrafico + altoLeyenda + 6;  // tÃ­tulo + chart + leyenda + margen
 
-  // ---- Salto de página si no entra ----
+  // ---- Salto de pÃ¡gina si no entra ----
   if (y + altoTotal > 270) {
     doc.addPage();
     y = MARGIN.top;
@@ -1458,7 +1458,7 @@ function dibujarGraficoEvolucion12M(
     y += 3;
   }
 
-  // ---- Título del gráfico ----
+  // ---- TÃ­tulo del grÃ¡fico ----
   doc.setTextColor(...COLORS.textDark);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
@@ -1468,7 +1468,7 @@ function dibujarGraficoEvolucion12M(
   doc.text(tituloCompleto, MARGIN.left, y + 4);
   y += 7;
 
-  // ---- Geometría del área de gráfico ----
+  // ---- GeometrÃ­a del Ã¡rea de grÃ¡fico ----
   const chartX = MARGIN.left;
   const chartY = y;
   const chartW = CONTENT_WIDTH;
@@ -1491,14 +1491,14 @@ function dibujarGraficoEvolucion12M(
   doc.setLineWidth(0.3);
   doc.rect(chartX, chartY, chartW, chartH, 'FD');
 
-  // ---- Cálculo de máximo Y (para escalar) ----
+  // ---- CÃ¡lculo de mÃ¡ximo Y (para escalar) ----
   let maxValor = 0;
   config.series.forEach(s => {
     s.serie.forEach(v => {
       if (v > maxValor) maxValor = v;
     });
   });
-  // Pequeño margen visual arriba (10%)
+  // PequeÃ±o margen visual arriba (10%)
   const yMax = maxValor > 0 ? Math.ceil(maxValor * 1.1) : 1;
   // Redondear a nice number para los ticks
   const yMaxRedondeado = redondearNice(yMax);
@@ -1516,7 +1516,7 @@ function dibujarGraficoEvolucion12M(
     const yTick = plotY + plotH - (plotH * ratio);
     const valor = yMaxRedondeado * ratio;
 
-    // Línea de grid
+    // LÃ­nea de grid
     if (i > 0) {
       doc.line(plotX, yTick, plotX + plotW, yTick);
     }
@@ -1535,12 +1535,12 @@ function dibujarGraficoEvolucion12M(
     doc.text(m.label, xMes, plotY + plotH + 4, { align: 'center' });
   });
 
-  // ---- Línea base del eje X ----
+  // ---- LÃ­nea base del eje X ----
   doc.setDrawColor(...COLORS.textMuted);
   doc.setLineWidth(0.3);
   doc.line(plotX, plotY + plotH, plotX + plotW, plotY + plotH);
 
-  // ---- Dibujar series (líneas + puntos) ----
+  // ---- Dibujar series (lÃ­neas + puntos) ----
   doc.setLineWidth(0.7);
 
   config.series.forEach((serie, sIdx) => {
@@ -1548,7 +1548,7 @@ function dibujarGraficoEvolucion12M(
     doc.setDrawColor(...color);
     doc.setFillColor(...color);
 
-    // Trazar líneas conectando puntos
+    // Trazar lÃ­neas conectando puntos
     let prevX: number | null = null;
     let prevY: number | null = null;
 
@@ -1565,7 +1565,7 @@ function dibujarGraficoEvolucion12M(
       prevY = yPunto;
     });
 
-    // Dibujar puntos al final (encima de las líneas)
+    // Dibujar puntos al final (encima de las lÃ­neas)
     serie.serie.forEach((valor, mIdx) => {
       const x = plotX + stepX * mIdx;
       const ratio = yMaxRedondeado > 0 ? valor / yMaxRedondeado : 0;
@@ -1599,9 +1599,9 @@ function dibujarGraficoEvolucion12M(
     doc.setFillColor(...color);
     doc.rect(xCol, yRow - 1.5, 2.5, 2.5, 'F');
 
-    // Texto: nombre + total entre paréntesis
+    // Texto: nombre + total entre parÃ©ntesis
     const nombreCorto = serie.nombre.length > 32
-      ? serie.nombre.substring(0, 30) + '…'
+      ? serie.nombre.substring(0, 30) + 'â€¦'
       : serie.nombre;
     doc.setTextColor(...COLORS.textDark);
     doc.text(`${nombreCorto}  (${fmtNumero(serie.total)})`, xCol + 4, yRow + 0.5);
@@ -1612,7 +1612,7 @@ function dibujarGraficoEvolucion12M(
   return y;
 }
 
-// ---- Utilidad: redondear un número a un valor "nice" para ticks ----
+// ---- Utilidad: redondear un nÃºmero a un valor "nice" para ticks ----
 function redondearNice(valor: number): number {
   if (valor <= 0) return 1;
   const exp = Math.floor(Math.log10(valor));
@@ -1629,13 +1629,13 @@ function redondearNice(valor: number): number {
 
 
 // ============================================================
-// SECCIÓN: OBRAS SOCIALES × PRESTACIONES — MATRIZ CRUZADA
+// SECCIÃ“N: OBRAS SOCIALES Ã— PRESTACIONES â€” MATRIZ CRUZADA
 // ============================================================
 // Tabla de doble entrada:
-//   - Filas: TODAS las prácticas (ordenadas DESC por facturación)
+//   - Filas: TODAS las prÃ¡cticas (ordenadas DESC por facturaciÃ³n)
 //   - Columnas: Top 10 OS + "Otras" + columna "Total" al final
-//   - Cada celda muestra cantidad arriba y monto abreviado abajo (2 líneas)
-// Pagina automáticamente cada ~17 filas, repitiendo el header de tabla.
+//   - Cada celda muestra cantidad arriba y monto abreviado abajo (2 lÃ­neas)
+// Pagina automÃ¡ticamente cada ~17 filas, repitiendo el header de tabla.
 // ============================================================
 
 // Formatea importes en formato compacto: $1.2M, $450K, $-
@@ -1656,9 +1656,9 @@ function dibujarSeccionCruceOSxPracticas(
   const totalPracticas = cruce.filasPracticas.length;
   const totalPaginas = Math.ceil(totalPracticas / FILAS_POR_PAGINA);
 
-  // Cálculo de anchos
-  // Layout: # (6mm) + Practica (44mm) + 10 OS + OTRAS + TOTAL = 12 cols numéricas
-  // Total ancho 170mm — col práctica 44mm, # 6mm, sobran 120mm para 12 cols => 10mm cada una
+  // CÃ¡lculo de anchos
+  // Layout: # (6mm) + Practica (44mm) + 10 OS + OTRAS + TOTAL = 12 cols numÃ©ricas
+  // Total ancho 170mm â€” col prÃ¡ctica 44mm, # 6mm, sobran 120mm para 12 cols => 10mm cada una
   const colNumW = 10;
   const colHashW = 6;
   const colPracticaW = CONTENT_WIDTH - colHashW - colNumW * 12; // 50mm
@@ -1681,7 +1681,7 @@ function dibujarSeccionCruceOSxPracticas(
       periodoLabel
     );
 
-    // Subtítulo con info de paginación
+    // SubtÃ­tulo con info de paginaciÃ³n
     const inicio = pagina * FILAS_POR_PAGINA;
     const fin = Math.min(inicio + FILAS_POR_PAGINA, totalPracticas);
     const subtituloTabla = totalPaginas > 1
@@ -1702,9 +1702,9 @@ function dibujarSeccionCruceOSxPracticas(
     doc.setFont('helvetica', 'normal');
 
     // ====================
-    // CABECERA DE TABLA (con OS rotadas 90° para que entren nombres completos)
+    // CABECERA DE TABLA (con OS rotadas 90Â° para que entren nombres completos)
     // ====================
-    const headerH = 22; // más alto para etiquetas verticales
+    const headerH = 22; // mÃ¡s alto para etiquetas verticales
     let xCursor = MARGIN.left;
 
     // Fondo cabecera
@@ -1719,11 +1719,11 @@ function dibujarSeccionCruceOSxPracticas(
     doc.text('#', xCursor + colHashW / 2, yPos + headerH / 2 + 1, { align: 'center' });
     xCursor += colHashW;
 
-    // Col Práctica
+    // Col PrÃ¡ctica
     doc.text('Practica', xCursor + 2, yPos + headerH / 2 + 1);
     xCursor += colPracticaW;
 
-    // Cols OS / Otras / Total — rotadas 90° (anti-horario)
+    // Cols OS / Otras / Total â€” rotadas 90Â° (anti-horario)
     doc.setFontSize(7);
     cols.forEach(c => {
       const lbl = c.label.length > 11 ? c.label.substring(0, 10) + '.' : c.label;
@@ -1737,7 +1737,7 @@ function dibujarSeccionCruceOSxPracticas(
     // ====================
     // FILAS
     // ====================
-    const rowH = 9; // 2 líneas: cant + monto
+    const rowH = 9; // 2 lÃ­neas: cant + monto
     const filasPag = cruce.filasPracticas.slice(inicio, fin);
 
     filasPag.forEach((fila, i) => {
@@ -1757,7 +1757,7 @@ function dibujarSeccionCruceOSxPracticas(
       doc.text(String(numAbs), xCursor + colHashW / 2, yPos + 5.5, { align: 'center' });
       xCursor += colHashW;
 
-      // Práctica
+      // PrÃ¡ctica
       doc.setTextColor(...COLORS.textDark);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
@@ -1766,7 +1766,7 @@ function dibujarSeccionCruceOSxPracticas(
       doc.text(nombreMax, xCursor + 2, yPos + 5.5);
       xCursor += colPracticaW;
 
-      // Celdas numéricas (OS + Otras + Total)
+      // Celdas numÃ©ricas (OS + Otras + Total)
       doc.setFont('helvetica', 'normal');
       cols.forEach(c => {
         let cant = 0, fact = 0;
@@ -1783,18 +1783,18 @@ function dibujarSeccionCruceOSxPracticas(
 
         const celdaCenter = xCursor + colNumW / 2;
         if (cant === 0) {
-          // Celda vacía - guion centrado
+          // Celda vacÃ­a - guion centrado
           doc.setTextColor(...COLORS.textMuted);
           doc.setFontSize(7);
           doc.text('-', celdaCenter, yPos + 5.5, { align: 'center' });
         } else {
-          // Línea 1: cantidad
+          // LÃ­nea 1: cantidad
           doc.setTextColor(...COLORS.textDark);
           doc.setFontSize(7);
           doc.setFont('helvetica', c.key === '__TOTAL__' ? 'bold' : 'normal');
           doc.text(fmtNumero(cant), celdaCenter, yPos + 4, { align: 'center' });
 
-          // Línea 2: monto compacto
+          // LÃ­nea 2: monto compacto
           doc.setTextColor(...(c.key === '__TOTAL__' ? COLORS.primary : COLORS.textMuted));
           doc.setFontSize(6);
           doc.setFont('helvetica', c.key === '__TOTAL__' ? 'bold' : 'normal');
@@ -1804,7 +1804,7 @@ function dibujarSeccionCruceOSxPracticas(
         xCursor += colNumW;
       });
 
-      // Línea inferior tenue de la fila
+      // LÃ­nea inferior tenue de la fila
       doc.setDrawColor(...COLORS.border);
       doc.setLineWidth(0.1);
       doc.line(MARGIN.left, yPos + rowH, MARGIN.left + CONTENT_WIDTH, yPos + rowH);
@@ -1823,7 +1823,7 @@ function dibujarSeccionCruceOSxPracticas(
     );
 
     // ====================
-    // FOOTER de la tabla con totales (solo en última página)
+    // FOOTER de la tabla con totales (solo en Ãºltima pÃ¡gina)
     // ====================
     if (pagina === totalPaginas - 1) {
       // Calcular totales por columna
@@ -1896,7 +1896,7 @@ function dibujarSeccionCruceOSxPracticas(
 function dibujarFooterPagina(doc: jsPDF, pagina: number, total: number): void {
   const y = 290;
 
-  // Línea separadora
+  // LÃ­nea separadora
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.3);
   doc.line(MARGIN.left, y - 5, MARGIN.left + CONTENT_WIDTH, y - 5);
@@ -1908,7 +1908,7 @@ function dibujarFooterPagina(doc: jsPDF, pagina: number, total: number): void {
   // Izquierda: instituto
   doc.text('Instituto Dr. Mercado - Informe de Gestion', MARGIN.left, y);
 
-  // Centro: página
+  // Centro: pÃ¡gina
   doc.text(`Pagina ${pagina} de ${total}`, 105, y, { align: 'center' });
 
   // Derecha: desarrollador
