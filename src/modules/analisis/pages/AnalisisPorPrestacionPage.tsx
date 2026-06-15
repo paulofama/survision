@@ -27,8 +27,8 @@ import {
   ChevronDown,
   AlertCircle
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
-import ComparativaInteligente from '@/components/ComparativaInteligente';
+import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
+import ComparativaInteligente from '@shared/components/ComparativaInteligente';
 
 const AnalisisPorPrestacionPage: React.FC = () => {
   const {

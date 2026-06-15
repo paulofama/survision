@@ -27,7 +27,7 @@ import {
   INFORMES_DISPONIBLES,
   MESES_NOMBRE,
   type TipoInforme,
-} from '@/types/informes';
+} from '@shared/types/informes';
 
 // ---- Mapa de íconos ----
 const ICON_MAP: Record<string, React.ElementType> = {

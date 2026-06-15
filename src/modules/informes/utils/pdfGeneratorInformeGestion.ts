@@ -14,7 +14,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { DatosInformeGestion, MetricasResumen } from '@/types/informes';
+import type { DatosInformeGestion, MetricasResumen } from '@shared/types/informes';
 
 // ============================================================
 // EVOLUCIÓN 12 MESES — Tipos para gráficos de líneas

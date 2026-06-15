@@ -17,9 +17,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, BarChart3, Download, Loader2, Lock, AlertCircle, AlertTriangle,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
-import type { ModuloSistema } from '@/types/auth.types';
+import { supabase } from '@shared/lib/supabase';
+import { useAuth } from '@shared/context/AuthContext';
+import type { ModuloSistema } from '@shared/types/auth.types';
 import type {
   AsientoSueldos, AsientoSueldosLinea, F931Declaracion, HallazgoSueldos,
 } from '../types/sueldos';

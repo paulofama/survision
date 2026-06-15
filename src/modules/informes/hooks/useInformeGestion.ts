@@ -11,7 +11,7 @@ import type {
   PeriodoInforme,
   crearPeriodo,
   crearFiltros,
-} from '@/types/informes';
+} from '@shared/types/informes';
 
 // ---- Configuración ----
 const API_BASE = 'http://localhost:3001/api/informes';

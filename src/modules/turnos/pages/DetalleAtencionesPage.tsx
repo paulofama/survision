@@ -23,7 +23,7 @@ import {
   fetchObrasSociales,
   type Movimiento,
   type ObraSocial
-} from '@/lib/apiAnalisis';
+} from '@shared/lib/apiAnalisis';
 
 // ============================================
 // COMPONENTE PRINCIPAL

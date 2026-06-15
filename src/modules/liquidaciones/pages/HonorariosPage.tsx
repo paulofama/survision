@@ -25,7 +25,7 @@ import {
   Search,
   Building2
 } from 'lucide-react';
-import { useHonorariosConfig, HonorarioConfig, Prestador } from '@/hooks/useHonorariosConfig';
+import { useHonorariosConfig, HonorarioConfig, Prestador } from '@shared/hooks/useHonorariosConfig';
 
 // ============================================
 // TIPOS LOCALES

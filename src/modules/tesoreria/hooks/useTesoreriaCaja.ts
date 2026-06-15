@@ -7,7 +7,7 @@
 // ============================================
 
 import { useState, useCallback } from 'react';
-import { getApiBaseUrl } from '@/lib/apiConfig';
+import { getApiBaseUrl } from '@shared/lib/apiConfig';
 
 // ============================================
 // INTERFACES

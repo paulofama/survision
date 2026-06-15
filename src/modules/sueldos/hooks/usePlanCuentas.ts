@@ -1,4 +1,4 @@
-﻿// ===========================================================================
+// ===========================================================================
 // HOOK: usePlanCuentas - MODULO CARGA DE SUELDOS
 // ===========================================================================
 // Sistema: SurVision / Sistema Integral de Gestion
@@ -29,7 +29,7 @@
 // ===========================================================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 import type {
   CapituloCuenta,
   PlanCuenta,

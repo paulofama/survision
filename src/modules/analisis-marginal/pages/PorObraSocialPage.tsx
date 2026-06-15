@@ -30,8 +30,8 @@ import useCostosFijosDistribucion, {
   getSemaforoColor,
   semaforoClasses,
   semaforoDot,
-} from '@/hooks/useCostosFijosDistribucion';
-import useNombreMapping from '@/hooks/useNombreMapping';
+} from '@shared/hooks/useCostosFijosDistribucion';
+import useNombreMapping from '@shared/hooks/useNombreMapping';
 
 // ============================================
 // TIPOS

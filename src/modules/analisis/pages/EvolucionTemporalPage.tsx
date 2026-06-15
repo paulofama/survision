@@ -23,7 +23,7 @@ import {
   fetchStats,
   type EvolucionMensual,
   type StatsData
-} from '@/lib/apiAnalisis';
+} from '@shared/lib/apiAnalisis';
 
 // ============================================
 // COMPONENTE PRINCIPAL

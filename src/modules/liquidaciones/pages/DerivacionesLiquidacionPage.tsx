@@ -29,8 +29,8 @@ import {
   Image,
   Check
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { getApiBaseUrl } from '@/lib/apiConfig';
+import { supabase } from '@shared/lib/supabase';
+import { getApiBaseUrl } from '@shared/lib/apiConfig';
 import jsPDF from 'jspdf';
 
 // ============================================

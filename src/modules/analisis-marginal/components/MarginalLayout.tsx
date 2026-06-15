@@ -20,9 +20,9 @@ import {
   X,
   Loader2,
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
-import { useHonorariosConfig } from '@/hooks/useHonorariosConfig';
-import { supabase } from '@/lib/supabase';
+import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
+import { useHonorariosConfig } from '@shared/hooks/useHonorariosConfig';
+import { supabase } from '@shared/lib/supabase';
 
 // ============================================
 // TIPOS

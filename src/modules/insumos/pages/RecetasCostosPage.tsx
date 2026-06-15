@@ -27,21 +27,21 @@ import {
   ChevronUp,
   Printer
 } from 'lucide-react';
-import { useRecetasCostos } from '@/hooks/useRecetasCostos';
-import { usePools } from '@/hooks/usePools';
-import { useInsumosVariables } from '@/hooks/useInsumosVariables';
-import { usePrestaciones } from '@/hooks/usePrestaciones';
+import { useRecetasCostos } from '@shared/hooks/useRecetasCostos';
+import { usePools } from '@shared/hooks/usePools';
+import { useInsumosVariables } from '@shared/hooks/useInsumosVariables';
+import { usePrestaciones } from '@shared/hooks/usePrestaciones';
 import type {
   CategoriaPractica,
   NuevaPracticaReceta,
   RecetaCompleta,
   PracticaRecetaConCostos
-} from '@/types/recetas';
+} from '@shared/types/recetas';
 import {
   CATEGORIAS_PRACTICAS,
   formatCategoria,
   getCategoriaColor
-} from '@/types/recetas';
+} from '@shared/types/recetas';
 
 // ============================================
 // HELPER: Detectar categoría por nombre

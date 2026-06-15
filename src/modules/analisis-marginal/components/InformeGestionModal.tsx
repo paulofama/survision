@@ -11,10 +11,10 @@
 import React, { useState, useCallback } from 'react';
 import { FileText, Loader2, X, Download, Calendar } from 'lucide-react';
 import { useMarginalContext } from './MarginalLayout';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 import { generarInformeGestionPDF, DatosInforme, DatosMes } from '../utils/generarInformeGestion';
-import useCostosFijosDistribucion from '@/hooks/useCostosFijosDistribucion';
-import useNombreMapping from '@/hooks/useNombreMapping';
+import useCostosFijosDistribucion from '@shared/hooks/useCostosFijosDistribucion';
+import useNombreMapping from '@shared/hooks/useNombreMapping';
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 

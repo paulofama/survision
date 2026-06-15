@@ -35,9 +35,9 @@ import {
   Lock,
   Activity,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
-import { ModuloSistema, PERMISOS_DEFAULT } from '@/types/auth.types';
+import { ModuloSistema, PERMISOS_DEFAULT } from '@shared/types/auth.types';
 
 // ============================================
 // TIPOS

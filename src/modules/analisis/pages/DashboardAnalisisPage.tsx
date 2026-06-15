@@ -31,7 +31,7 @@ import {
   AlertTriangle,
   XCircle
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
+import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { Link } from 'react-router-dom';
 
 // ============================================

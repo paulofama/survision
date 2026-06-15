@@ -30,18 +30,18 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
-import useEvolucionMensual from '@/hooks/useEvolucionMensual';
+import useEvolucionMensual from '@shared/hooks/useEvolucionMensual';
 import {
   labelMesCorto,
   type FilaEvolucion,
   type Mes,
   type AdvertenciaMensual,
-} from '@/types/evolucionTemporal';
+} from '@shared/types/evolucionTemporal';
 import {
   getSemaforoColor,
   semaforoClasses,
   semaforoDot,
-} from '@/hooks/useCostosFijosDistribucion';
+} from '@shared/hooks/useCostosFijosDistribucion';
 
 // ============================================
 // HELPERS DE FORMATEO

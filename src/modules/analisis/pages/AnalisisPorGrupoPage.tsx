@@ -30,8 +30,8 @@ import {
   Activity,
   Layers
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
-import { FiltroSelect, StatCard } from '@/components/ui';
+import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
+import { FiltroSelect, StatCard } from '@shared/components/ui';
 
 // ============================================
 // COMPONENTE PRINCIPAL

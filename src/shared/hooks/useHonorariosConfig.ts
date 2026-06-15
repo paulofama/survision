@@ -1,11 +1,11 @@
-﻿// ============================================
+// ============================================
 // HOOK: useHonorariosConfig
-// GestiÃ³n de configuraciÃ³n de honorarios
+// Gestión de configuración de honorarios
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 
 // ============================================
 // TIPOS
@@ -114,7 +114,7 @@ export const useHonorariosConfig = () => {
       setPrestadores(data || []);
     } catch (err) {
       console.error('Error cargando prestadores:', err);
-      // No setear error aquÃ­ para no bloquear si solo falla prestadores
+      // No setear error aquí para no bloquear si solo falla prestadores
     }
   }, []);
 
@@ -153,8 +153,8 @@ export const useHonorariosConfig = () => {
       await cargarConfiguraciones();
       return true;
     } catch (err) {
-      console.error('Error creando configuraciÃ³n:', err);
-      setError('Error al crear configuraciÃ³n');
+      console.error('Error creando configuración:', err);
+      setError('Error al crear configuración');
       return false;
     }
   }, [cargarConfiguraciones]);
@@ -177,8 +177,8 @@ export const useHonorariosConfig = () => {
       await cargarConfiguraciones();
       return true;
     } catch (err) {
-      console.error('Error actualizando configuraciÃ³n:', err);
-      setError('Error al actualizar configuraciÃ³n');
+      console.error('Error actualizando configuración:', err);
+      setError('Error al actualizar configuración');
       return false;
     }
   }, [cargarConfiguraciones]);
@@ -199,8 +199,8 @@ export const useHonorariosConfig = () => {
       await cargarConfiguraciones();
       return true;
     } catch (err) {
-      console.error('Error eliminando configuraciÃ³n:', err);
-      setError('Error al eliminar configuraciÃ³n');
+      console.error('Error eliminando configuración:', err);
+      setError('Error al eliminar configuración');
       return false;
     }
   }, [cargarConfiguraciones]);
@@ -283,11 +283,11 @@ export const useHonorariosConfig = () => {
   }, [cargarPrestadores]);
 
   // ============================================
-  // FUNCIONES DE CÃLCULO
+  // FUNCIONES DE CÁLCULO
   // ============================================
 
   const obtenerSegmentoPorCodigo = useCallback((codigo: string): HonorarioConfig | null => {
-    // Normalizar cÃ³digo a 6 dÃ­gitos
+    // Normalizar código a 6 dígitos
     const codigoNormalizado = codigo.padStart(6, '0').substring(0, 6);
     
     return configuraciones.find(config => 
@@ -345,7 +345,7 @@ export const useHonorariosConfig = () => {
   }, [prestadores, calcularHonorario]);
 
   // ============================================
-  // ESTADÃSTICAS
+  // ESTADÍSTICAS
   // ============================================
 
   const estadisticas = useMemo(() => {
@@ -394,7 +394,7 @@ export const useHonorariosConfig = () => {
     toggleSocioPrestador,
     eliminarPrestador,
     
-    // CÃ¡lculos
+    // Cálculos
     obtenerSegmentoPorCodigo,
     calcularHonorario,
     simularHonorario,

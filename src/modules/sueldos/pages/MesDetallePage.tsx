@@ -39,14 +39,14 @@ import { useF931 } from '../hooks/useF931';
 import { useConciliacion } from '../hooks/useConciliacion';
 import { useAsiento } from '../hooks/useAsiento';
 import { useHallazgos } from '../hooks/useHallazgos';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@shared/context/AuthContext';
 import {
   COLOR_ESTADO_MES,
   LABEL_ESTADO_MES,
   PERMISO_REPORTES_SUELDOS,
   periodoLabel,
 } from '../utils/constantes';
-import type { ModuloSistema } from '@/types/auth.types';
+import type { ModuloSistema } from '@shared/types/auth.types';
 import { TabMinuta } from '../components/TabMinuta';
 import { TabF931 } from '../components/TabF931';
 import { TabConciliacion } from '../components/TabConciliacion';

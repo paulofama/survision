@@ -22,10 +22,10 @@ import {
   FileText,
   Save
 } from 'lucide-react';
-import { usePools } from '@/hooks/usePools';
-import { useInsumosVariables } from '@/hooks/useInsumosVariables';
-import type { PoolConItems, PoolItemConInsumo } from '@/types/pools';
-import type { InsumoVariable } from '@/types';
+import { usePools } from '@shared/hooks/usePools';
+import { useInsumosVariables } from '@shared/hooks/useInsumosVariables';
+import type { PoolConItems, PoolItemConInsumo } from '@shared/types/pools';
+import type { InsumoVariable } from '@shared/types';
 
 // ============================================
 // COLORES POR POOL

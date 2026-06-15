@@ -9,9 +9,9 @@ import {
   DollarSign, PlusIcon, SearchIcon, EditIcon, TrashIcon,
   RefreshCwIcon, FilterIcon, TagIcon, X, Save, AlertCircle, DatabaseIcon
 } from 'lucide-react';
-import { usePrestaciones } from '@/hooks/usePrestaciones';
-import { useTipoCambio, TipoCambio } from '@/context/TipoCambioContext';
-import { TipoCambioIndicator } from '@/components/ui/TipoCambioIndicator';
+import { usePrestaciones } from '@shared/hooks/usePrestaciones';
+import { useTipoCambio, TipoCambio } from '@shared/context/TipoCambioContext';
+import { TipoCambioIndicator } from '@shared/components/ui/TipoCambioIndicator';
 
 // ============================================
 // TIPOS

@@ -36,7 +36,7 @@ import {
   ChevronRight as ChevronRightSmall,
   RotateCcw
 } from 'lucide-react';
-import useErogaciones, { Erogacion, TipoCosto, SubcategoriaVariable } from '@/hooks/useErogaciones';
+import useErogaciones, { Erogacion, TipoCosto, SubcategoriaVariable } from '@shared/hooks/useErogaciones';
 
 // ===========================================================
 // HELPERS

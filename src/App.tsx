@@ -8,14 +8,14 @@
 
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Layout from './components/layout/Layout';
+import Layout from '@shared/components/layout/Layout';
 
 // Context Providers
-import { TipoCambioProvider } from './context/TipoCambioContext';
-import { AuthProvider } from './context/AuthContext';
+import { TipoCambioProvider } from '@shared/context/TipoCambioContext';
+import { AuthProvider } from '@shared/context/AuthContext';
 
 // Componentes de autenticación
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import ProtectedRoute from '@shared/components/auth/ProtectedRoute';
 import LoginPage from '@modules/accesos/pages/LoginPage';
 
 // Páginas principales
@@ -64,7 +64,7 @@ import AnalisisTurnosPage from '@modules/turnos/pages/AnalisisTurnosPage';
 import GestionAccesosPage from '@modules/accesos/pages/GestionAccesosPage';
 
 // Páginas Coming Soon
-import ComingSoonPage from './pages/ComingSoonPage';
+import ComingSoonPage from '@shared/components/ComingSoonPage';
 
 // ============================================
 // TESORERÍA - LAZY LOADING (Safe Import)

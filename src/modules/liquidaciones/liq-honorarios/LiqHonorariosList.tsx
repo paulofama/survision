@@ -8,7 +8,7 @@ import {
   Plus, Edit2, Eye, Trash2, FileText, TrendingUp,
   MessageCircle, X, Copy, Check, Loader2, Phone, Send,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 import type { LiqHonorarioConPrestador } from './types';
 
 // ─── Props ────────────────────────────────────────────────

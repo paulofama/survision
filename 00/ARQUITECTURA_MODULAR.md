@@ -58,7 +58,13 @@ src/
 6. **Verificar**: `npx vite build` debe quedar **verde** (sin "Could not resolve"). Opcional: type-check del módulo en 0.
 7. (Bonus) limpiar la deuda de tipos del módulo (imports sin usar, etc.).
 
-## 4. Estado del refactor
+## 4. Estado del refactor — ✅ COMPLETO (2026-06-14)
+
+**12 módulos migrados** (`accesos, analisis, analisis-marginal, informes, insumos, liquidaciones, prestaciones, presupuestador, seguimiento, sueldos, tesoreria, turnos`). `src/pages` quedó solo con `ComingSoonPage` (compartido). Errores TS 340 → 258 (-82 por duplicados muertos borrados). `vite build` verde. Cada módulo con commit propio; git instalado da rollback granular.
+
+> **⚠️ LECCIÓN CRÍTICA (encoding):** NO usar `Get-Content -Raw` + `Set-Content -Encoding utf8` (PowerShell 5.1) para editar archivos en masa: lee el UTF-8 como Windows-1252 y corrompe TODO lo no-ASCII (acentos → mojibake `Ã³`, combining marks → regex inválido). Pasó en 65 archivos; se revirtió lossless con .NET (`[IO.File]::ReadAllText(p,UTF8)` → `GetEncoding(1252).GetBytes` → `UTF8.GetString` → `WriteAllText` con `UTF8Encoding($false)` sin BOM). **Para editar archivos: usar el Edit tool, o .NET con UTF-8 explícito — nunca Set-Content para contenido con acentos.**
+
+### Detalle
 
 - ✅ **Git instalado** (winget) + repo inicializado. Commit baseline `08f923e`; un commit por módulo migrado. `server/.env` y secrets ignorados.
 - ✅ **Limpieza (quick wins)**: borrados 3 archivos muertos (sin referencias) →

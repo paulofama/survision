@@ -1,4 +1,4 @@
-﻿// ===========================================================================
+// ===========================================================================
 // HOOK: useF931 - MODULO CARGA DE SUELDOS (Fase 3)
 // ===========================================================================
 // Sistema: SurVision / Sistema Integral de Gestion
@@ -35,7 +35,7 @@
 // ===========================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 import type {
   EstadoF931,
   F931Adjunto,

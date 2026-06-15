@@ -22,8 +22,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
-import useCostosFijosDistribucion, { getSemaforoColor, semaforoClasses, semaforoDot } from '@/hooks/useCostosFijosDistribucion';
-import useNombreMapping from '@/hooks/useNombreMapping';
+import useCostosFijosDistribucion, { getSemaforoColor, semaforoClasses, semaforoDot } from '@shared/hooks/useCostosFijosDistribucion';
+import useNombreMapping from '@shared/hooks/useNombreMapping';
 import InformeGestionModal from '../components/InformeGestionModal';
 
 // ============================================

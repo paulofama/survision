@@ -6,7 +6,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 import {
   Rol,
   RolConPermisos,
@@ -16,7 +16,7 @@ import {
   PERMISOS_DEFAULT,
   PERMISOS_ADMIN,
   STORAGE_KEYS,
-} from '@/types/auth.types';
+} from '@shared/types/auth.types';
 
 // ============================================
 // INTERFACES

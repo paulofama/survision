@@ -1,4 +1,4 @@
-﻿// ===========================================================================
+// ===========================================================================
 // HOOK: useLiquidacionesAnio - MODULO CARGA DE SUELDOS (Fase 2)
 // ===========================================================================
 // Sistema: SurVision / Sistema Integral de Gestion
@@ -21,7 +21,7 @@
 // ===========================================================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@shared/lib/supabase';
 import type { EstadoLiquidacion, LiquidacionMes } from '../types/sueldos';
 
 // ---------------------------------------------------------------------------
