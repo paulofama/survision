@@ -1,15 +1,15 @@
-// ============================================
-// EVOLUCION TEMPORAL PAGE — v1.0
-// Análisis Marginal - Sistema de Costos
+﻿// ============================================
+// EVOLUCION TEMPORAL PAGE â€” v1.0
+// AnÃ¡lisis Marginal - Sistema de Costos
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/analisis-marginal/EvolucionTemporalPage.tsx
 // ============================================
 // Tabla matricial mensual del estado de resultados:
-//   Facturación → Costos Variables → Margen → Costos Fijos →
-//   No Identificados → Resultado Operativo
+//   FacturaciÃ³n â†’ Costos Variables â†’ Margen â†’ Costos Fijos â†’
+//   No Identificados â†’ Resultado Operativo
 //
-// Estructura: filas expandibles (Nivel 0/1/2) × columnas mensuales
+// Estructura: filas expandibles (Nivel 0/1/2) Ã— columnas mensuales
 //             + columna TOTAL y Promedio Mensual
 //
 // Alcance v1: desde enero 2026 en adelante (ARS nominal).
@@ -29,26 +29,26 @@ import {
   XCircle,
   ExternalLink,
 } from 'lucide-react';
-import { MarginalLayout, useMarginalContext } from '../../components/analisis-marginal/MarginalLayout';
-import useEvolucionMensual from '../../hooks/useEvolucionMensual';
+import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
+import useEvolucionMensual from '@/hooks/useEvolucionMensual';
 import {
   labelMesCorto,
   type FilaEvolucion,
   type Mes,
   type AdvertenciaMensual,
-} from '../../types/evolucionTemporal';
+} from '@/types/evolucionTemporal';
 import {
   getSemaforoColor,
   semaforoClasses,
   semaforoDot,
-} from '../../hooks/useCostosFijosDistribucion';
+} from '@/hooks/useCostosFijosDistribucion';
 
 // ============================================
 // HELPERS DE FORMATEO
 // ============================================
 
 const formatCurrency = (amount: number): string => {
-  if (!isFinite(amount) || amount === 0) return '—';
+  if (!isFinite(amount) || amount === 0) return 'â€”';
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
@@ -60,7 +60,7 @@ const formatCurrency = (amount: number): string => {
 const formatPercent = (value: number): string => `${value.toFixed(1)}%`;
 
 // ============================================
-// CONFIGURACIÓN VISUAL POR TIPO DE FILA (Nivel 0)
+// CONFIGURACIÃ“N VISUAL POR TIPO DE FILA (Nivel 0)
 // ============================================
 
 const estilosNivel0: Record<string, {
@@ -103,9 +103,9 @@ const BannerAdvertencias: React.FC<{ advertencias: AdvertenciaMensual[] }> = ({ 
           {iconMap[severidadMayor]}
           <span className={`font-medium ${textMap[severidadMayor]}`}>
             {advertencias.length} {advertencias.length === 1 ? 'advertencia' : 'advertencias'}
-            {errores.length > 0 && ` · ${errores.length} error(es)`}
-            {warnings.length > 0 && ` · ${warnings.length} warning(s)`}
-            {infos.length > 0 && ` · ${infos.length} informativa(s)`}
+            {errores.length > 0 && ` Â· ${errores.length} error(es)`}
+            {warnings.length > 0 && ` Â· ${warnings.length} warning(s)`}
+            {infos.length > 0 && ` Â· ${infos.length} informativa(s)`}
           </span>
         </div>
         {expandido ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -114,7 +114,7 @@ const BannerAdvertencias: React.FC<{ advertencias: AdvertenciaMensual[] }> = ({ 
         <div className="px-3 pb-3 space-y-1">
           {advertencias.map((a, i) => (
             <div key={i} className={`text-sm ${textMap[a.severidad]} flex items-start gap-2`}>
-              <span className="opacity-60 mt-0.5">•</span>
+              <span className="opacity-60 mt-0.5">â€¢</span>
               <span>{a.mensaje}</span>
             </div>
           ))}
@@ -209,7 +209,7 @@ const FilaRow: React.FC<FilaRowProps> = ({
   const esMargen = fila.tipo === 'margen_contribucion';
   const esSubtotal = fila.metadata?.esSubtotal;
 
-  // Para el resultado operativo, computar semáforo por mes
+  // Para el resultado operativo, computar semÃ¡foro por mes
   const semaforoPorMes: Record<Mes, { color: 'verde' | 'amarillo' | 'rojo'; pct: number }> = {};
   if (esResultado) {
     meses.forEach(m => {
@@ -281,16 +281,16 @@ const FilaRow: React.FC<FilaRowProps> = ({
         </td>
       </tr>
 
-      {/* Fila indicativa de semáforo para Resultado Operativo */}
+      {/* Fila indicativa de semÃ¡foro para Resultado Operativo */}
       {esResultado && (
         <tr className="bg-green-50 border-t border-green-200">
           <td className="py-1.5 pl-4 pr-3 sticky left-0 z-10 bg-green-50 border-r border-gray-200 text-xs text-gray-600 italic">
-            % sobre facturación
+            % sobre facturaciÃ³n
           </td>
           {meses.map(m => {
             const s = semaforoPorMes[m];
             if (!s || !isFinite(s.pct)) {
-              return <td key={m} className="px-3 py-1.5 text-right text-xs text-gray-400">—</td>;
+              return <td key={m} className="px-3 py-1.5 text-right text-xs text-gray-400">â€”</td>;
             }
             return (
               <td key={m} className="px-3 py-1.5 text-right">
@@ -310,12 +310,12 @@ const FilaRow: React.FC<FilaRowProps> = ({
       {esMargen && (
         <tr className="bg-emerald-50/60 border-t border-emerald-100">
           <td className="py-1.5 pl-4 pr-3 sticky left-0 z-10 bg-emerald-50/60 border-r border-gray-200 text-xs text-gray-600 italic">
-            % sobre facturación
+            % sobre facturaciÃ³n
           </td>
           {meses.map(m => {
             const fact = facturacionPorMes[m] || 0;
             if (fact === 0) {
-              return <td key={m} className="px-3 py-1.5 text-right text-xs text-gray-400">—</td>;
+              return <td key={m} className="px-3 py-1.5 text-right text-xs text-gray-400">â€”</td>;
             }
             const pct = (fila.valores[m] / fact) * 100;
             return (
@@ -354,7 +354,7 @@ const FilaRow: React.FC<FilaRowProps> = ({
 const EvolucionTemporalContent: React.FC = () => {
   const { filtros } = useMarginalContext();
 
-  // Rango de visualización: desde enero 2026 hasta el mes seleccionado en el layout
+  // Rango de visualizaciÃ³n: desde enero 2026 hasta el mes seleccionado en el layout
   const hoy = new Date();
   const anioHasta = filtros?.anio || hoy.getFullYear();
   const mesHasta = filtros?.mes || (hoy.getMonth() + 1);
@@ -393,7 +393,7 @@ const EvolucionTemporalContent: React.FC = () => {
 
   const colapsarTodo = () => setExpandidas(new Set());
 
-  // Facturación por mes (para calcular % sobre facturación en las celdas)
+  // FacturaciÃ³n por mes (para calcular % sobre facturaciÃ³n en las celdas)
   const facturacionPorMes = useMemo(() => {
     const filaFact = data.filas.find(f => f.tipo === 'facturacion');
     return filaFact?.valores || {};
@@ -405,7 +405,7 @@ const EvolucionTemporalContent: React.FC = () => {
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-          <p className="text-gray-500">Construyendo evolución mensual...</p>
+          <p className="text-gray-500">Construyendo evoluciÃ³n mensual...</p>
         </div>
       </div>
     );
@@ -415,7 +415,7 @@ const EvolucionTemporalContent: React.FC = () => {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
         <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-        <p className="text-red-900 font-medium">Error al cargar la evolución temporal</p>
+        <p className="text-red-900 font-medium">Error al cargar la evoluciÃ³n temporal</p>
         <p className="text-red-700 text-sm mt-1">{error}</p>
         <button
           onClick={refetch}
@@ -436,7 +436,7 @@ const EvolucionTemporalContent: React.FC = () => {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="w-4 h-4" />
-            <span>Período: <strong>Enero 2026</strong> → <strong>{labelMesCorto(`${anioHasta}-${String(mesHasta).padStart(2, '0')}`)}</strong></span>
+            <span>PerÃ­odo: <strong>Enero 2026</strong> â†’ <strong>{labelMesCorto(`${anioHasta}-${String(mesHasta).padStart(2, '0')}`)}</strong></span>
             {data.mesEnCurso && (
               <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
                 {labelMesCorto(data.mesEnCurso)}: mes en curso
@@ -450,7 +450,7 @@ const EvolucionTemporalContent: React.FC = () => {
               className={`px-3 py-1.5 text-sm border rounded-lg flex items-center gap-1.5 ${mostrarPct ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-50'}`}
             >
               <Percent className="w-3.5 h-3.5" />
-              % s/ facturación
+              % s/ facturaciÃ³n
             </button>
             <button
               onClick={expandirTodo}
@@ -478,7 +478,7 @@ const EvolucionTemporalContent: React.FC = () => {
         <div className="bg-white rounded-xl border p-10 text-center">
           <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-600 font-medium">No hay meses en el rango seleccionado</p>
-          <p className="text-sm text-gray-500 mt-1">Seleccioná un mes válido en el filtro superior</p>
+          <p className="text-sm text-gray-500 mt-1">SeleccionÃ¡ un mes vÃ¡lido en el filtro superior</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
@@ -540,16 +540,16 @@ const EvolucionTemporalContent: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-3 h-3 text-amber-500" />
-          <span>Icono en detalle = prestación sin receta / erogación sin clasificar.</span>
+          <span>Icono en detalle = prestaciÃ³n sin receta / erogaciÃ³n sin clasificar.</span>
         </div>
         <div className="flex items-center gap-2">
           <TrendingUp className="w-3 h-3 text-green-600" />
           <TrendingDown className="w-3 h-3 text-red-600" />
-          <span>Resultado operativo positivo (verde) / negativo (rojo). Semáforo según % sobre facturación.</span>
+          <span>Resultado operativo positivo (verde) / negativo (rojo). SemÃ¡foro segÃºn % sobre facturaciÃ³n.</span>
         </div>
         {data.ultimaActualizacion && (
           <div className="pt-1 text-gray-400">
-            Última actualización: {new Date(data.ultimaActualizacion).toLocaleString('es-AR')}
+            Ãšltima actualizaciÃ³n: {new Date(data.ultimaActualizacion).toLocaleString('es-AR')}
           </div>
         )}
       </div>
@@ -558,14 +558,14 @@ const EvolucionTemporalContent: React.FC = () => {
 };
 
 // ============================================
-// PÁGINA WRAPPER
+// PÃGINA WRAPPER
 // ============================================
 
 const EvolucionTemporalPage: React.FC = () => {
   return (
     <MarginalLayout
-      title="Evolución Temporal"
-      subtitle="Estado de resultados comparativo mensual — desde enero 2026"
+      title="EvoluciÃ³n Temporal"
+      subtitle="Estado de resultados comparativo mensual â€” desde enero 2026"
     >
       <EvolucionTemporalContent />
     </MarginalLayout>

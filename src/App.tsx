@@ -40,12 +40,12 @@ import BusquedaPresupuestosPage from '@modules/presupuestador/pages/BusquedaPres
 // ============================================
 // ANÁLISIS MARGINAL - MULTIPÁGINA
 // ============================================
-import DashboardMarginalPage from './pages/analisis-marginal/DashboardMarginalPage';
-import PorPrestacionPageMarginal from './pages/analisis-marginal/PorPrestacionPage';
-import PorPrestadorPageMarginal from './pages/analisis-marginal/PorPrestadorPage';
-import PorObraSocialPageMarginal from './pages/analisis-marginal/PorObraSocialPage';
-import PorGrupoPageMarginal from './pages/analisis-marginal/PorGrupoPage';
-import EvolucionTemporalPageMarginal from './pages/analisis-marginal/EvolucionTemporalPage';
+import DashboardMarginalPage from '@modules/analisis-marginal/pages/DashboardMarginalPage';
+import PorPrestacionPageMarginal from '@modules/analisis-marginal/pages/PorPrestacionPage';
+import PorPrestadorPageMarginal from '@modules/analisis-marginal/pages/PorPrestadorPage';
+import PorObraSocialPageMarginal from '@modules/analisis-marginal/pages/PorObraSocialPage';
+import PorGrupoPageMarginal from '@modules/analisis-marginal/pages/PorGrupoPage';
+import EvolucionTemporalPageMarginal from '@modules/analisis-marginal/pages/EvolucionTemporalPage';
 
 // ============================================
 // ANÁLISIS - PÁGINAS IMPLEMENTADAS

@@ -1,6 +1,6 @@
-// ============================================
+﻿// ============================================
 // MARGINAL LAYOUT - Layout Compartido
-// Análisis Marginal - Sistema de Costos
+// AnÃ¡lisis Marginal - Sistema de Costos
 // Instituto Dr. Mercado
 // ============================================
 
@@ -20,9 +20,9 @@ import {
   X,
   Loader2,
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '../../hooks/useMovimientosPrestaciones';
-import { useHonorariosConfig } from '../../hooks/useHonorariosConfig';
-import { supabase } from '../../lib/supabase';
+import { useMovimientosPrestaciones } from '@/hooks/useMovimientosPrestaciones';
+import { useHonorariosConfig } from '@/hooks/useHonorariosConfig';
+import { supabase } from '@/lib/supabase';
 
 // ============================================
 // TIPOS
@@ -92,12 +92,12 @@ export const useMarginalContext = () => {
 };
 
 // ============================================
-// NAVEGACIÓN INTERNA
+// NAVEGACIÃ“N INTERNA
 // ============================================
 
 const subNavItems = [
   { path: '/analisis-marginal', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { path: '/analisis-marginal/por-prestacion', label: 'Por Prestación', icon: Activity },
+  { path: '/analisis-marginal/por-prestacion', label: 'Por PrestaciÃ³n', icon: Activity },
   { path: '/analisis-marginal/por-prestador', label: 'Por Prestador', icon: UserCheck },
   { path: '/analisis-marginal/por-obra-social', label: 'Por Obra Social', icon: Building2 },
   { path: '/analisis-marginal/por-grupo', label: 'Por Grupo', icon: PieChart },
@@ -166,7 +166,7 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
         }
 
         setRecetasConPools(data || []);
-        console.log(`✅ ${data?.length || 0} recetas con pools cargadas`);
+        console.log(`âœ… ${data?.length || 0} recetas con pools cargadas`);
 
       } catch (err) {
         console.error('Error cargando recetas:', err);
@@ -259,13 +259,13 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
                 <p className="text-sm text-gray-500">
-                  {subtitle || 'Análisis de rentabilidad y márgenes de contribución'}
+                  {subtitle || 'AnÃ¡lisis de rentabilidad y mÃ¡rgenes de contribuciÃ³n'}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Estado de conexión */}
+              {/* Estado de conexiÃ³n */}
               <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
                 isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
               }`}>
@@ -295,7 +295,7 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
             </div>
           </div>
 
-          {/* Navegación Secundaria */}
+          {/* NavegaciÃ³n Secundaria */}
           <div className="bg-white rounded-xl shadow-sm border mb-6">
             <div className="flex overflow-x-auto">
               {subNavItems.map((item) => {
@@ -328,9 +328,9 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
           {mostrarFiltros && (
             <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
               <div className="grid grid-cols-6 gap-4">
-                {/* Año */}
+                {/* AÃ±o */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">AÃ±o</label>
                   <select
                     value={filtros.anio}
                     onChange={(e) => aplicarFiltros({ anio: e.target.value })}
@@ -399,7 +399,7 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
                     <option value="">Todos</option>
                     <option value="Consultas">Consultas</option>
                     <option value="Estudios">Estudios</option>
-                    <option value="Cirugias">Cirugías</option>
+                    <option value="Cirugias">CirugÃ­as</option>
                   </select>
                 </div>
 
@@ -438,12 +438,12 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
           {/* Footer */}
           <div className="mt-6 p-3 bg-gray-50 rounded-lg border flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center gap-4">
-              <span className="text-green-600">● Verde = Margen ≥50%</span>
-              <span className="text-blue-600">● Azul = Margen 30-50%</span>
-              <span className="text-yellow-600">● Amarillo = Margen 0-30%</span>
-              <span className="text-red-600">● Rojo = Margen negativo</span>
+              <span className="text-green-600">â— Verde = Margen â‰¥50%</span>
+              <span className="text-blue-600">â— Azul = Margen 30-50%</span>
+              <span className="text-yellow-600">â— Amarillo = Margen 0-30%</span>
+              <span className="text-red-600">â— Rojo = Margen negativo</span>
             </div>
-            <span>P. Famá | Desarrollo</span>
+            <span>P. FamÃ¡ | Desarrollo</span>
           </div>
         </div>
       </div>

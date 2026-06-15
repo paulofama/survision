@@ -1,12 +1,12 @@
-// ============================================
+﻿// ============================================
 // POR PRESTACION PAGE - v3.0
-// Análisis Marginal - Sistema Integral de Gestión
+// AnÃ¡lisis Marginal - Sistema Integral de GestiÃ³n
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/analisis-marginal/PorPrestacionPage.tsx
 // ============================================
-// v3.2: Tabla reestructurada con flujo de análisis marginal correcto
-//       Variables → Margen Contrib → C.Fijos → Resultado Operativo
+// v3.2: Tabla reestructurada con flujo de anÃ¡lisis marginal correcto
+//       Variables â†’ Margen Contrib â†’ C.Fijos â†’ Resultado Operativo
 //       + Indicador visual de prestaciones sin receta de costos
 // ============================================
 
@@ -23,13 +23,13 @@ import {
   AlertTriangle,
   Info,
 } from 'lucide-react';
-import { MarginalLayout, useMarginalContext } from '../../components/analisis-marginal/MarginalLayout';
+import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
 import useCostosFijosDistribucion, {
   getSemaforoColor,
   semaforoClasses,
   semaforoDot,
-} from '../../hooks/useCostosFijosDistribucion';
-import useNombreMapping from '../../hooks/useNombreMapping';
+} from '@/hooks/useCostosFijosDistribucion';
+import useNombreMapping from '@/hooks/useNombreMapping';
 
 // ============================================
 // TIPOS
@@ -48,7 +48,7 @@ interface PrestacionAgrupada {
   margenContrib: number;
   margenContribPct: number;
   tieneReceta: boolean;
-  // Costos fijos (calculados después)
+  // Costos fijos (calculados despuÃ©s)
   costoFijoAsignado: number;
   resultadoNeto: number;
   resultadoNetoPct: number;
@@ -99,8 +99,8 @@ const extraerCodigo = (nombre: string): string => {
 };
 
 // Normaliza un nombre para matching fuzzy:
-// "EXO OFTALMOLOGÍA" → "exoftalmologia"
-// "Exoftalmologia"   → "exoftalmologia"  ✓ coinciden
+// "EXO OFTALMOLOGÃA" â†’ "exoftalmologia"
+// "Exoftalmologia"   â†’ "exoftalmologia"  âœ“ coinciden
 const normalizarNombre = (s: string): string =>
   s
     .toLowerCase()
@@ -137,7 +137,7 @@ const TooltipCF: React.FC<{ texto: string; sinDatos: boolean }> = ({ texto, sinD
 };
 
 // ============================================
-// BADGE SEMÁFORO
+// BADGE SEMÃFORO
 // ============================================
 
 const SemaforoBadge: React.FC<{ pct: number }> = ({ pct }) => {
@@ -164,7 +164,7 @@ const PorPrestacionContent: React.FC = () => {
     loading,
   } = useMarginalContext();
 
-  // Obtener período del contexto (fallback: mes/año actual)
+  // Obtener perÃ­odo del contexto (fallback: mes/aÃ±o actual)
   const anioActual = filtros?.anio || new Date().getFullYear();
   const mesActual  = filtros?.mes  || (new Date().getMonth() + 1);
 
@@ -175,7 +175,7 @@ const PorPrestacionContent: React.FC = () => {
     getTooltipTexto,
   } = useCostosFijosDistribucion(anioActual, mesActual);
 
-  // Mapeo de nombres GECLISA → Receta
+  // Mapeo de nombres GECLISA â†’ Receta
   const { agregarAliases } = useNombreMapping();
 
   // Estados locales
@@ -252,7 +252,7 @@ const PorPrestacionContent: React.FC = () => {
     });
   }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases]);
 
-  // Total facturado para calcular ratios de distribución CF
+  // Total facturado para calcular ratios de distribuciÃ³n CF
   const totalFacturadoGlobal = useMemo(
     () => prestacionesBase.reduce((s, p) => s + p.facturado, 0),
     [prestacionesBase]
@@ -389,14 +389,14 @@ const PorPrestacionContent: React.FC = () => {
   return (
     <div className="space-y-4">
 
-      {/* ── BANNER COSTOS FIJOS ─────────────────────────────── */}
+      {/* â”€â”€ BANNER COSTOS FIJOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {resumenCF.sinDatos && !loadingCF && (
         <div className="flex items-center gap-3 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-sm">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 text-yellow-500" />
           <span>
-            No hay costos fijos clasificados en los últimos 3 meses.
-            El análisis de Resultado Operativo mostrará <strong>$0</strong> en C.Fijos.
-            Clasificá erogaciones en <strong>Costos Fijos</strong> para activar este análisis.
+            No hay costos fijos clasificados en los Ãºltimos 3 meses.
+            El anÃ¡lisis de Resultado Operativo mostrarÃ¡ <strong>$0</strong> en C.Fijos.
+            ClasificÃ¡ erogaciones en <strong>Costos Fijos</strong> para activar este anÃ¡lisis.
           </span>
         </div>
       )}
@@ -426,7 +426,7 @@ const PorPrestacionContent: React.FC = () => {
         </div>
       )}
 
-      {/* ── KPIs ────────────────────────────────────────────── */}
+      {/* â”€â”€ KPIs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">Prestaciones</p>
@@ -460,14 +460,14 @@ const PorPrestacionContent: React.FC = () => {
         </div>
       </div>
 
-      {/* ── BARRAS DE RESULTADO ─────────────────────────────── */}
+      {/* â”€â”€ BARRAS DE RESULTADO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-2 gap-4">
-        {/* Margen de Contribución */}
+        {/* Margen de ContribuciÃ³n */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-4 text-white flex items-center justify-between">
           <div>
-            <p className="text-blue-100 text-sm">Margen de Contribución</p>
+            <p className="text-blue-100 text-sm">Margen de ContribuciÃ³n</p>
             <p className="text-3xl font-bold">{formatPercent(totales.margenContribPct)}</p>
-            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Insumos</p>
+            <p className="text-blue-200 text-xs mt-1">Facturado âˆ’ Honorarios âˆ’ Insumos</p>
           </div>
           <div className="text-right text-blue-100 text-sm">
             <p>{formatCurrency(totales.margenContrib)}</p>
@@ -485,7 +485,7 @@ const PorPrestacionContent: React.FC = () => {
           <div>
             <p className="text-white/80 text-sm">Resultado Operativo</p>
             <p className="text-3xl font-bold">{formatPercent(totales.resultadoNetoPct)}</p>
-            <p className="text-white/60 text-xs mt-1">Margen Contrib. − C.Fijos</p>
+            <p className="text-white/60 text-xs mt-1">Margen Contrib. âˆ’ C.Fijos</p>
           </div>
           <div className="text-right text-white/80 text-sm">
             <p>{formatCurrency(totales.resultadoNeto)}</p>
@@ -503,13 +503,13 @@ const PorPrestacionContent: React.FC = () => {
         </div>
       </div>
 
-      {/* ── BÚSQUEDA + CONTROLES ────────────────────────────── */}
+      {/* â”€â”€ BÃšSQUEDA + CONTROLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por nombre o código..."
+            placeholder="Buscar por nombre o cÃ³digo..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
@@ -523,7 +523,7 @@ const PorPrestacionContent: React.FC = () => {
           {(() => {
             const sinReceta = prestacionesFiltradas.filter(p => !p.tieneReceta).length;
             return sinReceta > 0 ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200" title="Prestaciones sin receta de costos asignada — pools e insumos en $0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200" title="Prestaciones sin receta de costos asignada â€” pools e insumos en $0">
                 <AlertTriangle className="w-3 h-3" />
                 {sinReceta} sin receta
               </span>
@@ -532,7 +532,7 @@ const PorPrestacionContent: React.FC = () => {
         </div>
       </div>
 
-      {/* ── TABLA ───────────────────────────────────────────── */}
+      {/* â”€â”€ TABLA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -541,15 +541,15 @@ const PorPrestacionContent: React.FC = () => {
                 {/* Expansor de fila */}
                 <th className="w-8 px-2 py-3" />
 
-                {/* ── IDENTIFICACIÓN ─── */}
-                <ThSortable field="nombre" align="left">Prestación</ThSortable>
+                {/* â”€â”€ IDENTIFICACIÃ“N â”€â”€â”€ */}
+                <ThSortable field="nombre" align="left">PrestaciÃ³n</ThSortable>
                 <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Seg.</th>
                 <ThSortable field="cantidad">Cant.</ThSortable>
 
-                {/* ── INGRESOS ─── */}
+                {/* â”€â”€ INGRESOS â”€â”€â”€ */}
                 <ThSortable field="facturado">Facturado</ThSortable>
 
-                {/* ── COSTOS VARIABLES ─── */}
+                {/* â”€â”€ COSTOS VARIABLES â”€â”€â”€ */}
                 <th className="px-2 py-3 text-right text-xs font-medium text-purple-600 uppercase bg-purple-50/50 whitespace-nowrap">
                   Honorarios
                 </th>
@@ -560,17 +560,17 @@ const PorPrestacionContent: React.FC = () => {
                   Insumos
                 </th>
 
-                {/* ── MARGEN DE CONTRIBUCIÓN ─── */}
+                {/* â”€â”€ MARGEN DE CONTRIBUCIÃ“N â”€â”€â”€ */}
                 <ThSortable field="margenContrib">M. Contrib.</ThSortable>
                 <ThSortable field="margenContribPct">M.C. %</ThSortable>
 
-                {/* ── COSTOS FIJOS ─── */}
+                {/* â”€â”€ COSTOS FIJOS â”€â”€â”€ */}
                 <th className="px-2 py-3 text-right text-xs font-medium text-teal-600 uppercase bg-teal-50/50 whitespace-nowrap">
                   C. Fijos
                   <span className="normal-case font-normal ml-1 text-teal-400">(prom.)</span>
                 </th>
 
-                {/* ── RESULTADO OPERATIVO ─── */}
+                {/* â”€â”€ RESULTADO OPERATIVO â”€â”€â”€ */}
                 <ThSortable field="resultadoNeto">Res. Operativo</ThSortable>
                 <ThSortable field="resultadoNetoPct">R.O. %</ThSortable>
               </tr>
@@ -582,7 +582,7 @@ const PorPrestacionContent: React.FC = () => {
                   <td colSpan={colSpanTotal} className="px-6 py-12 text-center text-gray-500">
                     <FileBarChart className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                     <p>No se encontraron prestaciones</p>
-                    <p className="text-sm">Ajustá los filtros para ver resultados</p>
+                    <p className="text-sm">AjustÃ¡ los filtros para ver resultados</p>
                   </td>
                 </tr>
               ) : (
@@ -612,7 +612,7 @@ const PorPrestacionContent: React.FC = () => {
                           <div className="flex items-center gap-1.5">
                             <p className="truncate" title={prest.nombre}>{prest.nombre}</p>
                             {!prest.tieneReceta && (
-                              <span title="Sin receta de costos — pools e insumos en $0" className="flex-shrink-0">
+                              <span title="Sin receta de costos â€” pools e insumos en $0" className="flex-shrink-0">
                                 <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" />
                               </span>
                             )}
@@ -635,12 +635,12 @@ const PorPrestacionContent: React.FC = () => {
                           {formatNumber(prest.cantidad)}
                         </td>
 
-                        {/* ── FACTURADO ─── */}
+                        {/* â”€â”€ FACTURADO â”€â”€â”€ */}
                         <td className="px-2 py-3 text-sm text-right font-medium text-blue-600">
                           {formatCurrency(prest.facturado)}
                         </td>
 
-                        {/* ── COSTOS VARIABLES ─── */}
+                        {/* â”€â”€ COSTOS VARIABLES â”€â”€â”€ */}
                         <td className="px-2 py-3 text-sm text-right text-purple-600 bg-purple-50/20">
                           {formatCurrency(prest.honorarios)}
                         </td>
@@ -651,7 +651,7 @@ const PorPrestacionContent: React.FC = () => {
                           {formatCurrency(prest.costoInsumos)}
                         </td>
 
-                        {/* ── MARGEN CONTRIBUCIÓN ─── */}
+                        {/* â”€â”€ MARGEN CONTRIBUCIÃ“N â”€â”€â”€ */}
                         <td className={`px-2 py-3 text-sm text-right font-semibold ${
                           prest.margenContrib >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
@@ -668,7 +668,7 @@ const PorPrestacionContent: React.FC = () => {
                           </span>
                         </td>
 
-                        {/* ── COSTOS FIJOS ─── */}
+                        {/* â”€â”€ COSTOS FIJOS â”€â”€â”€ */}
                         <td className="px-2 py-3 text-sm text-right bg-teal-50/20">
                           <span className={`${resumenCF.sinDatos ? 'text-yellow-600' : 'text-teal-700'}`}>
                             {formatCurrency(prest.costoFijoAsignado)}
@@ -676,7 +676,7 @@ const PorPrestacionContent: React.FC = () => {
                           <TooltipCF texto={tooltipCF} sinDatos={resumenCF.sinDatos} />
                         </td>
 
-                        {/* ── RESULTADO OPERATIVO ─── */}
+                        {/* â”€â”€ RESULTADO OPERATIVO â”€â”€â”€ */}
                         <td className={`px-2 py-3 text-sm text-right font-semibold ${
                           prest.resultadoNeto >= 0 ? 'text-emerald-700' : 'text-red-700'
                         }`}>
@@ -687,7 +687,7 @@ const PorPrestacionContent: React.FC = () => {
                         </td>
                       </tr>
 
-                      {/* ── FILA EXPANDIDA: detalle ── */}
+                      {/* â”€â”€ FILA EXPANDIDA: detalle â”€â”€ */}
                       {isExpanded && (
                         <tr className="bg-gray-50">
                           <td />
@@ -711,7 +711,7 @@ const PorPrestacionContent: React.FC = () => {
                                 <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] mb-1">
                                   Costos Fijos asignados
                                   {resumenCF.sinDatos && (
-                                    <span className="text-yellow-600 ml-1 normal-case">· Sin datos</span>
+                                    <span className="text-yellow-600 ml-1 normal-case">Â· Sin datos</span>
                                   )}
                                 </span>
                                 {resumenCF.porCategoria.length > 0 ? (
@@ -733,7 +733,7 @@ const PorPrestacionContent: React.FC = () => {
                                   })
                                 ) : (
                                   <span className="text-gray-400 italic">
-                                    Clasificá costos en la sección Costos Fijos
+                                    ClasificÃ¡ costos en la secciÃ³n Costos Fijos
                                   </span>
                                 )}
                                 <span className="border-t pt-1 mt-1">
@@ -750,7 +750,7 @@ const PorPrestacionContent: React.FC = () => {
                                   {' '}({formatPercent(prest.margenContribPct)})
                                 </span>
                                 <span>
-                                  − C.Fijos: <strong className="text-teal-700">{formatCurrency(prest.costoFijoAsignado)}</strong>
+                                  âˆ’ C.Fijos: <strong className="text-teal-700">{formatCurrency(prest.costoFijoAsignado)}</strong>
                                 </span>
                                 <span className="border-t pt-1 mt-1 font-semibold">
                                   Res. Operativo:
@@ -771,13 +771,13 @@ const PorPrestacionContent: React.FC = () => {
               )}
             </tbody>
 
-            {/* ── FOOTER TOTALES ── */}
+            {/* â”€â”€ FOOTER TOTALES â”€â”€ */}
             {prestacionesFiltradas.length > 0 && (
               <tfoot className="bg-gray-100 font-semibold border-t-2 border-gray-300">
                 <tr>
                   <td className="px-2 py-3" />
                   <td className="px-2 py-3 text-sm text-gray-700">TOTALES</td>
-                  <td className="px-2 py-3 text-center text-sm text-gray-500">—</td>
+                  <td className="px-2 py-3 text-center text-sm text-gray-500">â€”</td>
                   <td className="px-2 py-3 text-sm text-right text-gray-900">
                     {formatNumber(totales.cantidad)}
                   </td>
@@ -840,13 +840,13 @@ const PorPrestacionContent: React.FC = () => {
 };
 
 // ============================================
-// PÁGINA WRAPPER
+// PÃGINA WRAPPER
 // ============================================
 
 const PorPrestacionPage: React.FC = () => (
   <MarginalLayout
-    title="Análisis por Prestación"
-    subtitle="Rentabilidad detallada de cada procedimiento médico"
+    title="AnÃ¡lisis por PrestaciÃ³n"
+    subtitle="Rentabilidad detallada de cada procedimiento mÃ©dico"
   >
     <PorPrestacionContent />
   </MarginalLayout>

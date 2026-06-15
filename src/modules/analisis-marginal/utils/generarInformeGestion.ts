@@ -1,6 +1,6 @@
-// ============================================
-// GENERADOR DE INFORME DE GESTIÓN MENSUAL - PDF
-// Instituto Dr. Mercado — v2.0
+﻿// ============================================
+// GENERADOR DE INFORME DE GESTIÃ“N MENSUAL - PDF
+// Instituto Dr. Mercado â€” v2.0
 // ============================================
 // RUTA DESTINO: src/utils/generarInformeGestion.ts
 // ============================================
@@ -103,10 +103,10 @@ const vari = (actual: number, anterior: number) => {
 
 const varPP = (a: number, b: number): string => { const d = a - b; return `${d >= 0 ? '+' : ''}${d.toFixed(1)} pp`; };
 
-// Extrae nombre de categoría (acepta ambos formatos)
-const getCFName = (cf: any): string => cf.nombre || cf.categoria_nombre || 'Sin categoría';
+// Extrae nombre de categorÃ­a (acepta ambos formatos)
+const getCFName = (cf: any): string => cf.nombre || cf.categoria_nombre || 'Sin categorÃ­a';
 
-// Fuerza alineación de headers para que coincidan con los datos
+// Fuerza alineaciÃ³n de headers para que coincidan con los datos
 type HAlign = 'left' | 'center' | 'right';
 const alinear = (d: any, aligns: Record<number, HAlign>) => {
   if (d.section === 'head') {
@@ -125,37 +125,37 @@ function narResumen(d: DatosInforme): string {
   let t = '';
 
   if (!ant) {
-    t += `En ${mes} ${d.anio}, el Instituto Dr. Mercado registró una facturación total de ${fmt(a.facturado)} `;
+    t += `En ${mes} ${d.anio}, el Instituto Dr. Mercado registrÃ³ una facturaciÃ³n total de ${fmt(a.facturado)} `;
     t += `con ${fmtNum(a.cantidad)} prestaciones realizadas, generando un ticket promedio de ${fmt(a.ticketPromedio)}. `;
-    t += `El margen de contribución alcanzó el ${fmtPct(a.margenContribPct)}, y tras distribuir los costos fijos `;
-    t += `(${fmt(a.costosFijos)}/mes), el resultado operativo se ubicó en ${fmtPct(a.resultadoOpPct)}.`;
+    t += `El margen de contribuciÃ³n alcanzÃ³ el ${fmtPct(a.margenContribPct)}, y tras distribuir los costos fijos `;
+    t += `(${fmt(a.costosFijos)}/mes), el resultado operativo se ubicÃ³ en ${fmtPct(a.resultadoOpPct)}.`;
     return t;
   }
 
   const vF = vari(a.facturado, ant.facturado);
   const vC = vari(a.cantidad, ant.cantidad);
 
-  t += `En ${mes} ${d.anio}, el Instituto Dr. Mercado facturó ${fmt(a.facturado)}, `;
+  t += `En ${mes} ${d.anio}, el Instituto Dr. Mercado facturÃ³ ${fmt(a.facturado)}, `;
   t += vF.pos
     ? `lo que representa un crecimiento del ${vF.texto} respecto al mes anterior. `
-    : `registrando una contracción del ${vF.texto} respecto al mes anterior. `;
+    : `registrando una contracciÃ³n del ${vF.texto} respecto al mes anterior. `;
   t += `Se realizaron ${fmtNum(a.cantidad)} prestaciones (${vC.texto}), con un ticket promedio de ${fmt(a.ticketPromedio)}. `;
 
   const dMC = a.margenContribPct - ant.margenContribPct;
   if (Math.abs(dMC) > 2) {
     t += dMC > 0
-      ? `El margen de contribución mejoró ${dMC.toFixed(1)} puntos porcentuales, alcanzando ${fmtPct(a.margenContribPct)}. `
-      : `El margen de contribución se contrajo ${Math.abs(dMC).toFixed(1)} puntos porcentuales, ubicándose en ${fmtPct(a.margenContribPct)}. `;
+      ? `El margen de contribuciÃ³n mejorÃ³ ${dMC.toFixed(1)} puntos porcentuales, alcanzando ${fmtPct(a.margenContribPct)}. `
+      : `El margen de contribuciÃ³n se contrajo ${Math.abs(dMC).toFixed(1)} puntos porcentuales, ubicÃ¡ndose en ${fmtPct(a.margenContribPct)}. `;
   } else {
-    t += `El margen de contribución se mantuvo estable en ${fmtPct(a.margenContribPct)}. `;
+    t += `El margen de contribuciÃ³n se mantuvo estable en ${fmtPct(a.margenContribPct)}. `;
   }
 
   t += `El resultado operativo, tras distribuir costos fijos por ${fmt(a.costosFijos)}/mes, `;
   t += a.resultadoOpPct > 20
-    ? `se ubicó en un saludable ${fmtPct(a.resultadoOpPct)}.`
+    ? `se ubicÃ³ en un saludable ${fmtPct(a.resultadoOpPct)}.`
     : a.resultadoOpPct > 0
-      ? `se ubicó en ${fmtPct(a.resultadoOpPct)}, un nivel que requiere monitoreo.`
-      : `resultó negativo en ${fmtPct(a.resultadoOpPct)}, lo que indica que la operación no cubrió los costos fijos del período.`;
+      ? `se ubicÃ³ en ${fmtPct(a.resultadoOpPct)}, un nivel que requiere monitoreo.`
+      : `resultÃ³ negativo en ${fmtPct(a.resultadoOpPct)}, lo que indica que la operaciÃ³n no cubriÃ³ los costos fijos del perÃ­odo.`;
 
   return t;
 }
@@ -166,14 +166,14 @@ function narSegmentos(d: DatosInforme): string {
   let t = '';
 
   const maxF = Math.max(s.Consultas.facturado, s.Estudios.facturado, s.Cirugias.facturado);
-  const dom = maxF === s.Cirugias.facturado ? 'Cirugías' : maxF === s.Estudios.facturado ? 'Estudios' : 'Consultas';
-  t += `El segmento de ${dom} concentra el ${fmtPct((maxF / a.facturado) * 100)} de la facturación. `;
+  const dom = maxF === s.Cirugias.facturado ? 'CirugÃ­as' : maxF === s.Estudios.facturado ? 'Estudios' : 'Consultas';
+  t += `El segmento de ${dom} concentra el ${fmtPct((maxF / a.facturado) * 100)} de la facturaciÃ³n. `;
 
   if (s.Cirugias.facturado > 0) {
-    t += `Las cirugías, con ${s.Cirugias.cantidad} intervenciones y un ticket promedio de ${fmt(s.Cirugias.facturado / Math.max(s.Cirugias.cantidad, 1))}, `;
+    t += `Las cirugÃ­as, con ${s.Cirugias.cantidad} intervenciones y un ticket promedio de ${fmt(s.Cirugias.facturado / Math.max(s.Cirugias.cantidad, 1))}, `;
     t += `presentan un margen del ${fmtPct(s.Cirugias.margenPct)}. `;
   }
-  if (s.Estudios.facturado > 0) t += `Los estudios diagnósticos (${fmtNum(s.Estudios.cantidad)} prestaciones) operan con un margen del ${fmtPct(s.Estudios.margenPct)}. `;
+  if (s.Estudios.facturado > 0) t += `Los estudios diagnÃ³sticos (${fmtNum(s.Estudios.cantidad)} prestaciones) operan con un margen del ${fmtPct(s.Estudios.margenPct)}. `;
   if (s.Consultas.facturado > 0) t += `Las consultas (${fmtNum(s.Consultas.cantidad)}) mantienen un margen del ${fmtPct(s.Consultas.margenPct)}.`;
 
   return t;
@@ -184,49 +184,49 @@ function generarConclusiones(d: DatosInforme): string[] {
   const cc: string[] = [];
 
   // 1. RO
-  if (a.resultadoOpPct > 25) cc.push('La clínica presenta una posición financiera sólida con resultado operativo superior al 25%, lo que permite considerar inversiones en equipamiento o ampliación de servicios.');
-  else if (a.resultadoOpPct > 10) cc.push('El resultado operativo es positivo pero moderado. Se recomienda monitorear la evolución de costos fijos y evaluar oportunidades de mejora en el pricing de prestaciones de bajo margen.');
-  else if (a.resultadoOpPct > 0) cc.push('El resultado operativo es ajustado. Es prioritario revisar la estructura de costos fijos e identificar prestaciones que no están contribuyendo adecuadamente a su cobertura.');
-  else cc.push('El resultado operativo negativo indica que la facturación no cubre la totalidad de los costos. Se requieren medidas correctivas urgentes: revisión de aranceles, renegociación con obras sociales, y optimización de costos.');
+  if (a.resultadoOpPct > 25) cc.push('La clÃ­nica presenta una posiciÃ³n financiera sÃ³lida con resultado operativo superior al 25%, lo que permite considerar inversiones en equipamiento o ampliaciÃ³n de servicios.');
+  else if (a.resultadoOpPct > 10) cc.push('El resultado operativo es positivo pero moderado. Se recomienda monitorear la evoluciÃ³n de costos fijos y evaluar oportunidades de mejora en el pricing de prestaciones de bajo margen.');
+  else if (a.resultadoOpPct > 0) cc.push('El resultado operativo es ajustado. Es prioritario revisar la estructura de costos fijos e identificar prestaciones que no estÃ¡n contribuyendo adecuadamente a su cobertura.');
+  else cc.push('El resultado operativo negativo indica que la facturaciÃ³n no cubre la totalidad de los costos. Se requieren medidas correctivas urgentes: revisiÃ³n de aranceles, renegociaciÃ³n con obras sociales, y optimizaciÃ³n de costos.');
 
-  // 2. Concentración OS
+  // 2. ConcentraciÃ³n OS
   if (a.topObrasSociales.length > 0) {
     const topOS = a.topObrasSociales[0];
     const concPct = (topOS.facturado / a.facturado) * 100;
-    if (concPct > 35) cc.push(`La concentración del ${fmtPct(concPct)} de la facturación en ${topOS.sigla} representa un riesgo de dependencia. Se recomienda diversificar la cartera de financiadores y fortalecer la relación comercial con obras sociales de menor participación.`);
+    if (concPct > 35) cc.push(`La concentraciÃ³n del ${fmtPct(concPct)} de la facturaciÃ³n en ${topOS.sigla} representa un riesgo de dependencia. Se recomienda diversificar la cartera de financiadores y fortalecer la relaciÃ³n comercial con obras sociales de menor participaciÃ³n.`);
   }
 
-  // 3. Evolución CF
+  // 3. EvoluciÃ³n CF
   if (ant) {
     const vCF = vari(a.costosFijos, ant.costosFijos);
     if (!vCF.pos || Math.abs(vCF.valor) > 10) {
-      cc.push(`Los costos fijos ${vCF.pos ? 'aumentaron' : 'disminuyeron'} un ${Math.abs(vCF.valor).toFixed(1)}% respecto al mes anterior. ${vCF.pos ? 'Se recomienda analizar las categorías de mayor incremento para evaluar si se trata de un ajuste estructural o un gasto extraordinario.' : 'La reducción refleja una mejora en la eficiencia operativa.'}`);
+      cc.push(`Los costos fijos ${vCF.pos ? 'aumentaron' : 'disminuyeron'} un ${Math.abs(vCF.valor).toFixed(1)}% respecto al mes anterior. ${vCF.pos ? 'Se recomienda analizar las categorÃ­as de mayor incremento para evaluar si se trata de un ajuste estructural o un gasto extraordinario.' : 'La reducciÃ³n refleja una mejora en la eficiencia operativa.'}`);
     }
   }
 
   // 4. Productividad
   if (a.prestadoresActivos > 0) {
     const prod = a.cantidad / a.prestadoresActivos;
-    if (prod > 300) cc.push(`La productividad de ${Math.round(prod)} prestaciones por profesional es elevada. Evaluar la posibilidad de incorporar recurso humano para mantener la calidad de atención.`);
+    if (prod > 300) cc.push(`La productividad de ${Math.round(prod)} prestaciones por profesional es elevada. Evaluar la posibilidad de incorporar recurso humano para mantener la calidad de atenciÃ³n.`);
   }
 
-  // 5. Facturación
+  // 5. FacturaciÃ³n
   if (ant) {
     const vF = vari(a.facturado, ant.facturado);
-    if (!vF.pos && Math.abs(vF.valor) > 10) cc.push(`La caída del ${Math.abs(vF.valor).toFixed(0)}% en facturación respecto al mes anterior requiere análisis de causas: estacionalidad, pérdida de convenios, o reducción de demanda.`);
-    if (vF.pos && vF.valor > 10) cc.push(`El crecimiento del ${vF.valor.toFixed(1)}% en facturación es un indicador positivo. Se recomienda verificar si es sostenible o responde a factores puntuales.`);
+    if (!vF.pos && Math.abs(vF.valor) > 10) cc.push(`La caÃ­da del ${Math.abs(vF.valor).toFixed(0)}% en facturaciÃ³n respecto al mes anterior requiere anÃ¡lisis de causas: estacionalidad, pÃ©rdida de convenios, o reducciÃ³n de demanda.`);
+    if (vF.pos && vF.valor > 10) cc.push(`El crecimiento del ${vF.valor.toFixed(1)}% en facturaciÃ³n es un indicador positivo. Se recomienda verificar si es sostenible o responde a factores puntuales.`);
   }
 
   // 6. CF weight
   const cfW = (a.costosFijos / a.facturado) * 100;
-  if (cfW > 25) cc.push(`Los costos fijos representan el ${fmtPct(cfW)} de la facturación. Se recomienda revisar la estructura para identificar posibles eficiencias, especialmente en las categorías de mayor peso.`);
+  if (cfW > 25) cc.push(`Los costos fijos representan el ${fmtPct(cfW)} de la facturaciÃ³n. Se recomienda revisar la estructura para identificar posibles eficiencias, especialmente en las categorÃ­as de mayor peso.`);
 
   // 7. Segmentos
   const bestSeg = [a.segmentos.Consultas, a.segmentos.Estudios, a.segmentos.Cirugias];
-  const names = ['Consultas', 'Estudios', 'Cirugías'];
+  const names = ['Consultas', 'Estudios', 'CirugÃ­as'];
   const worstIdx = bestSeg.reduce((mi, s, i) => s.margenPct < bestSeg[mi].margenPct ? i : mi, 0);
   if (bestSeg[worstIdx].margenPct < 40 && bestSeg[worstIdx].facturado > 0) {
-    cc.push(`El segmento de ${names[worstIdx]} presenta el margen más bajo (${fmtPct(bestSeg[worstIdx].margenPct)}). Se sugiere revisar el pricing y la estructura de costos de este tipo de prestaciones.`);
+    cc.push(`El segmento de ${names[worstIdx]} presenta el margen mÃ¡s bajo (${fmtPct(bestSeg[worstIdx].margenPct)}). Se sugiere revisar el pricing y la estructura de costos de este tipo de prestaciones.`);
   }
 
   return cc;
@@ -242,7 +242,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   const mesNombre = MESES[datos.mes - 1];
   let pageNum = 0;
 
-  // ── HELPERS LAYOUT ──
+  // â”€â”€ HELPERS LAYOUT â”€â”€
   const addHeader = (titulo: string) => {
     doc.setFillColor(...C.primary);
     doc.rect(0, 0, PW, 22, 'F');
@@ -252,7 +252,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.text('Instituto Dr. Mercado', M, 9);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(`Informe de Gestión — ${mesNombre} ${datos.anio}`, M, 15);
+    doc.text(`Informe de GestiÃ³n â€” ${mesNombre} ${datos.anio}`, M, 15);
     doc.text(titulo, PW - M, 12, { align: 'right' });
   };
 
@@ -262,8 +262,8 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.line(M, PH - 14, PW - M, PH - 14);
     doc.setFontSize(7);
     doc.setTextColor(...C.medium);
-    doc.text('Documento confidencial — Instituto Dr. Mercado / Survisión S.A.', M, PH - 9);
-    doc.text(`Página ${pageNum}`, PW - M, PH - 9, { align: 'right' });
+    doc.text('Documento confidencial â€” Instituto Dr. Mercado / SurvisiÃ³n S.A.', M, PH - 9);
+    doc.text(`PÃ¡gina ${pageNum}`, PW - M, PH - 9, { align: 'right' });
   };
 
   const addSection = (y: number, titulo: string): number => {
@@ -305,15 +305,15 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.setFont('helvetica', 'normal');
   };
 
-  // ══════════════════════════════════════════
-  // PÁGINA 1: CARÁTULA (print-friendly)
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA 1: CARÃTULA (print-friendly)
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   // Fondo blanco con franja azul superior
   doc.setFillColor(...C.primary);
   doc.rect(0, 0, PW, 6, 'F');
 
-  // Línea decorativa
+  // LÃ­nea decorativa
   doc.setDrawColor(...C.primary);
   doc.setLineWidth(1);
   doc.line(M, 50, PW - M, 50);
@@ -329,15 +329,15 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setFont('helvetica', 'bold');
   doc.text('Dr. Mercado', PW / 2, 85, { align: 'center' });
 
-  // Línea
+  // LÃ­nea
   doc.setLineWidth(0.5);
   doc.line(PW / 2 - 35, 93, PW / 2 + 35, 93);
 
-  // Título
+  // TÃ­tulo
   doc.setTextColor(...C.dark);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('Informe de Gestión', PW / 2, 115, { align: 'center' });
+  doc.text('Informe de GestiÃ³n', PW / 2, 115, { align: 'center' });
 
   doc.setTextColor(...C.primary);
   doc.setFontSize(16);
@@ -354,12 +354,12 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   const colW = (CW - 20) / 3;
 
   doc.setFontSize(8); doc.setTextColor(...C.medium); doc.setFont('helvetica', 'normal');
-  doc.text('Facturación', M + 10 + colW * 0.5, boxY + 12, { align: 'center' });
+  doc.text('FacturaciÃ³n', M + 10 + colW * 0.5, boxY + 12, { align: 'center' });
   doc.setFontSize(15); doc.setTextColor(...C.dark); doc.setFont('helvetica', 'bold');
   doc.text(fmt(a.facturado), M + 10 + colW * 0.5, boxY + 24, { align: 'center' });
 
   doc.setFontSize(8); doc.setTextColor(...C.medium); doc.setFont('helvetica', 'normal');
-  doc.text('Margen Contribución', M + 10 + colW * 1.5, boxY + 12, { align: 'center' });
+  doc.text('Margen ContribuciÃ³n', M + 10 + colW * 1.5, boxY + 12, { align: 'center' });
   doc.setFontSize(15); doc.setTextColor(...C.dark); doc.setFont('helvetica', 'bold');
   doc.text(fmtPct(a.margenContribPct), M + 10 + colW * 1.5, boxY + 24, { align: 'center' });
 
@@ -373,7 +373,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
 
   // Prestaciones y ticket
   doc.setFontSize(8); doc.setTextColor(...C.medium); doc.setFont('helvetica', 'normal');
-  doc.text(`${fmtNum(a.cantidad)} prestaciones  ·  Ticket promedio ${fmt(a.ticketPromedio)}`, PW / 2, boxY + 40, { align: 'center' });
+  doc.text(`${fmtNum(a.cantidad)} prestaciones  Â·  Ticket promedio ${fmt(a.ticketPromedio)}`, PW / 2, boxY + 40, { align: 'center' });
 
   // Footer portada
   doc.setDrawColor(...C.primary);
@@ -383,16 +383,16 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setFontSize(8); doc.setTextColor(...C.medium);
   doc.text('DOCUMENTO CONFIDENCIAL', PW / 2, 245, { align: 'center' });
   doc.setFontSize(7);
-  doc.text('Survisión S.A. — Sistema Integral de Gestión', PW / 2, 251, { align: 'center' });
+  doc.text('SurvisiÃ³n S.A. â€” Sistema Integral de GestiÃ³n', PW / 2, 251, { align: 'center' });
   doc.text(`Emitido: ${new Date().toLocaleDateString('es-AR')}`, PW / 2, 257, { align: 'center' });
 
   // Franja azul inferior
   doc.setFillColor(...C.primary);
   doc.rect(0, PH - 6, PW, 6, 'F');
 
-  // ══════════════════════════════════════════
-  // PÁGINA 2: RESUMEN EJECUTIVO
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA 2: RESUMEN EJECUTIVO
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   doc.addPage();
   addHeader('Resumen Ejecutivo'); addFooter();
@@ -430,7 +430,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     const mesAntNombre = MESES[(datos.mes - 2 + 12) % 12];
     autoTable(doc, {
       startY: y, margin: { left: M, right: M },
-      head: [['Indicador', mesAntNombre, mesNombre, 'Variación']],
+      head: [['Indicador', mesAntNombre, mesNombre, 'VariaciÃ³n']],
       body: [
         ['Facturado', fmt(ant.facturado), fmt(a.facturado), vari(a.facturado, ant.facturado).texto],
         ['Prestaciones', fmtNum(ant.cantidad), fmtNum(a.cantidad), vari(a.cantidad, ant.cantidad).texto],
@@ -449,9 +449,9 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     });
   }
 
-  // ══════════════════════════════════════════
-  // PÁGINA 3: SEGMENTOS + TOP PRESTACIONES
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA 3: SEGMENTOS + TOP PRESTACIONES
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   doc.addPage(); addHeader('Actividad Operativa'); addFooter();
   y = 32;
@@ -462,7 +462,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   const segRows: any[][] = [];
   (['Consultas', 'Estudios', 'Cirugias'] as const).forEach(seg => {
     const s = a.segmentos[seg];
-    segRows.push([seg === 'Cirugias' ? 'Cirugías' : seg, fmtNum(s.cantidad), fmt(s.facturado), fmtPct(a.facturado > 0 ? s.facturado / a.facturado * 100 : 0), fmt(s.cantidad > 0 ? s.facturado / s.cantidad : 0), fmtPct(s.margenPct)]);
+    segRows.push([seg === 'Cirugias' ? 'CirugÃ­as' : seg, fmtNum(s.cantidad), fmt(s.facturado), fmtPct(a.facturado > 0 ? s.facturado / a.facturado * 100 : 0), fmt(s.cantidad > 0 ? s.facturado / s.cantidad : 0), fmtPct(s.margenPct)]);
   });
   segRows.push(['TOTAL', fmtNum(a.cantidad), fmt(a.facturado), '100%', fmt(a.ticketPromedio), fmtPct(a.margenContribPct)]);
 
@@ -473,10 +473,10 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   });
 
   y = (doc as any).lastAutoTable.finalY + 10;
-  y = addSection(y, '4. Top Prestaciones por Facturación');
+  y = addSection(y, '4. Top Prestaciones por FacturaciÃ³n');
 
   autoTable(doc, { startY: y, margin: { left: M, right: M },
-    head: [['#', 'Prestación', 'Seg.', 'Cant.', 'Facturado', 'MC %']],
+    head: [['#', 'PrestaciÃ³n', 'Seg.', 'Cant.', 'Facturado', 'MC %']],
     body: a.topPrestaciones.slice(0, 10).map((p, i) => [`${i + 1}`, p.nombre.length > 45 ? p.nombre.substring(0, 42) + '...' : p.nombre, p.segmento, fmtNum(p.cantidad), fmt(p.facturado), fmtPct(p.mcPct)]),
     headStyles: { fillColor: C.primary, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7 },
     columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 65 }, 2: { cellWidth: 20 }, 3: { cellWidth: 15, halign: 'right' }, 4: { cellWidth: 30, halign: 'right' }, 5: { cellWidth: 18, halign: 'right' } },
@@ -484,11 +484,11 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     didParseCell: (d: any) => { alinear(d, { 0: 'center', 1: 'left', 2: 'left', 3: 'right', 4: 'right', 5: 'right' }); },
   });
 
-  // ══════════════════════════════════════════
-  // PÁGINA 4: PRESTADORES
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA 4: PRESTADORES
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  doc.addPage(); addHeader('Análisis por Prestador'); addFooter();
+  doc.addPage(); addHeader('AnÃ¡lisis por Prestador'); addFooter();
   y = 32;
   y = addSection(y, '5. Rentabilidad por Prestador');
 
@@ -507,15 +507,15 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     didParseCell: (d: any) => { alinear(d, { 0: 'left', 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right', 6: 'right', 7: 'right' }); if (d.row.index === preRows.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = C.primaryLight; } },
   });
   y = (doc as any).lastAutoTable.finalY + 5;
-  doc.setFontSize(7); doc.setTextColor(...C.medium); doc.text('* Socio de la institución', M, y);
+  doc.setFontSize(7); doc.setTextColor(...C.medium); doc.text('* Socio de la instituciÃ³n', M, y);
 
-  // ══════════════════════════════════════════
-  // PÁGINA 5: OBRAS SOCIALES
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA 5: OBRAS SOCIALES
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   doc.addPage(); addHeader('Obras Sociales'); addFooter();
   y = 32;
-  y = addSection(y, '6. Top Obras Sociales por Facturación');
+  y = addSection(y, '6. Top Obras Sociales por FacturaciÃ³n');
 
   autoTable(doc, { startY: y, margin: { left: M, right: M },
     head: [['#', 'Obra Social', 'Cant.', 'Facturado', '% Conc.', 'MC %']],
@@ -530,12 +530,12 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   if (a.topObrasSociales.length >= 3) {
     const t3F = a.topObrasSociales.slice(0, 3).reduce((s, os) => s + os.facturado, 0);
     const t3P = (t3F / a.facturado) * 100;
-    y = addNarrativa(y, `Las tres principales obras sociales (${a.topObrasSociales.slice(0, 3).map(o => o.sigla).join(', ')}) concentran el ${fmtPct(t3P)} de la facturación total. ${t3P > 70 ? 'Este nivel de concentración representa un riesgo significativo de dependencia.' : t3P > 50 ? 'La concentración es moderada, pero se recomienda diversificar.' : 'La diversificación es adecuada.'}`);
+    y = addNarrativa(y, `Las tres principales obras sociales (${a.topObrasSociales.slice(0, 3).map(o => o.sigla).join(', ')}) concentran el ${fmtPct(t3P)} de la facturaciÃ³n total. ${t3P > 70 ? 'Este nivel de concentraciÃ³n representa un riesgo significativo de dependencia.' : t3P > 50 ? 'La concentraciÃ³n es moderada, pero se recomienda diversificar.' : 'La diversificaciÃ³n es adecuada.'}`);
   }
 
-  // ══════════════════════════════════════════
-  // PÁGINA 6: COSTOS + PUNTO DE EQUILIBRIO
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA 6: COSTOS + PUNTO DE EQUILIBRIO
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   doc.addPage(); addHeader('Estructura de Costos'); addFooter();
   y = 32;
@@ -545,7 +545,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   cfRows.push(['TOTAL COSTOS FIJOS', fmt(a.costosFijos), '100%']);
 
   autoTable(doc, { startY: y, margin: { left: M, right: M },
-    head: [['Categoría', 'Promedio Mensual', '% del Total']],
+    head: [['CategorÃ­a', 'Promedio Mensual', '% del Total']],
     body: cfRows,
     headStyles: { fillColor: C.primary, fontSize: 8, fontStyle: 'bold' }, bodyStyles: { fontSize: 8, textColor: C.dark },
     columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 45, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' } },
@@ -578,9 +578,9 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     didParseCell: (d: any) => { alinear(d, { 0: 'left', 1: 'right', 2: 'right' }); if (d.row.index === cvRows.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [207, 250, 254]; } },
   });
 
-  // ══════════════════════════════════════════
-  // PÁGINA DEDICADA: PUNTO DE EQUILIBRIO
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA DEDICADA: PUNTO DE EQUILIBRIO
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   doc.addPage(); addHeader('Punto de Equilibrio'); addFooter();
   y = 32;
@@ -594,7 +594,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   const margenSeguridadPct = a.facturado > 0 ? (margenSeguridad / a.facturado) * 100 : 0;
   const pePrestaciones = a.ticketPromedio > 0 ? puntoEquilibrio / a.ticketPromedio : 0;
 
-  // ── GRÁFICO ──────────────────────────────
+  // â”€â”€ GRÃFICO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const chX = M + 18;       // left (room for Y labels)
   const chY = y + 2;        // top
   const chW = 145;           // width
@@ -632,7 +632,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.line(gx, chY, gx, chB);
   }
 
-  // ── GREEN PROFIT ZONE (between PE and actual) ──
+  // â”€â”€ GREEN PROFIT ZONE (between PE and actual) â”€â”€
   if (margenSeguridad > 0) {
     doc.setFillColor(220, 252, 231); // green-100
     const peX = scX(puntoEquilibrio);
@@ -646,21 +646,21 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.rect(peX, Math.min(revAtAct, peYpt), actX - peX, Math.abs(costAtAct - revAtAct), 'F');
   }
 
-  // ── RED LOSS ZONE (between 0 and PE) ──
+  // â”€â”€ RED LOSS ZONE (between 0 and PE) â”€â”€
   if (puntoEquilibrio > 0) {
     doc.setFillColor(254, 226, 226); // red-100
     const peX = scX(puntoEquilibrio);
     const peYpt = scY(puntoEquilibrio);
     // At x=0: revenue=0, cost=CF
     const cfY = scY(a.costosFijos);
-    // Triangle: (chX, chB) → (chX, cfY) → (peX, peYpt)
+    // Triangle: (chX, chB) â†’ (chX, cfY) â†’ (peX, peYpt)
     // Approximate with rectangle from 0 to PE
     const midCostY = scY(a.costosFijos + (puntoEquilibrio * cvRatio) / 2);
     const midRevY = scY(puntoEquilibrio / 2);
     doc.rect(chX, Math.min(cfY, midCostY), peX - chX, Math.abs(chB - cfY), 'F');
   }
 
-  // ── AXES ──
+  // â”€â”€ AXES â”€â”€
   doc.setDrawColor(100, 100, 100);
   doc.setLineWidth(0.4);
   doc.line(chX, chB, chR, chB);  // X axis
@@ -676,9 +676,9 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.text(label, gx, chB + 4, { align: 'center' });
   }
   doc.setFontSize(7);
-  doc.text('Facturación', chX + chW / 2, chB + 9, { align: 'center' });
+  doc.text('FacturaciÃ³n', chX + chW / 2, chB + 9, { align: 'center' });
 
-  // ── FIXED COSTS LINE (horizontal) ──
+  // â”€â”€ FIXED COSTS LINE (horizontal) â”€â”€
   doc.setDrawColor(234, 179, 8); // amber
   doc.setLineWidth(0.6);
   const cfLineY = scY(a.costosFijos);
@@ -693,7 +693,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setTextColor(161, 98, 7);
   doc.text('Costos Fijos', chR - 16.5, cfLineY, { align: 'center' });
 
-  // ── TOTAL COSTS LINE ──
+  // â”€â”€ TOTAL COSTS LINE â”€â”€
   doc.setDrawColor(220, 38, 38); // red
   doc.setLineWidth(1);
   const costStart = scY(a.costosFijos); // at x=0, cost = CF
@@ -706,7 +706,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setTextColor(185, 28, 28);
   doc.text('Costos Totales', chR - 15.5, costEnd - 4, { align: 'center' });
 
-  // ── REVENUE LINE ──
+  // â”€â”€ REVENUE LINE â”€â”€
   doc.setDrawColor(30, 64, 175); // blue
   doc.setLineWidth(1);
   doc.line(chX, chB, chR, scY(maxVal));
@@ -718,7 +718,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setTextColor(30, 64, 175);
   doc.text('Ingresos', chR - 12.5, revEndY + 3.5, { align: 'center' });
 
-  // ── BREAK-EVEN POINT ──
+  // â”€â”€ BREAK-EVEN POINT â”€â”€
   const peXpt = scX(puntoEquilibrio);
   const peYpt = scY(puntoEquilibrio);
   // Vertical dashed line from PE to X axis
@@ -743,7 +743,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setTextColor(22, 101, 52);
   doc.text(`PE: ${fmt(puntoEquilibrio)}`, peLabelX, peLabelY + 1.5, { align: 'center' });
 
-  // ── CURRENT FACTURACIÓN MARKER ──
+  // â”€â”€ CURRENT FACTURACIÃ“N MARKER â”€â”€
   const actXpt = scX(a.facturado);
   const actRevY = scY(a.facturado); // on revenue line
   const actCostY = scY(a.costosFijos + a.facturado * cvRatio); // on cost line
@@ -783,7 +783,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setTextColor(30, 58, 138);
   doc.text(`Real: ${fmt(a.facturado)}`, actXpt, chB + 9.5, { align: 'center' });
 
-  // ── MARGEN DE SEGURIDAD arrow ──
+  // â”€â”€ MARGEN DE SEGURIDAD arrow â”€â”€
   if (margenSeguridad > 0) {
     const arrowY = chB + 16;
     doc.setDrawColor(22, 163, 74);
@@ -799,7 +799,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.text(`Margen de Seguridad: ${fmtPct(margenSeguridadPct)}`, (peXpt + actXpt) / 2, arrowY - 2, { align: 'center' });
   }
 
-  // ── LEGEND ──
+  // â”€â”€ LEGEND â”€â”€
   const legY = chY + 2;
   const legX = chX + 3;
   doc.setFontSize(5.5);
@@ -816,18 +816,18 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setFillColor(220, 252, 231); doc.rect(legX, legY + 12, 6, 2, 'F');
   doc.text('Zona de Ganancia', legX + 8, legY + 13.8);
   doc.setFillColor(254, 226, 226); doc.rect(legX, legY + 16, 6, 2, 'F');
-  doc.text('Zona de Pérdida', legX + 8, legY + 17.8);
+  doc.text('Zona de PÃ©rdida', legX + 8, legY + 17.8);
 
   // Y after chart
   y = chB + 24;
 
-  // ── TABLA PE ──
+  // â”€â”€ TABLA PE â”€â”€
   const peRows = [
     ['Costos Fijos Mensuales', fmt(a.costosFijos)],
-    ['Margen de Contribución %', fmtPct(a.margenContribPct)],
-    ['Punto de Equilibrio (facturación)', fmt(puntoEquilibrio)],
+    ['Margen de ContribuciÃ³n %', fmtPct(a.margenContribPct)],
+    ['Punto de Equilibrio (facturaciÃ³n)', fmt(puntoEquilibrio)],
     ['Punto de Equilibrio (prestaciones)', fmtNum(pePrestaciones)],
-    ['Facturación Real del Período', fmt(a.facturado)],
+    ['FacturaciÃ³n Real del PerÃ­odo', fmt(a.facturado)],
     ['Margen de Seguridad', `${fmt(margenSeguridad)} (${fmtPct(margenSeguridadPct)})`],
   ];
 
@@ -843,13 +843,13 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
 
   y = (doc as any).lastAutoTable.finalY + 4;
   const peNarrativa = margenSeguridad > 0
-    ? `La clínica opera ${fmtPct(margenSeguridadPct)} por encima de su punto de equilibrio. Esto significa que la facturación podría caer hasta ${fmt(margenSeguridad)} antes de generar pérdidas operativas. Se necesitan al menos ${fmtNum(pePrestaciones)} prestaciones mensuales al ticket promedio actual para cubrir los costos fijos.`
-    : `La facturación actual se encuentra por debajo del punto de equilibrio en ${fmt(Math.abs(margenSeguridad))}. Esto indica que el instituto no está cubriendo la totalidad de sus costos fijos con la operación corriente. Se requiere incrementar la facturación en al menos ${fmt(Math.abs(margenSeguridad))} o reducir costos fijos para alcanzar el equilibrio.`;
+    ? `La clÃ­nica opera ${fmtPct(margenSeguridadPct)} por encima de su punto de equilibrio. Esto significa que la facturaciÃ³n podrÃ­a caer hasta ${fmt(margenSeguridad)} antes de generar pÃ©rdidas operativas. Se necesitan al menos ${fmtNum(pePrestaciones)} prestaciones mensuales al ticket promedio actual para cubrir los costos fijos.`
+    : `La facturaciÃ³n actual se encuentra por debajo del punto de equilibrio en ${fmt(Math.abs(margenSeguridad))}. Esto indica que el instituto no estÃ¡ cubriendo la totalidad de sus costos fijos con la operaciÃ³n corriente. Se requiere incrementar la facturaciÃ³n en al menos ${fmt(Math.abs(margenSeguridad))} o reducir costos fijos para alcanzar el equilibrio.`;
   y = addNarrativa(y, peNarrativa);
 
-  // ══════════════════════════════════════════
-  // PÁGINA 7: CONCLUSIONES
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // PÃGINA 7: CONCLUSIONES
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   doc.addPage(); addHeader('Conclusiones'); addFooter();
   y = 32;
@@ -873,14 +873,14 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setDrawColor(...C.medium); doc.setLineWidth(0.3);
   doc.line(M, y, M + 60, y);
   doc.setFontSize(8); doc.setTextColor(...C.medium);
-  doc.text('Dirección Médica', M, y + 5);
+  doc.text('DirecciÃ³n MÃ©dica', M, y + 5);
   doc.text(`${mesNombre} ${datos.anio}`, M, y + 10);
 
-  // ── DISCLAIMER ──
+  // â”€â”€ DISCLAIMER â”€â”€
   y += 25;
   if (y > PH - 45) { doc.addPage(); addHeader(''); addFooter(); y = PH - 55; }
 
-  const discTexto = 'Nota importante: La validez de los indicadores presentados en este informe está sujeta al registro completo y oportuno de la totalidad de las erogaciones del período analizado. Cualquier omisión, demora o error en la carga de gastos, comprobantes de proveedores, liquidaciones de honorarios o cargas sociales puede impactar significativamente en los márgenes y resultados aquí expuestos. Se recomienda verificar la integridad de los datos previo a la toma de decisiones basadas en este documento.';
+  const discTexto = 'Nota importante: La validez de los indicadores presentados en este informe estÃ¡ sujeta al registro completo y oportuno de la totalidad de las erogaciones del perÃ­odo analizado. Cualquier omisiÃ³n, demora o error en la carga de gastos, comprobantes de proveedores, liquidaciones de honorarios o cargas sociales puede impactar significativamente en los mÃ¡rgenes y resultados aquÃ­ expuestos. Se recomienda verificar la integridad de los datos previo a la toma de decisiones basadas en este documento.';
   const discLines = doc.splitTextToSize(discTexto, CW - 12);
   const discH = discLines.length * 3.8 + 10;
 
@@ -898,15 +898,15 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
 
   // Title
   doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(153, 27, 27);
-  doc.text('AVISO SOBRE VALIDEZ DE LA INFORMACIÓN', M + 11, y + 7);
+  doc.text('AVISO SOBRE VALIDEZ DE LA INFORMACIÃ“N', M + 11, y + 7);
 
   // Body
   doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(127, 29, 29);
   doc.text(discLines, M + 6, y + 13);
 
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // GUARDAR
-  // ══════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   doc.save(`Informe_Gestion_${datos.anio}_${String(datos.mes).padStart(2, '0')}_${mesNombre}.pdf`);
 }
