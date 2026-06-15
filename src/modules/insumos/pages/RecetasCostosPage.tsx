@@ -255,7 +255,7 @@ const imprimirReceta = (receta: RecetaCompleta) => {
 // FUNCIÓN DE IMPRESIÓN DE TODAS LAS RECETAS
 // ============================================
 
-const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
+const imprimirTodasRecetas = (recetas: PracticaRecetaConCostos[]) => {
   const fechaActual = new Date().toLocaleDateString('es-AR', {
     day: '2-digit',
     month: '2-digit',
@@ -483,7 +483,7 @@ const imprimirTodasRecetas = (recetas: RecetaCompleta[]) => {
 // FUNCIÓN: Imprimir RESUMEN de todas las recetas
 // ============================================
 
-const imprimirRecetasResumen = (recetas: RecetaCompleta[]) => {
+const imprimirRecetasResumen = (recetas: PracticaRecetaConCostos[]) => {
   const fechaActual = new Date().toLocaleDateString('es-AR', {
     day: '2-digit',
     month: '2-digit',
@@ -610,7 +610,7 @@ const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
   });
 
   const totalRecetas = recetas.length;
-  const costoTotalGeneral = recetas.reduce((sum, r) => sum + (r.costo_total || 0), 0);
+  const costoTotalGeneral = recetas.reduce((sum, r) => sum + (r.totales.costo_total_por_practica || 0), 0);
 
   const categoriaColors: Record<string, { bg: string; text: string }> = {
     'Cirugias': { bg: '#fef2f2', text: '#dc2626' },
@@ -654,8 +654,8 @@ const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
             </div>
             <div style="text-align: right;">
               <div style="font-size: 10px; color: #6b7280;">COSTO TOTAL</div>
-              <div style="font-size: 22px; font-weight: bold; color: ${colors.text};">${formatCurrency(receta.costo_total || 0)}</div>
-              <div style="font-size: 10px; color: #6b7280;">Pools: ${formatCurrency(receta.costo_pools || 0)} | Insumos: ${formatCurrency(receta.costo_insumos_directos || 0)}</div>
+              <div style="font-size: 22px; font-weight: bold; color: ${colors.text};">${formatCurrency(receta.totales.costo_total_por_practica || 0)}</div>
+              <div style="font-size: 10px; color: #6b7280;">Pools: ${formatCurrency(receta.totales.costo_pools || 0)} | Insumos: ${formatCurrency(receta.totales.costo_insumos_directos || 0)}</div>
             </div>
           </div>
         </div>
@@ -1629,7 +1629,7 @@ const RecetasCostosPage: React.FC = () => {
     });
 
     const totalRecetas = recetas.length;
-    const costoTotalGeneral = recetas.reduce((sum, r) => sum + (r.costo_total || 0), 0);
+    const costoTotalGeneral = recetas.reduce((sum, r) => sum + (r.totales.costo_total_por_practica || 0), 0);
 
     const categoriaColors: Record<string, { bg: string; text: string }> = {
       'Cirugias': { bg: '#fef2f2', text: '#dc2626' },
@@ -1675,9 +1675,9 @@ const RecetasCostosPage: React.FC = () => {
               </div>
             </div>
             <div style="text-align: right; display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 7px; color: #6b7280;">Pools: ${formatCurrency(receta.costo_pools || 0)}</span>
-              <span style="font-size: 7px; color: #6b7280;">Ins: ${formatCurrency(receta.costo_insumos_directos || 0)}</span>
-              <span style="font-size: 12px; font-weight: bold; color: ${colors.text};">${formatCurrency(receta.costo_total || 0)}</span>
+              <span style="font-size: 7px; color: #6b7280;">Pools: ${formatCurrency(receta.totales.costo_pools || 0)}</span>
+              <span style="font-size: 7px; color: #6b7280;">Ins: ${formatCurrency(receta.totales.costo_insumos_directos || 0)}</span>
+              <span style="font-size: 12px; font-weight: bold; color: ${colors.text};">${formatCurrency(receta.totales.costo_total_por_practica || 0)}</span>
             </div>
           </div>
           <div style="padding: 4px 8px 8px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -1746,8 +1746,8 @@ const RecetasCostosPage: React.FC = () => {
   const prestacionesParaAutocomplete = useMemo(() => {
     return prestaciones.map(p => ({
       codigo: p.codigo,
-      nombre: p.nombre,
-      agrupacion: p.agrupacion
+      nombre: p.practica,
+      agrupacion: p.agrupacion_nombre
     }));
   }, [prestaciones]);
 

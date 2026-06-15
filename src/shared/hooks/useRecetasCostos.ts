@@ -226,9 +226,10 @@ export const useRecetasCostos = (): UseRecetasCostosReturn => {
 
           // Solo contar insumos que estén activos
           const costoTotalPool = (itemsPool || []).reduce((sum, item) => {
-            // Filtrar solo insumos activos
-            if (!item.insumo?.activo) return sum;
-            const precio = item.insumo?.precio_unitario || 0;
+            // Filtrar solo insumos activos (la relación es to-one; Supabase la tipa como array)
+            const insumo = item.insumo as unknown as { precio_unitario: number; activo: boolean } | null;
+            if (!insumo?.activo) return sum;
+            const precio = insumo?.precio_unitario || 0;
             return sum + (precio * item.cantidad * item.factor_ajuste);
           }, 0);
 

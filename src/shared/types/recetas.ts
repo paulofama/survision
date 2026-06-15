@@ -145,16 +145,20 @@ export interface RecetaInsumoDirecto {
 }
 
 export interface RecetaInsumoDirectoConDetalle extends RecetaInsumoDirecto {
-  // Datos del insumo
+  // Datos del insumo (campos que realmente setea useRecetasCostos)
   insumo_codigo: string;
-  insumo_nombre: string;
   insumo_descripcion?: string;
   insumo_segmento: string;
-  precio_unitario: number;
+  insumo_precio_unitario: number;  // precio del insumo (lo setea el hook)
   insumo_unidad: string;
-  
-  // Costo calculado
-  costo_total: number;
+
+  // Costo calculado por práctica = precio * cantidad (lo setea el hook)
+  costo_por_practica: number;
+
+  // Campos legacy (opcionales; pueden no estar seteados)
+  insumo_nombre?: string;
+  precio_unitario?: number;
+  costo_total?: number;
 }
 
 export interface NuevaRecetaInsumoDirecto {
