@@ -45,7 +45,7 @@ function procesarDatosMes(
   prestadoresHonorarios: any[],
   agregarAliases: (map: Map<string, any>) => void,
   costosFijos: number,
-  costosFijosDetalle: { nombre: string; color: string; total: number; porcentaje: number }[],
+  costosFijosDetalle: { nombre?: string; categoria_nombre?: string; color?: string; categoria_color?: string; total: number; porcentaje: number }[],
 ): DatosMes {
   const recetasMap = new Map(recetasConPools.map(r => [normalizarNombre(r.nombre_practica), r]));
   agregarAliases(recetasMap);
@@ -159,8 +159,8 @@ const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClo
   const { prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, filtros } = useMarginalContext();
   const { agregarAliases } = useNombreMapping();
 
-  const [anio, setAnio] = useState(filtros?.anio || new Date().getFullYear());
-  const [mes, setMes] = useState(filtros?.mes || new Date().getMonth() + 1);
+  const [anio, setAnio] = useState<number>(Number(filtros?.anio) || new Date().getFullYear());
+  const [mes, setMes] = useState<number>(Number(filtros?.mes) || new Date().getMonth() + 1);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState('');
 

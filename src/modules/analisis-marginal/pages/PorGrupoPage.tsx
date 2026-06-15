@@ -139,8 +139,8 @@ const PorGrupoContent: React.FC = () => {
     prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, filtros, loading
   } = useMarginalContext();
 
-  const anioActual = filtros?.anio || new Date().getFullYear();
-  const mesActual  = filtros?.mes  || (new Date().getMonth() + 1);
+  const anioActual = Number(filtros?.anio) || new Date().getFullYear();
+  const mesActual  = Number(filtros?.mes)  || (new Date().getMonth() + 1);
 
   const { resumen: resumenCF, loading: loadingCF, calcularAsignacion } = useCostosFijosDistribucion(anioActual, mesActual);
 
@@ -429,7 +429,7 @@ const PorGrupoContent: React.FC = () => {
                     <td className="px-2 py-3 text-sm text-gray-900 max-w-[240px]">
                       <div className="flex items-center gap-1.5">
                         <p className="truncate" title={prest.nombre}>{prest.nombre}</p>
-                        {!prest.tieneReceta && <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" title="Sin receta" />}
+                        {!prest.tieneReceta && <span title="Sin receta" className="inline-flex flex-shrink-0"><AlertTriangle className="w-3.5 h-3.5 text-yellow-500" /></span>}
                       </div>
                     </td>
                     <td className="px-2 py-3 text-sm text-right text-gray-900">{formatNumber(prest.cantidad)}</td>

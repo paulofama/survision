@@ -708,7 +708,7 @@ export default function CostosFijosPage() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-12">
-                    <HelpCircle className="w-3 h-3 inline" title="Click para clasificar" />
+                    <span title="Click para clasificar"><HelpCircle className="w-3 h-3 inline" /></span>
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fuente</th>

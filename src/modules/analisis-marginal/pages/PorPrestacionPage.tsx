@@ -165,8 +165,8 @@ const PorPrestacionContent: React.FC = () => {
   } = useMarginalContext();
 
   // Obtener período del contexto (fallback: mes/año actual)
-  const anioActual = filtros?.anio || new Date().getFullYear();
-  const mesActual  = filtros?.mes  || (new Date().getMonth() + 1);
+  const anioActual = Number(filtros?.anio) || new Date().getFullYear();
+  const mesActual  = Number(filtros?.mes)  || (new Date().getMonth() + 1);
 
   const {
     resumen: resumenCF,

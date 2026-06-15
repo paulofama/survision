@@ -356,8 +356,8 @@ const EvolucionTemporalContent: React.FC = () => {
 
   // Rango de visualización: desde enero 2026 hasta el mes seleccionado en el layout
   const hoy = new Date();
-  const anioHasta = filtros?.anio || hoy.getFullYear();
-  const mesHasta = filtros?.mes || (hoy.getMonth() + 1);
+  const anioHasta = Number(filtros?.anio) || hoy.getFullYear();
+  const mesHasta = Number(filtros?.mes) || (hoy.getMonth() + 1);
 
   const { data, loading, error, refetch } = useEvolucionMensual({
     anioDesde: 2026,

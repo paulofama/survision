@@ -113,8 +113,8 @@ const PorPrestadorContent: React.FC = () => {
     prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, filtros, loading
   } = useMarginalContext();
 
-  const anioActual = filtros?.anio || new Date().getFullYear();
-  const mesActual  = filtros?.mes  || (new Date().getMonth() + 1);
+  const anioActual = Number(filtros?.anio) || new Date().getFullYear();
+  const mesActual  = Number(filtros?.mes)  || (new Date().getMonth() + 1);
 
   const { resumen: resumenCF, loading: loadingCF, calcularAsignacion } = useCostosFijosDistribucion(anioActual, mesActual);
 
