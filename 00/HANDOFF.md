@@ -49,7 +49,7 @@ cd C:\IA\COSTOS\sistema-costos; npm.cmd run dev
 
 ⚠️ **2 BUGS REALES arreglados (estaban escondidos entre los errores TS) — VERIFICAR:**
 1. **Prestaciones Realizadas → cablear al backend (decisión de Paulo).** La página leía campos/filtros (`derivador`, `atendio`, filtros `prestacion/paciente/derivadorId`) que `/movimientos` no daba. Se extendió `server/routes/movimientos.js`: SELECT `derivador` (LEFT JOIN `EntidadesDerivantes`) + `atendio` (de `Usu_Alta`); filtros server-side (LIKE); `/filtros` ahora trae `derivadores`. ✅ **VERIFICADO EN VIVO (2026-06-15):** el SQL corre (`/movimientos` devuelve 705 filas con el JOIN nuevo) y Paulo confirmó que **"Atendió" = `Usu_Alta` es correcto** (es la administrativa; el profesional va en Prestador).
-2. **HonorariosPage edición inline de %**: faltaba el estado local (tiraba ReferenceError al editar). Arreglado con copia local que espeja el hook. **Verificar** editar % socio/no-socio + Guardar.
+2. **HonorariosPage edición inline de %**: faltaba el estado local (tiraba ReferenceError al editar). Arreglado con copia local que espeja el hook. ✅ **VERIFICADO OK (2026-06-15).** La página es `/honorarios` (config de %) — se le agregó acceso en el menú: **Liquidaciones → "Config. Honorarios"** (antes solo por URL; es distinta de la "Honorarios" de liquidaciones en `/liquidaciones/honorarios`).
 
 **Cómo medir:** `npm.cmd run type-check 2>&1 | Select-String 'error TS' | Measure-Object`.
 
@@ -57,7 +57,7 @@ cd C:\IA\COSTOS\sistema-costos; npm.cmd run dev
 
 ## 4. Pendientes (prioridad)
 
-1. ✅ **(principal, HECHO)** Errores TS legacy 136→0. Falta solo **verificar en vivo** los 2 bugs reales arreglados (§3): Prestaciones Realizadas contra GECLISA + edición inline de % en HonorariosPage.
+1. ✅ **(principal, HECHO Y VERIFICADO)** Errores TS legacy 136→0; `npm run build` verde. Los 2 bugs reales arreglados quedaron verificados en vivo (§3): Prestaciones Realizadas (columnas + 4 filtros) y edición inline de % en HonorariosPage. También se quitó el alias `@/` muerto y se agregó el acceso de menú a Config. Honorarios.
 2. Sueldos: cuando lleguen, cargar **F.931 real de enero-2026** (reemplazar el VEP) y la **minuta de feb-2026+** para generar asientos 2026.
 3. Sueldos: agregar **"Castillo Romina"** al maestro (falta en ene/feb/mar-2025; bruto/reparto incompletos esos meses).
 4. (cosmético) Quitar el alias `@/` (ya sin uso, todo es `@shared`/`@modules`); re-homologar hooks/modales compartidos a su módulo si se quiere más pureza.
