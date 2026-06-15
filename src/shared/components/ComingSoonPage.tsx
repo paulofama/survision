@@ -7,11 +7,16 @@ import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Construction, ArrowLeft, Clock } from 'lucide-react';
 
-const ComingSoonPage: React.FC = () => {
+interface ComingSoonPageProps {
+  title?: string;
+}
+
+const ComingSoonPage: React.FC<ComingSoonPageProps> = ({ title }) => {
   const location = useLocation();
-  
-  // Obtener nombre de la página desde la ruta
+
+  // Obtener nombre de la página desde la ruta (o usar el title si se pasó)
   const getPageName = (): string => {
+    if (title) return title;
     const path = location.pathname.slice(1); // Remover la barra inicial
     if (!path) return 'Esta sección';
     return path

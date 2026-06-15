@@ -15,7 +15,7 @@ import type {
   NuevoPoolItem,
   EstadisticasPools,
   UsePoolsReturn 
-} from '../types/pools';
+} from '../types/types_pools';
 import type { InsumoVariable } from '../types';
 
 // ============================================

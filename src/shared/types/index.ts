@@ -385,15 +385,10 @@ export const isValidSegmento = (value: string): value is InsumoSegmento => {
 // TIPOS DE EXPORTACIÓN
 // ============================================
 
+// Nota: los tipos (InsumoSegmento, InsumoVariable, etc.) NO pueden ir en un
+// objeto runtime; se exportan como named type exports más arriba. Acá solo van
+// los valores (consts).
 export default {
-  InsumoSegmento,
-  InsumoVariable,
-  Agrupacion,
-  Prestacion,
-  PrestacionConAgrupacion,
-  EstadisticasPrestaciones,
-  EstadisticasInsumos,
-  EstadisticasGenerales,
   SEGMENTOS_CONFIG,
   segmentoColors,
   SEGMENTOS_ORDENADOS,

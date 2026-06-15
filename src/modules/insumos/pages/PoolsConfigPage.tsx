@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { usePools } from '@shared/hooks/usePools';
 import { useInsumosVariables } from '@shared/hooks/useInsumosVariables';
-import type { PoolConItems, PoolItemConInsumo } from '@shared/types/pools';
+import type { PoolConItems, PoolItemConInsumo } from '@shared/types/types_pools';
 import type { InsumoVariable } from '@shared/types';
 
 // ============================================
