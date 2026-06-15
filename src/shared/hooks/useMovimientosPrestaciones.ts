@@ -433,7 +433,7 @@ export const useMovimientosPrestaciones = () => {
   useEffect(() => {
     cargarPrestaciones();
     cargarStatsPeriodo();
-  }, [filtros.anio, filtros.mes, filtros.obraSocialId, filtros.prestadorId, filtros.grupoPracticas]);
+  }, [filtros.anio, filtros.mes, filtros.dia, filtros.obraSocialId, filtros.prestadorId, filtros.grupoPracticas, filtros.prestacion, filtros.paciente, filtros.derivadorId]);
 
   // ============================================
   // DATOS FILTRADOS POR BÚSQUEDA LOCAL
