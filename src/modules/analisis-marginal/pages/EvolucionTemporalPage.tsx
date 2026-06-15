@@ -354,13 +354,14 @@ const FilaRow: React.FC<FilaRowProps> = ({
 const EvolucionTemporalContent: React.FC = () => {
   const { filtros } = useMarginalContext();
 
-  // Rango de visualización: desde enero 2026 hasta el mes seleccionado en el layout
+  // Rango de visualización: enero del año seleccionado hasta el mes seleccionado en el layout
+  // (antes anioDesde estaba fijo en 2026 → con año < 2026 el rango quedaba invertido = vacío).
   const hoy = new Date();
   const anioHasta = Number(filtros?.anio) || hoy.getFullYear();
   const mesHasta = Number(filtros?.mes) || (hoy.getMonth() + 1);
 
   const { data, loading, error, refetch } = useEvolucionMensual({
-    anioDesde: 2026,
+    anioDesde: anioHasta,
     mesDesde: 1,
     anioHasta,
     mesHasta,

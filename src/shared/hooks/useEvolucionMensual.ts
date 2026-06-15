@@ -20,8 +20,9 @@
 // HIPÓTESIS v1 (a revisar si algo cambia):
 //   1. Campo de fecha en atención = 'fecha' (formato 'YYYY-MM-DD' o ISO)
 //      → Si el backend devuelve otro nombre, modificar la función `extraerMes`.
-//   2. Endpoint de atenciones   = `${API_BASE_URL}/prestaciones/:anio/:mes`
-//      → Si el nombre real es otro, modificar la constante ENDPOINT_ATENCIONES.
+//   2. Endpoint de atenciones   = `${API_BASE_URL}/movimientos?anio=&mes=&limit=`
+//      (devuelve {success, data:[{fecha,prestacion,prestador,os_sigla,os_nombre,total}]}).
+//      → Si cambia, modificar la constante ENDPOINT_ATENCIONES.
 //   3. Honorarios y es_socio NO tienen versionado histórico en BD.
 //      → Se aplica la configuración vigente a todos los meses. Si a futuro
 //        se agrega versionado, modificar la función `calcularHonorario`.
@@ -46,9 +47,11 @@ import { toMesKey, generarRangoMeses, parseMesKey } from '../types/evolucionTemp
 // CONFIGURACIÓN — Ajustar si cambia el backend
 // ============================================
 
-/** Endpoint que devuelve las atenciones de un mes desde GECLISA. */
+/** Endpoint que devuelve las atenciones de un mes desde GECLISA.
+ *  Usa /movimientos (una fila por atención: fecha/prestacion/prestador/os/total).
+ *  limit alto para no truncar meses con muchas atenciones. */
 const ENDPOINT_ATENCIONES = (anio: number, mes: number) =>
-  `${API_BASE_URL}/prestaciones/${anio}/${mes}`;
+  `${API_BASE_URL}/movimientos?anio=${anio}&mes=${mes}&limit=10000`;
 
 /** Umbral de cobertura de receta debajo del cual se emite advertencia. */
 const UMBRAL_COBERTURA_RECETA = 80; // %
