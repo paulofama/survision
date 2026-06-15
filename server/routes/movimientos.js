@@ -36,8 +36,11 @@ router.get('/', async (req, res) => {
       anio,
       mes,
       grupoPracticas,
+      prestacion,
+      paciente,
+      derivadorId,
       limit = 500,
-      offset = 0 
+      offset = 0
     } = req.query;
 
     let query = `
@@ -66,10 +69,13 @@ router.get('/', async (req, res) => {
         END AS practica_nombre,
         pre.pre_id AS prestador_id,
         pre.pre_nombre AS prestador_nombre,
+        m.EntDer_id AS derivador_id,
+        RTRIM(ISNULL(ed.EntDer_nombre, '')) AS derivador,
         YEAR(m.Me_Fecha) AS anio,
         MONTH(m.Me_Fecha) AS mes_numero
       FROM MovEnca m
       LEFT JOIN ObrasSociales os ON m.Os_id = os.os_id
+      LEFT JOIN EntidadesDerivantes ed ON m.EntDer_id = ed.EntDer_id
       OUTER APPLY (
         SELECT TOP 1 mp2.Mp_id, mp2.nom_id, mp2.nom_cod, mp2.Serv_id
         FROM MovPrac mp2 
@@ -124,6 +130,21 @@ router.get('/', async (req, res) => {
       params.grupoPracticas = parseInt(grupoPracticas);
     }
 
+    if (prestacion) {
+      query += ` AND (n.nom_nom LIKE @prestacion OR mp.nom_cod LIKE @prestacion)`;
+      params.prestacion = `%${prestacion}%`;
+    }
+
+    if (paciente) {
+      query += ` AND (m.Me_Ape LIKE @paciente OR m.Me_Nombre LIKE @paciente)`;
+      params.paciente = `%${paciente}%`;
+    }
+
+    if (derivadorId) {
+      query += ` AND m.EntDer_id = @derivadorId`;
+      params.derivadorId = parseInt(derivadorId);
+    }
+
     query += ` ORDER BY m.Me_Fecha DESC, m.Me_id DESC`;
     query += ` OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`;
     
@@ -153,6 +174,9 @@ router.get('/', async (req, res) => {
       grupo_id: row.grupo_id,
       prestador_id: row.prestador_id || null,
       prestador: row.prestador_nombre?.trim() || 'Sin prestador',
+      derivador_id: row.derivador_id || null,
+      derivador: row.derivador?.trim() || '',
+      atendio: row.usuario_alta?.trim() || '',
       anio: row.anio,
       mes_numero: row.mes_numero
     }));
@@ -962,11 +986,12 @@ router.get('/filtros', async (req, res) => {
   try {
     console.log('🔍 Obteniendo opciones de filtros...');
 
-    const [resultAnios, resultOS, resultPrestadores, resultGrupos] = await Promise.all([
+    const [resultAnios, resultOS, resultPrestadores, resultGrupos, resultDerivadores] = await Promise.all([
       executeQuery(`SELECT DISTINCT YEAR(Me_Fecha) AS anio FROM MovEnca WHERE Me_Area = 'A' AND Me_Fecha IS NOT NULL ORDER BY anio DESC`),
       executeQuery(`SELECT DISTINCT os.os_id AS id, os.os_sigla AS sigla, os.os_nombre AS nombre FROM ObrasSociales os INNER JOIN MovEnca m ON os.os_id = m.Os_id WHERE m.Me_Area = 'A' ORDER BY os.os_nombre`),
       executeQuery(`SELECT DISTINCT p.pre_id AS id, p.pre_nombre AS nombre FROM Prestadores p INNER JOIN MovPre mpr ON p.pre_id = mpr.Pre_id INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca m ON mp.Me_id = m.Me_id WHERE m.Me_Area = 'A' ORDER BY p.pre_nombre`),
-      executeQuery(`SELECT DISTINCT s.Serv_Id AS id, RTRIM(ISNULL(s.Serv_Nombre, 'Sin Servicio')) AS nombre FROM Servicios s INNER JOIN MovPrac mp ON s.Serv_Id = mp.Serv_id INNER JOIN MovEnca m ON mp.Me_id = m.Me_id WHERE m.Me_Area = 'A' AND mp.Serv_id IS NOT NULL AND ISNULL(s.serv_inactivo, 0) = 0 ORDER BY nombre`).catch(() => ({ recordset: [] }))
+      executeQuery(`SELECT DISTINCT s.Serv_Id AS id, RTRIM(ISNULL(s.Serv_Nombre, 'Sin Servicio')) AS nombre FROM Servicios s INNER JOIN MovPrac mp ON s.Serv_Id = mp.Serv_id INNER JOIN MovEnca m ON mp.Me_id = m.Me_id WHERE m.Me_Area = 'A' AND mp.Serv_id IS NOT NULL AND ISNULL(s.serv_inactivo, 0) = 0 ORDER BY nombre`).catch(() => ({ recordset: [] })),
+      executeQuery(`SELECT DISTINCT ed.EntDer_id AS id, RTRIM(ISNULL(ed.EntDer_nombre, '')) AS nombre FROM EntidadesDerivantes ed INNER JOIN MovEnca m ON ed.EntDer_id = m.EntDer_id WHERE m.Me_Area = 'A' AND ed.EntDer_id > 0 ORDER BY nombre`).catch(() => ({ recordset: [] }))
     ]);
 
     const meses = [
@@ -983,7 +1008,8 @@ router.get('/filtros', async (req, res) => {
         meses,
         obrasSociales: resultOS.recordset.map(r => ({ id: r.id, sigla: r.sigla?.trim() || '', nombre: r.nombre?.trim() || '' })),
         prestadores: resultPrestadores.recordset.map(r => ({ id: r.id, nombre: r.nombre?.trim() || '' })),
-        grupos: resultGrupos.recordset.map(r => ({ id: r.id, nombre: r.nombre?.trim() || '' }))
+        grupos: resultGrupos.recordset.map(r => ({ id: r.id, nombre: r.nombre?.trim() || '' })),
+        derivadores: resultDerivadores.recordset.map(r => ({ id: r.id, nombre: r.nombre?.trim() || '' }))
       },
       fuente: 'SQL Server Local - GECLISA',
       timestamp: new Date().toISOString()

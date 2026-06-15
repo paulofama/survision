@@ -12,24 +12,14 @@ import {
 import { usePrestaciones } from '@shared/hooks/usePrestaciones';
 import { useTipoCambio, TipoCambio } from '@shared/context/TipoCambioContext';
 import { TipoCambioIndicator } from '@shared/components/ui/TipoCambioIndicator';
+import type { PrestacionConAgrupacion } from '@shared/types';
 
 // ============================================
 // TIPOS
 // ============================================
 
-interface Prestacion {
-  id: string;
-  codigo: string;
-  practica: string;
-  agrupacion_id: string | null;
-  agrupacion_nombre?: string;
-  precio: number;
-  moneda?: 'USD' | 'ARS';
-  activa: boolean;
-  observaciones?: string;
-  created_at: string;
-  updated_at: string;
-}
+// Catálogo de prácticas: el hook usePrestaciones devuelve PrestacionConAgrupacion.
+type Prestacion = PrestacionConAgrupacion;
 
 interface Agrupacion {
   id: string;

@@ -200,9 +200,10 @@ export interface Prestacion extends DatabaseEntity {
   practica: string;
   agrupacion_id?: string;
   precio: number;
+  moneda?: 'USD' | 'ARS';
   activa: boolean;
   observaciones?: string;
-  
+
   agrupacion_nombre?: string;
   agrupacion_color?: string;
 }

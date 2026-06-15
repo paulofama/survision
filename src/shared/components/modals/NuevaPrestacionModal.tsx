@@ -8,7 +8,7 @@ import { XIcon, SaveIcon, DollarSignIcon, EditIcon, PlusIcon } from 'lucide-reac
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Agrupacion, NuevaPrestacion, PrestacionConAgrupacion } from '../types';
+import type { Agrupacion, NuevaPrestacion, PrestacionConAgrupacion } from '../../types';
 
 // ============================================
 // VALIDACIÓN CON ZOD

@@ -70,7 +70,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
     
     const termino = busquedaLocal.toLowerCase();
     return prestaciones.filter(p => 
-      p.apellido_nombre?.toLowerCase().includes(termino) ||
+      p.paciente?.toLowerCase().includes(termino) ||
       p.prestador?.toLowerCase().includes(termino) ||
       p.os_nombre?.toLowerCase().includes(termino) ||
       p.os_sigla?.toLowerCase().includes(termino) ||
@@ -120,7 +120,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
       p.id,
       formatFecha(p.fecha),
       p.hora,
-      p.apellido_nombre,
+      p.paciente,
       p.prestador,
       p.derivador,
       p.os_nombre,
@@ -527,7 +527,7 @@ const PrestacionesRealizadasPage: React.FC = () => {
                       <td className="px-2 py-2 text-slate-400 font-mono text-xs">{p.id}</td>
                       <td className="px-2 py-2 text-slate-700 whitespace-nowrap text-xs">{formatFecha(p.fecha)}</td>
                       <td className="px-2 py-2 text-slate-500 whitespace-nowrap text-xs text-center">{p.hora}</td>
-                      <td className="px-2 py-2 text-slate-900 font-medium text-xs">{p.apellido_nombre}</td>
+                      <td className="px-2 py-2 text-slate-900 font-medium text-xs">{p.paciente}</td>
                       <td className="px-2 py-2 text-slate-600 text-xs truncate max-w-[112px]" title={p.prestador}>{p.prestador}</td>
                       <td className="px-2 py-2 text-slate-400 text-xs text-center">{p.derivador || '—'}</td>
                       <td className="px-2 py-2 text-center">

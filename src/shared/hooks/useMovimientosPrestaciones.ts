@@ -39,6 +39,9 @@ export interface PrestacionRealizada {
   grupo_id: number;
   prestador_id: number | null;
   prestador: string;
+  derivador_id: number | null;
+  derivador: string;
+  atendio: string;
   anio: number;
   mes_numero: number;
 }
@@ -108,6 +111,9 @@ export interface FiltrosPrestaciones {
   grupoPracticas: string;
   agenteFacturadorId: string;
   busqueda: string;
+  prestacion: string;
+  paciente: string;
+  derivadorId: string;
 }
 
 // Estadísticas generales (para PrestacionesRealizadasPage)
@@ -149,7 +155,10 @@ const FILTROS_INICIALES: FiltrosPrestaciones = {
   prestadorId: '',
   grupoPracticas: '',
   agenteFacturadorId: '',
-  busqueda: ''
+  busqueda: '',
+  prestacion: '',
+  paciente: '',
+  derivadorId: ''
 };
 
 // ============================================
@@ -297,6 +306,9 @@ export const useMovimientosPrestaciones = () => {
       if (filtros.obraSocialId) params.append('osId', filtros.obraSocialId);
       if (filtros.prestadorId) params.append('prestador', filtros.prestadorId);
       if (filtros.grupoPracticas) params.append('grupoPracticas', filtros.grupoPracticas);
+      if (filtros.prestacion) params.append('prestacion', filtros.prestacion);
+      if (filtros.paciente) params.append('paciente', filtros.paciente);
+      if (filtros.derivadorId) params.append('derivadorId', filtros.derivadorId);
       params.append('limit', '5000');
       
       const url = `${API_BASE_URL}/movimientos?${params.toString()}`;
