@@ -58,7 +58,10 @@ cd C:\IA\COSTOS\sistema-costos; npm.cmd run dev
 ## 4. Pendientes (prioridad)
 
 1. ✅ **(principal, HECHO Y VERIFICADO)** Errores TS legacy 136→0; `npm run build` verde. Los 2 bugs reales arreglados quedaron verificados en vivo (§3): Prestaciones Realizadas (columnas + 4 filtros) y edición inline de % en HonorariosPage. También se quitó el alias `@/` muerto y se agregó el acceso de menú a Config. Honorarios.
-2. Sueldos: cuando lleguen, cargar **F.931 real de enero-2026** (reemplazar el VEP) y la **minuta de feb-2026+** para generar asientos 2026.
+2. **Sueldos 2026 (estado al 2026-06-15):**
+   - Enero: minuta cargada (netos+SS+sindicato). **F.931 = VEP** (no real) → falta el F.931 real de enero para generar el asiento.
+   - **Feb y Mar: F.931 reales CARGADOS** (`REVISADO_CONFIRMADO`, vía `scripts/cargar-f931-2026.js`), con liquidacion contenedora VACIO. **Sin minuta (netos)** → no se generan asientos aún.
+   - Para completar 2026 faltan: **F.931 real de enero** + **minuta de feb/mar+** (netos por empleado). Con eso: `cargar-minuta-2026.js --write` (toma todas las hojas MM-2026) y luego generar asientos (adaptar `generar-asientos-2025.js` → 2026).
 3. Sueldos: agregar **"Castillo Romina"** al maestro (falta en ene/feb/mar-2025; bruto/reparto incompletos esos meses).
 4. (cosmético) Quitar el alias `@/` (ya sin uso, todo es `@shared`/`@modules`); re-homologar hooks/modales compartidos a su módulo si se quiere más pureza.
 
