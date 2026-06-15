@@ -9,7 +9,7 @@
 const express = require('express');
 const router = express.Router();
 const sql = require('mssql');
-const dbConfig = require('../config/database');
+const { dbConfig } = require('../config/database');
 
 // ============================================
 // POOL DE CONEXIONES
