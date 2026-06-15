@@ -60,7 +60,9 @@ src/
 
 ## 4. Estado del refactor — ✅ COMPLETO (2026-06-14)
 
-**12 módulos migrados** (`accesos, analisis, analisis-marginal, informes, insumos, liquidaciones, prestaciones, presupuestador, seguimiento, sueldos, tesoreria, turnos`). `src/pages` quedó solo con `ComingSoonPage` (compartido). Errores TS 340 → 258 (-82 por duplicados muertos borrados). `vite build` verde. Cada módulo con commit propio; git instalado da rollback granular.
+**12 módulos migrados** (`accesos, analisis, analisis-marginal, informes, insumos, liquidaciones, prestaciones, presupuestador, seguimiento, sueldos, tesoreria, turnos`) + **`src/shared/` creado** (components, context, hooks, lib, types, utils). `src/` quedó limpio: solo `modules/`, `shared/`, `test/`, App/main. Imports renombrados de `@/{dir}` → `@shared/{dir}` (vía .NET UTF-8, sin corrupción). Errores TS 340 → 258 (-82 por duplicados muertos borrados). `vite build` verde. Cada paso con commit propio (git instalado → rollback granular). Commit final del shared: `0880dea`.
+
+> **Nota:** el alias `@/* → src/*` sigue existiendo pero ya no se usa para shared (todo es `@shared`). Se puede quitar más adelante. La capa shared incluye hooks cross-dominio (usePrestaciones, useRecetasCostos, useHonorariosConfig, etc.) y componentes/modales que podrían re-homologarse a su módulo en una pasada futura si se quiere más pureza.
 
 > **⚠️ LECCIÓN CRÍTICA (encoding):** NO usar `Get-Content -Raw` + `Set-Content -Encoding utf8` (PowerShell 5.1) para editar archivos en masa: lee el UTF-8 como Windows-1252 y corrompe TODO lo no-ASCII (acentos → mojibake `Ã³`, combining marks → regex inválido). Pasó en 65 archivos; se revirtió lossless con .NET (`[IO.File]::ReadAllText(p,UTF8)` → `GetEncoding(1252).GetBytes` → `UTF8.GetString` → `WriteAllText` con `UTF8Encoding($false)` sin BOM). **Para editar archivos: usar el Edit tool, o .NET con UTF-8 explícito — nunca Set-Content para contenido con acentos.**
 
