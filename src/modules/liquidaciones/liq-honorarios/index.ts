@@ -1,5 +1,5 @@
-﻿// ============================================================
-// LiquidaciÃ³n de Honorarios - Module Exports
+// ============================================================
+// Liquidación de Honorarios - Module Exports
 // Instituto Dr. Mercado - Sistema de Costos
 // ============================================================
 

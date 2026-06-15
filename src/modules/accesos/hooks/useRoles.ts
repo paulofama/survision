@@ -1,5 +1,5 @@
-﻿// ============================================
-// USE ROLES - Hook para gestiÃ³n de roles
+// ============================================
+// USE ROLES - Hook para gestión de roles
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/hooks/useRoles.ts
@@ -42,7 +42,7 @@ const MODULOS: ModuloSistema[] = [
   'dashboard', 'prestaciones', 'insumos', 'analisis', 'analisis_marginal',
   'tesoreria', 'liquidaciones', 'presupuestador',
   'informes', 'seguimiento_pacientes', 'usuarios', 'roles',
-  // Permiso granular del mÃ³dulo Sueldos (sÃ³lo Auditor lo activa)
+  // Permiso granular del módulo Sueldos (sólo Auditor lo activa)
   'sueldos:reportes',
 ];
 
@@ -100,7 +100,7 @@ export const useRoles = (): UseRolesReturn => {
       });
 
       setRoles(rolesConPermisos);
-      // Invalidar cache de roles para que el sidebar se refresque en prÃ³ximo login
+      // Invalidar cache de roles para que el sidebar se refresque en próximo login
       localStorage.removeItem(STORAGE_KEYS.ROLES_CACHE);
     } catch (err: any) {
       console.error('Error cargando roles:', err);
@@ -283,7 +283,7 @@ export const useRoles = (): UseRolesReturn => {
   };
 
   // ============================================
-  // ESTADÃSTICAS
+  // ESTADÍSTICAS
   // ============================================
 
   const estadisticas = {

@@ -1,7 +1,7 @@
-﻿// ============================================
-// ANÃLISIS POR GRUPO DE PRÃCTICAS
+// ============================================
+// ANÁLISIS POR GRUPO DE PRÁCTICAS
 // Sistema de Costos - Instituto Dr. Mercado
-// VERSIÃ“N 3.0 - TOTALES DESDE SERVIDOR
+// VERSIÓN 3.0 - TOTALES DESDE SERVIDOR
 // ============================================
 // CAMBIO v3.0: Los KPIs ahora usan `totalesPeriodo` y
 // `statsPorGrupo` del servidor, NO calculan sobre
@@ -40,8 +40,8 @@ import { FiltroSelect, StatCard } from '@/components/ui';
 const AnalisisPorGrupoPage: React.FC = () => {
   const {
     prestaciones,
-    totalesPeriodo,        // â˜… v3.0: Totales del servidor
-    statsPorGrupo,         // â˜… v3.0: Datos agrupados del servidor
+    totalesPeriodo,        // ★ v3.0: Totales del servidor
+    statsPorGrupo,         // ★ v3.0: Datos agrupados del servidor
     opcionesFiltros,
     filtros,
     aplicarFiltros,
@@ -69,7 +69,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
   }, []);
 
   // ============================================
-  // FILTRAR DATOS POR BÃšSQUEDA LOCAL
+  // FILTRAR DATOS POR BÚSQUEDA LOCAL
   // ============================================
 
   const datosFiltrados = useMemo(() => {
@@ -83,7 +83,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
     );
   }, [statsPorGrupo, busquedaLocal]);
 
-  // Top 10 para grÃ¡fico
+  // Top 10 para gráfico
   const top10 = datosFiltrados.slice(0, 10);
 
   // ============================================
@@ -122,8 +122,8 @@ const AnalisisPorGrupoPage: React.FC = () => {
   const periodoTexto = filtros.anio && filtros.mes 
     ? `${getNombreMes(filtros.mes)} ${filtros.anio}`
     : filtros.anio 
-      ? `AÃ±o ${filtros.anio}`
-      : 'Todos los perÃ­odos';
+      ? `Año ${filtros.anio}`
+      : 'Todos los períodos';
 
   // Exportar a CSV
   const exportarCSV = () => {
@@ -162,15 +162,15 @@ const AnalisisPorGrupoPage: React.FC = () => {
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">AnÃ¡lisis por Grupo de PrÃ¡cticas</h1>
+              <h1 className="text-2xl font-bold text-slate-800">Análisis por Grupo de Prácticas</h1>
               <p className="text-sm text-slate-500 mt-0.5">
-                Desglose de ingresos por categorÃ­a de prestaciones
+                Desglose de ingresos por categoría de prestaciones
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Indicador de conexiÃ³n */}
+            {/* Indicador de conexión */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
               isConnected 
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -217,9 +217,9 @@ const AnalisisPorGrupoPage: React.FC = () => {
         {mostrarFiltros && (
           <div className="mt-4 pt-4 border-t border-slate-100">
             <div className="flex flex-wrap items-end gap-4">
-              {/* AÃ±o */}
+              {/* Año */}
               <div className="w-32">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">AÃ±o</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Año</label>
                 <select
                   value={filtros.anio}
                   onChange={(e) => aplicarFiltros({ anio: e.target.value })}
@@ -281,7 +281,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* BÃºsqueda local */}
+              {/* Búsqueda local */}
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Buscar</label>
                 <div className="relative">
@@ -316,7 +316,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
       <div className="flex-1 overflow-auto p-6 space-y-6">
         
         {/* ==================== STATS CARDS ==================== */}
-        {/* â˜…â˜…â˜… v3.0: Usando totalesPeriodo del servidor â˜…â˜…â˜… */}
+        {/* ★★★ v3.0: Usando totalesPeriodo del servidor ★★★ */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard
             title="Grupos"
@@ -326,7 +326,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
             variant="amber"
           />
           <StatCard
-            title="Total PrÃ¡cticas"
+            title="Total Prácticas"
             value={formatNumber(totalesPeriodo.practicas)}
             subtitle="Realizadas"
             icon={<Hash className="h-5 w-5" />}
@@ -355,7 +355,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
           />
         </div>
 
-        {/* ==================== GRÃFICO TOP 10 ==================== */}
+        {/* ==================== GRÁFICO TOP 10 ==================== */}
         {top10.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -395,7 +395,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
           <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-800">Detalle por Grupo</h3>
             <span className="text-sm text-slate-500">
-              {datosFiltrados.length} grupos Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas
+              {datosFiltrados.length} grupos · {formatNumber(totalesPeriodo.practicas)} prácticas
             </span>
           </div>
           
@@ -492,7 +492,7 @@ const AnalisisPorGrupoPage: React.FC = () => {
             Fuente: SQL Server Local - GECLISA
           </span>
           <span className="font-medium">
-            {statsPorGrupo.length} grupos Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas Â· {formatCurrency(totalesPeriodo.ingresos)}
+            {statsPorGrupo.length} grupos · {formatNumber(totalesPeriodo.practicas)} prácticas · {formatCurrency(totalesPeriodo.ingresos)}
           </span>
         </div>
       </div>

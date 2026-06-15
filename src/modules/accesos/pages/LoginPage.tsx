@@ -1,6 +1,6 @@
-﻿// ============================================
+// ============================================
 // LOGIN PAGE - Con Selector de Usuario
-// Sistema Integral de GestiÃ³n - Instituto Dr. Mercado
+// Sistema Integral de Gestión - Instituto Dr. Mercado
 // ============================================
 
 import React, { useState, useEffect } from 'react';
@@ -48,7 +48,7 @@ const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // Obtener la ruta de origen para redirigir despuÃ©s del login
+  // Obtener la ruta de origen para redirigir después del login
   const from = (location.state as any)?.from?.pathname || '/';
 
   // ============================================
@@ -84,7 +84,7 @@ const LoginPage: React.FC = () => {
   // EFECTOS
   // ============================================
 
-  // Redirigir si ya estÃ¡ autenticado
+  // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       navigate(from, { replace: true });
@@ -106,21 +106,21 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLocalError(null);
 
-    // Validaciones bÃ¡sicas
+    // Validaciones básicas
     if (!selectedUserId) {
       setLocalError('Selecciona tu usuario');
       return;
     }
 
     if (!password) {
-      setLocalError('Ingresa tu contraseÃ±a');
+      setLocalError('Ingresa tu contraseña');
       return;
     }
 
     // Obtener el username del usuario seleccionado
     const usuarioSeleccionado = usuarios.find(u => u.id === selectedUserId);
     if (!usuarioSeleccionado) {
-      setLocalError('Usuario no vÃ¡lido');
+      setLocalError('Usuario no válido');
       return;
     }
 
@@ -146,7 +146,7 @@ const LoginPage: React.FC = () => {
   // RENDER
   // ============================================
 
-  // Si estÃ¡ cargando la autenticaciÃ³n inicial
+  // Si está cargando la autenticación inicial
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center">
@@ -162,7 +162,7 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center p-4">
-      {/* Indicador de conexiÃ³n */}
+      {/* Indicador de conexión */}
       <div className={`fixed top-4 right-4 px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium ${
         isOnline 
           ? 'bg-green-100 text-green-800' 
@@ -176,25 +176,25 @@ const LoginPage: React.FC = () => {
         ) : (
           <>
             <WifiOff className="h-4 w-4" />
-            <span>Sin conexiÃ³n</span>
+            <span>Sin conexión</span>
           </>
         )}
       </div>
 
       <div className="w-full max-w-md">
-        {/* Logo y tÃ­tulo */}
+        {/* Logo y título */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
             <DollarSign className="h-10 w-10 text-blue-300" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Sistema Integral de GestiÃ³n</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Sistema Integral de Gestión</h1>
           <p className="text-blue-200">Instituto Dr. Mercado</p>
         </div>
 
         {/* Card del formulario */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">
-            Iniciar SesiÃ³n
+            Iniciar Sesión
           </h2>
 
           {/* Mensaje de error */}
@@ -250,13 +250,13 @@ const LoginPage: React.FC = () => {
               )}
             </div>
 
-            {/* ContraseÃ±a */}
+            {/* Contraseña */}
             <div>
               <label 
                 htmlFor="password" 
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                ContraseÃ±a
+                Contraseña
               </label>
               <div className="relative">
                 <input
@@ -264,7 +264,7 @@ const LoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Ingresa tu contraseÃ±a"
+                  placeholder="Ingresa tu contraseña"
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   disabled={isSubmitting}
                   autoComplete="current-password"
@@ -284,7 +284,7 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            {/* BotÃ³n de login */}
+            {/* Botón de login */}
             <button
               type="submit"
               disabled={isSubmitting || loadingUsuarios}
@@ -316,7 +316,7 @@ const LoginPage: React.FC = () => {
           {!isOnline && (
             <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-sm text-center">
-                <strong>Modo sin conexiÃ³n:</strong> Solo puedes iniciar sesiÃ³n si ya lo hiciste antes en este dispositivo.
+                <strong>Modo sin conexión:</strong> Solo puedes iniciar sesión si ya lo hiciste antes en este dispositivo.
               </p>
             </div>
           )}
@@ -325,10 +325,10 @@ const LoginPage: React.FC = () => {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-blue-200 text-sm">
-            Sistema Integral de GestiÃ³n v1.0.0
+            Sistema Integral de Gestión v1.0.0
           </p>
           <p className="text-blue-300/60 text-xs mt-1">
-            P. FamÃ¡ | Desarrollo
+            P. Famá | Desarrollo
           </p>
         </div>
       </div>

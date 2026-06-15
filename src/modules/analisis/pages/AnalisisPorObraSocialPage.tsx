@@ -1,11 +1,11 @@
-﻿// ============================================
-// PÃGINA: ANÃLISIS POR OBRA SOCIAL
+// ============================================
+// PÁGINA: ANÁLISIS POR OBRA SOCIAL
 // Sistema de Costos - Instituto Dr. Mercado
-// VERSIÃ“N 3.0 - TOTALES DESDE SERVIDOR
+// VERSIÓN 3.0 - TOTALES DESDE SERVIDOR
 // ============================================
 // CAMBIO v3.0: KPIs desde totalesPeriodo del servidor,
-// 3 filtros dinÃ¡micos (AÃ±o+Mes+Prestador), tfoot,
-// indicador conexiÃ³n, footer.
+// 3 filtros dinámicos (Año+Mes+Prestador), tfoot,
+// indicador conexión, footer.
 // ============================================
 // RUTA: src/pages/analisis/AnalisisPorObraSocialPage.tsx
 // ============================================
@@ -51,7 +51,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
 
-  // â˜… v3.0: Filtros por defecto al cargar
+  // ★ v3.0: Filtros por defecto al cargar
   useEffect(() => {
     const fechaActual = new Date();
     const anioActual = fechaActual.getFullYear().toString();
@@ -61,7 +61,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
     }
   }, []);
 
-  // Filtrado local (bÃºsqueda por texto)
+  // Filtrado local (búsqueda por texto)
   const obrasSocialesFiltradas = useMemo(() => {
     let filtered = [...statsPorObraSocial];
 
@@ -138,22 +138,22 @@ const AnalisisPorObraSocialPage: React.FC = () => {
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col">
       <div className="flex-1 p-6">
-        {/* â•â•â•â•â•â•â•â•â•â•â• HEADER â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ═══════════ HEADER ═══════════ */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
               <Building2 className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">AnÃ¡lisis por Obra Social</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Análisis por Obra Social</h1>
               <p className="text-gray-500">
-                DistribuciÃ³n de ingresos por financiador Â· {filtros.anio || 'â€”'}/{filtros.mes || 'â€”'}
+                Distribución de ingresos por financiador · {filtros.anio || '—'}/{filtros.mes || '—'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            {/* â˜… v3.0: Indicador de conexiÃ³n */}
+            {/* ★ v3.0: Indicador de conexión */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
               isConnected
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -193,13 +193,13 @@ const AnalisisPorObraSocialPage: React.FC = () => {
           </div>
         </div>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â• FILTROS v3.0 (3 filtros: AÃ±o + Mes + Prestador) â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ═══════════ FILTROS v3.0 (3 filtros: Año + Mes + Prestador) ═══════════ */}
         {mostrarFiltros && (
           <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-slate-200">
             <div className="flex flex-wrap items-center gap-3">
-              {/* AÃ±o */}
+              {/* Año */}
               <div className="flex flex-col">
-                <label className="text-xs font-medium text-slate-500 mb-1">AÃ±o</label>
+                <label className="text-xs font-medium text-slate-500 mb-1">Año</label>
                 <select
                   value={filtros.anio || ''}
                   onChange={(e) => aplicarFiltros({ anio: e.target.value })}
@@ -229,7 +229,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Prestador (filtro Ãºtil: ver quÃ© OS atiende cada prestador) */}
+              {/* Prestador (filtro útil: ver qué OS atiende cada prestador) */}
               <div className="flex flex-col">
                 <label className="text-xs font-medium text-slate-500 mb-1">Prestador</label>
                 <select
@@ -248,7 +248,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
               {/* Limpiar filtros */}
               {hayFiltrosActivos && (
                 <div className="flex flex-col">
-                  <label className="text-xs font-medium text-transparent mb-1">â€”</label>
+                  <label className="text-xs font-medium text-transparent mb-1">—</label>
                   <button
                     onClick={() => {
                       limpiarFiltros();
@@ -276,17 +276,17 @@ const AnalisisPorObraSocialPage: React.FC = () => {
         {/* Comparativa Inteligente */}
         <div className="mb-6">
           <ComparativaInteligente
-            titulo="Comparativa del PerÃ­odo"
+            titulo="Comparativa del Período"
             compacto={true}
             mostrarProgreso={true}
           />
         </div>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â• STAT CARDS v3.0 (desde totalesPeriodo) â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ═══════════ STAT CARDS v3.0 (desde totalesPeriodo) ═══════════ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Total PrÃ¡cticas</span>
+              <span className="text-sm text-gray-500">Total Prácticas</span>
               <Users className="h-4 w-4 text-blue-500" />
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -316,7 +316,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Promedio/PrÃ¡ctica</span>
+              <span className="text-sm text-gray-500">Promedio/Práctica</span>
               <TrendingUp className="h-4 w-4 text-amber-500" />
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -327,14 +327,14 @@ const AnalisisPorObraSocialPage: React.FC = () => {
           </div>
         </div>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â• TOP 3 PODIO â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ═══════════ TOP 3 PODIO ═══════════ */}
         {top3.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {top3.map((os, index) => (
               <div key={os.os_id || index} className={`rounded-xl border-2 p-4 ${medalBgs[index]}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-2xl font-bold ${medalColors[index]}`}>
-                    {index === 0 ? 'ðŸ¥‡' : index === 1 ? 'ðŸ¥ˆ' : 'ðŸ¥‰'}
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                   </span>
                   <span className="text-xs bg-white/50 px-2 py-1 rounded">
                     {os.porcentaje}% del total
@@ -357,7 +357,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
           </div>
         )}
 
-        {/* BÃºsqueda */}
+        {/* Búsqueda */}
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
           <div className="flex items-center space-x-4">
             <div className="flex-1 relative">
@@ -376,7 +376,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
           </div>
         </div>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â• TABLA v3.0 con tfoot + sticky header â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ═══════════ TABLA v3.0 con tfoot + sticky header ═══════════ */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           {(loading || loadingStats) ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -428,7 +428,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
                         <ArrowUpDown className="h-3 w-3" />
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">DistribuciÃ³n</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Distribución</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -437,7 +437,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {index < 3 ? (
                           <span className={`font-bold ${medalColors[index]}`}>
-                            {index === 0 ? 'ðŸ¥‡' : index === 1 ? 'ðŸ¥ˆ' : 'ðŸ¥‰'}
+                            {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                           </span>
                         ) : (
                           index + 1
@@ -465,7 +465,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
                     </tr>
                   ))}
                 </tbody>
-                {/* â˜… v3.0: tfoot con totales desde servidor */}
+                {/* ★ v3.0: tfoot con totales desde servidor */}
                 <tfoot className="bg-slate-100 sticky bottom-0 border-t-2 border-slate-300">
                   <tr className="font-bold">
                     <td colSpan={3} className="px-4 py-3 text-sm text-slate-700">TOTALES</td>
@@ -485,7 +485,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
         </div>
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• FOOTER v3.0 â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ FOOTER v3.0 ═══════════ */}
       <div className="px-6 py-3 bg-white border-t border-slate-200 mt-auto">
         <div className="flex items-center justify-between text-sm text-slate-500">
           <span className="flex items-center gap-2">
@@ -493,7 +493,7 @@ const AnalisisPorObraSocialPage: React.FC = () => {
             Fuente: SQL Server Local - GECLISA
           </span>
           <span className="font-medium">
-            {formatNumber(cantidadOS)} obras sociales Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas Â· {formatCurrency(totalesPeriodo.ingresos)}
+            {formatNumber(cantidadOS)} obras sociales · {formatNumber(totalesPeriodo.practicas)} prácticas · {formatCurrency(totalesPeriodo.ingresos)}
           </span>
         </div>
       </div>

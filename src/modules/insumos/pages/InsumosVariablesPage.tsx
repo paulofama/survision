@@ -1,5 +1,5 @@
-﻿// ============================================
-// INSUMOS VARIABLES PAGE - CON GESTIÃ“N DE POOLS
+// ============================================
+// INSUMOS VARIABLES PAGE - CON GESTIÓN DE POOLS
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
 
@@ -46,10 +46,10 @@ interface InsumoConPool {
 
 const POOL_COLORS: Record<string, string> = {
   'Insumos Generales en Consultorio': 'bg-blue-100 text-blue-800 border-blue-300',
-  'Insumos Generales en QuirÃ³fano': 'bg-green-100 text-green-800 border-green-300',
+  'Insumos Generales en Quirófano': 'bg-green-100 text-green-800 border-green-300',
   'Kit Parabulbar': 'bg-purple-100 text-purple-800 border-purple-300',
   'Kit Para RFG': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-  'Kit SedaciÃ³n': 'bg-amber-100 text-amber-800 border-amber-300',
+  'Kit Sedación': 'bg-amber-100 text-amber-800 border-amber-300',
   'Re Esterilizable + Lavado': 'bg-rose-100 text-rose-800 border-rose-300',
   'Re Esterilizable Catarata': 'bg-yellow-100 text-yellow-800 border-yellow-300',
   'Re Esterilizable Retina': 'bg-orange-100 text-orange-800 border-orange-300',
@@ -160,7 +160,7 @@ const InsumosVariablesPage: React.FC = () => {
     setUpdatingId(insumoId);
     
     try {
-      // Primero eliminar asignaciÃ³n actual si existe
+      // Primero eliminar asignación actual si existe
       const { error: deleteError } = await supabase
         .from('pool_items')
         .delete()
@@ -168,7 +168,7 @@ const InsumosVariablesPage: React.FC = () => {
 
       if (deleteError) throw deleteError;
 
-      // Si se seleccionÃ³ un pool (no "DIRECTO"), crear nueva asignaciÃ³n
+      // Si se seleccionó un pool (no "DIRECTO"), crear nueva asignación
       if (newPoolId && newPoolId !== 'DIRECTO') {
         const { error: insertError } = await supabase
           .from('pool_items')
@@ -223,7 +223,7 @@ const InsumosVariablesPage: React.FC = () => {
   });
 
   // ============================================
-  // ESTADÃSTICAS
+  // ESTADÍSTICAS
   // ============================================
 
   const stats = {
@@ -292,7 +292,7 @@ const InsumosVariablesPage: React.FC = () => {
           <PackageIcon className="h-8 w-8 text-green-600" />
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Insumos Variables</h1>
-            <p className="text-gray-600">GestiÃ³n de insumos y asignaciÃ³n a pools</p>
+            <p className="text-gray-600">Gestión de insumos y asignación a pools</p>
           </div>
         </div>
         <button
@@ -304,7 +304,7 @@ const InsumosVariablesPage: React.FC = () => {
         </button>
       </div>
 
-      {/* EstadÃ­sticas */}
+      {/* Estadísticas */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center space-x-3">
@@ -335,7 +335,7 @@ const InsumosVariablesPage: React.FC = () => {
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center space-x-3">
-            <span className="text-2xl">ðŸ’°</span>
+            <span className="text-2xl">💰</span>
             <div>
               <p className="text-sm text-gray-500">Costo Total</p>
               <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.costoTotal)}</p>
@@ -347,13 +347,13 @@ const InsumosVariablesPage: React.FC = () => {
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 mb-4">
         <div className="flex items-center space-x-4">
-          {/* BÃºsqueda */}
+          {/* Búsqueda */}
           <div className="flex-1">
             <div className="relative">
               <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por cÃ³digo o descripciÃ³n..."
+                placeholder="Buscar por código o descripción..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -369,7 +369,7 @@ const InsumosVariablesPage: React.FC = () => {
               onChange={(e) => setFilterPool(e.target.value)}
             >
               <option value="">Todos</option>
-              <option value="DIRECTO">ðŸŽ¯ Solo DIRECTOS</option>
+              <option value="DIRECTO">🎯 Solo DIRECTOS</option>
               {pools.map((pool) => (
                 <option key={pool.id} value={pool.id}>
                   {pool.nombre}
@@ -409,10 +409,10 @@ const InsumosVariablesPage: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                    CÃ³digo
+                    Código
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    DescripciÃ³n
+                    Descripción
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
                     Pool Asignado
@@ -451,7 +451,7 @@ const InsumosVariablesPage: React.FC = () => {
                           focus:ring-2 focus:ring-green-500 focus:border-green-500
                         `}
                       >
-                        <option value="DIRECTO">ðŸŽ¯ DIRECTO</option>
+                        <option value="DIRECTO">🎯 DIRECTO</option>
                         {pools.map((pool) => (
                           <option key={pool.id} value={pool.id}>
                             {pool.nombre}
@@ -481,7 +481,7 @@ const InsumosVariablesPage: React.FC = () => {
         <h4 className="text-sm font-medium text-gray-700 mb-2">Leyenda:</h4>
         <div className="flex flex-wrap gap-3">
           <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-800 border border-gray-300">
-            ðŸŽ¯ DIRECTO = Se asigna a prestaciones especÃ­ficas
+            🎯 DIRECTO = Se asigna a prestaciones específicas
           </span>
           <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800 border border-green-300">
             En Pool = Se prorratea entre prestaciones del pool

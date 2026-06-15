@@ -1,8 +1,8 @@
-﻿// ============================================
-// DASHBOARD EJECUTIVO v3 - COMPARACIÃ“N INTELIGENTE
+// ============================================
+// DASHBOARD EJECUTIVO v3 - COMPARACIÓN INTELIGENTE
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
-// VisiÃ³n 360Â° con comparativas justas por perÃ­odo
+// Visión 360° con comparativas justas por período
 // ============================================
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -94,7 +94,7 @@ interface ComparativaInteligente {
     tendenciaProyeccion: 'up' | 'down' | 'stable';
     tendenciaTrimestral: 'up' | 'down' | 'stable';
     tendenciaInteranual: 'up' | 'down' | 'stable';
-    saludGeneral: 'excelente' | 'bueno' | 'estable' | 'atenciÃ³n';
+    saludGeneral: 'excelente' | 'bueno' | 'estable' | 'atención';
   };
 }
 
@@ -128,12 +128,12 @@ const DashboardAnalisisPage: React.FC = () => {
       
       if (data.success) {
         setComparativa(data);
-        console.log('âœ… Comparativa inteligente cargada:', data);
+        console.log('✅ Comparativa inteligente cargada:', data);
       } else {
-        console.error('âŒ Error en comparativa:', data.error);
+        console.error('❌ Error en comparativa:', data.error);
       }
     } catch (error) {
-      console.error('âŒ Error cargando comparativa:', error);
+      console.error('❌ Error cargando comparativa:', error);
     } finally {
       setLoadingComparativa(false);
       setLastUpdate(new Date());
@@ -190,7 +190,7 @@ const DashboardAnalisisPage: React.FC = () => {
         return <Zap className="h-6 w-6 text-blue-500" />;
       case 'estable':
         return <Minus className="h-6 w-6 text-yellow-500" />;
-      case 'atenciÃ³n':
+      case 'atención':
         return <AlertTriangle className="h-6 w-6 text-red-500" />;
       default:
         return <Activity className="h-6 w-6 text-gray-400" />;
@@ -202,7 +202,7 @@ const DashboardAnalisisPage: React.FC = () => {
       case 'excelente': return 'bg-green-50 border-green-200 text-green-800';
       case 'bueno': return 'bg-blue-50 border-blue-200 text-blue-800';
       case 'estable': return 'bg-yellow-50 border-yellow-200 text-yellow-800';
-      case 'atenciÃ³n': return 'bg-red-50 border-red-200 text-red-800';
+      case 'atención': return 'bg-red-50 border-red-200 text-red-800';
       default: return 'bg-gray-50 border-gray-200 text-gray-800';
     }
   };
@@ -218,13 +218,13 @@ const DashboardAnalisisPage: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
           <RefreshCw className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Calculando mÃ©tricas inteligentes...</p>
+          <p className="text-gray-600 text-lg">Calculando métricas inteligentes...</p>
         </div>
       </div>
     );
   }
 
-  // Top 5 de cada categorÃ­a
+  // Top 5 de cada categoría
   const top5OS = statsPorObraSocial.slice(0, 5);
   const top5Prestadores = statsPorPrestador.slice(0, 5);
   const top5Prestaciones = statsPorPrestacion.slice(0, 5);
@@ -246,7 +246,7 @@ const DashboardAnalisisPage: React.FC = () => {
             <p className="text-gray-500 capitalize">
               {comparativa?.periodo.mesActual.nombre} {comparativa?.periodo.mesActual.anio} 
               <span className="text-blue-600 ml-2">
-                (dÃ­a {comparativa?.periodo.diaActual} de {comparativa?.periodo.diasEnMes})
+                (día {comparativa?.periodo.diaActual} de {comparativa?.periodo.diasEnMes})
               </span>
             </p>
           </div>
@@ -261,7 +261,7 @@ const DashboardAnalisisPage: React.FC = () => {
             </div>
           )}
           
-          {/* ConexiÃ³n */}
+          {/* Conexión */}
           <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
             isConnected ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
           }`}>
@@ -271,7 +271,7 @@ const DashboardAnalisisPage: React.FC = () => {
             </span>
           </div>
           
-          {/* BotÃ³n actualizar */}
+          {/* Botón actualizar */}
           <button
             onClick={handleRefresh}
             disabled={loading}
@@ -289,7 +289,7 @@ const DashboardAnalisisPage: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-600">Progreso del mes</span>
             <span className="text-sm text-gray-500">
-              {comparativa.periodo.diasRestantes} dÃ­as restantes
+              {comparativa.periodo.diasRestantes} días restantes
             </span>
           </div>
           <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -306,21 +306,21 @@ const DashboardAnalisisPage: React.FC = () => {
         </div>
       )}
 
-      {/* ==================== MÃ‰TRICAS ACTUALES ==================== */}
+      {/* ==================== MÉTRICAS ACTUALES ==================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* PrÃ¡cticas Actual */}
+        {/* Prácticas Actual */}
         <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">PrÃ¡cticas</span>
+            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Prácticas</span>
             <Stethoscope className="h-5 w-5 text-blue-500" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{formatNumber(comparativa?.actual.practicas || 0)}</p>
           <p className="text-sm text-gray-500 mt-1">
-            al dÃ­a {comparativa?.periodo.diaActual}
+            al día {comparativa?.periodo.diaActual}
           </p>
           <div className="mt-3 pt-3 border-t border-gray-100">
             <span className="text-sm text-gray-600">
-              ~{formatNumber(comparativa?.actual.promedioDiario.practicas || 0)}/dÃ­a
+              ~{formatNumber(comparativa?.actual.promedioDiario.practicas || 0)}/día
             </span>
           </div>
         </div>
@@ -332,10 +332,10 @@ const DashboardAnalisisPage: React.FC = () => {
             <DollarSign className="h-5 w-5 text-green-500" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{formatCurrency(comparativa?.actual.ingresos || 0)}</p>
-          <p className="text-sm text-gray-500 mt-1">facturaciÃ³n acumulada</p>
+          <p className="text-sm text-gray-500 mt-1">facturación acumulada</p>
           <div className="mt-3 pt-3 border-t border-gray-100">
             <span className="text-sm text-gray-600">
-              ~{formatCurrency(comparativa?.actual.promedioDiario.ingresos || 0)}/dÃ­a
+              ~{formatCurrency(comparativa?.actual.promedioDiario.ingresos || 0)}/día
             </span>
           </div>
         </div>
@@ -361,10 +361,10 @@ const DashboardAnalisisPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ==================== COMPARACIÃ“N INTELIGENTE (3 INDICADORES) ==================== */}
+      {/* ==================== COMPARACIÓN INTELIGENTE (3 INDICADORES) ==================== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         
-        {/* 1. VS MES ANTERIOR (mismo perÃ­odo) */}
+        {/* 1. VS MES ANTERIOR (mismo período) */}
         <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
@@ -372,15 +372,15 @@ const DashboardAnalisisPage: React.FC = () => {
               <span className="text-indigo-100 text-sm font-medium">VS MES ANTERIOR</span>
             </div>
             <span className="text-xs bg-indigo-400/30 px-2 py-1 rounded">
-              mismo perÃ­odo (1-{comparativa?.periodo.diaActual})
+              mismo período (1-{comparativa?.periodo.diaActual})
             </span>
           </div>
           
           <div className="space-y-4">
-            {/* PrÃ¡cticas */}
+            {/* Prácticas */}
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-indigo-200 text-sm">PrÃ¡cticas</span>
+                <span className="text-indigo-200 text-sm">Prácticas</span>
                 <div className="flex items-center space-x-2">
                   <TendenciaIcon valor={comparativa?.mesAnteriorMismoPeriodo.variacionPracticas || 0} />
                   <span className={`font-bold ${
@@ -422,23 +422,23 @@ const DashboardAnalisisPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. PROYECCIÃ“N AL CIERRE */}
+        {/* 2. PROYECCIÓN AL CIERRE */}
         <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <ProjectionIcon className="h-5 w-5 text-emerald-200" />
-              <span className="text-emerald-100 text-sm font-medium">PROYECCIÃ“N CIERRE</span>
+              <span className="text-emerald-100 text-sm font-medium">PROYECCIÓN CIERRE</span>
             </div>
             <span className="text-xs bg-emerald-400/30 px-2 py-1 rounded">
-              estimado al dÃ­a {comparativa?.periodo.diasEnMes}
+              estimado al día {comparativa?.periodo.diasEnMes}
             </span>
           </div>
           
           <div className="space-y-4">
-            {/* PrÃ¡cticas Proyectadas */}
+            {/* Prácticas Proyectadas */}
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-emerald-200 text-sm">PrÃ¡cticas proyectadas</span>
+                <span className="text-emerald-200 text-sm">Prácticas proyectadas</span>
                 <div className="flex items-center space-x-2">
                   <TendenciaIcon valor={comparativa?.proyeccion.variacionVsMesAnterior || 0} />
                   <span className={`font-bold ${
@@ -486,10 +486,10 @@ const DashboardAnalisisPage: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            {/* PrÃ¡cticas vs Promedio */}
+            {/* Prácticas vs Promedio */}
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-purple-200 text-sm">PrÃ¡cticas</span>
+                <span className="text-purple-200 text-sm">Prácticas</span>
                 <div className="flex items-center space-x-2">
                   <TendenciaIcon valor={comparativa?.promedioTrimestral.variacionPracticas || 0} />
                   <span className={`font-bold ${
@@ -527,7 +527,7 @@ const DashboardAnalisisPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ==================== COMPARACIÃ“N INTERANUAL (BONUS) ==================== */}
+      {/* ==================== COMPARACIÓN INTERANUAL (BONUS) ==================== */}
       {comparativa?.interanual && comparativa.interanual.practicas > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200">
           <div className="flex items-center justify-between">
@@ -539,7 +539,7 @@ const DashboardAnalisisPage: React.FC = () => {
             </div>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">PrÃ¡cticas:</span>
+                <span className="text-sm text-gray-500">Prácticas:</span>
                 <TendenciaIcon valor={comparativa.interanual.variacionPracticas} />
                 <span className={`font-medium ${
                   comparativa.interanual.variacionPracticas >= 0 ? 'text-green-600' : 'text-red-600'
@@ -655,14 +655,14 @@ const DashboardAnalisisPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ==================== FOOTER: ACCESOS RÃPIDOS ==================== */}
+      {/* ==================== FOOTER: ACCESOS RÁPIDOS ==================== */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Link 
           to="/analisis/por-prestacion"
           className="flex items-center justify-center space-x-2 bg-white border border-gray-200 rounded-lg p-4 hover:bg-blue-50 hover:border-blue-200 transition-colors"
         >
           <Stethoscope className="h-5 w-5 text-blue-600" />
-          <span className="font-medium text-gray-700">Por PrestaciÃ³n</span>
+          <span className="font-medium text-gray-700">Por Prestación</span>
         </Link>
         <Link 
           to="/analisis/por-obra-social"
@@ -683,13 +683,13 @@ const DashboardAnalisisPage: React.FC = () => {
           className="flex items-center justify-center space-x-2 bg-white border border-gray-200 rounded-lg p-4 hover:bg-blue-50 hover:border-blue-200 transition-colors"
         >
           <TrendingUp className="h-5 w-5 text-blue-600" />
-          <span className="font-medium text-gray-700">EvoluciÃ³n</span>
+          <span className="font-medium text-gray-700">Evolución</span>
         </Link>
       </div>
 
       {/* Timestamp */}
       <div className="text-center text-xs text-gray-400 mt-6">
-        Ãšltima actualizaciÃ³n: {lastUpdate.toLocaleString('es-AR')}
+        Última actualización: {lastUpdate.toLocaleString('es-AR')}
       </div>
     </div>
   );

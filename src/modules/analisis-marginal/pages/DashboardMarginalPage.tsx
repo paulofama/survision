@@ -1,6 +1,6 @@
-﻿// ============================================
+// ============================================
 // DASHBOARD MARGINAL PAGE
-// AnÃ¡lisis Marginal - Sistema de Costos
+// Análisis Marginal - Sistema de Costos
 // Instituto Dr. Mercado
 // Vista principal con KPIs y resumen general
 // ============================================
@@ -71,7 +71,7 @@ const formatPercent = (value: number): string => {
   return `${value.toFixed(1)}%`;
 };
 
-// Detectar segmento de prestaciÃ³n
+// Detectar segmento de prestación
 const detectarSegmento = (nombrePrestacion: string): 'Consultas' | 'Estudios' | 'Cirugias' => {
   const nombre = nombrePrestacion.toUpperCase();
   if (nombre.includes('CONSULTA') || nombre.includes('CONTROL') || nombre.includes('PRIMERA VEZ') ||
@@ -191,7 +191,7 @@ const DashboardMarginalContent: React.FC = () => {
   const [mostrarInforme, setMostrarInforme] = useState(false);
 
   // ============================================
-  // CÃLCULOS PRINCIPALES
+  // CÁLCULOS PRINCIPALES
   // ============================================
 
   const analytics = useMemo(() => {
@@ -217,7 +217,7 @@ const DashboardMarginalContent: React.FC = () => {
       };
     }
 
-    // Crear mapa de recetas por nombre normalizado (matching fuzzy, igual que las demÃ¡s pÃ¡ginas)
+    // Crear mapa de recetas por nombre normalizado (matching fuzzy, igual que las demás páginas)
     const recetasMap = new Map(
       recetasConPools.map(r => [normalizarNombre(r.nombre_practica), r])
     );
@@ -265,12 +265,12 @@ const DashboardMarginalContent: React.FC = () => {
       costos: number;
     }>();
 
-    // Procesar cada prestaciÃ³n
+    // Procesar cada prestación
     prestaciones.forEach(prest => {
       const facturado = prest.total || 0;
       const segmento = detectarSegmento(prest.prestacion);
       
-      // Buscar receta de costos por nombre normalizado (igual que las demÃ¡s pÃ¡ginas)
+      // Buscar receta de costos por nombre normalizado (igual que las demás páginas)
       const claveNombre = normalizarNombre(prest.prestacion);
       const receta = recetasMap.get(claveNombre) ?? null;
       const costoPools = Number(receta?.costo_total_pools) || 0;
@@ -283,7 +283,7 @@ const DashboardMarginalContent: React.FC = () => {
         const prestadorInfo = prestadoresMap.get(prest.prestador.toUpperCase());
         const esSocio = prestadorInfo?.es_socio || false;
         
-        // Buscar configuraciÃ³n de honorarios por segmento
+        // Buscar configuración de honorarios por segmento
         const configSegmento = configHonorarios.find(c => c.segmento === segmento);
         if (configSegmento) {
           const porcentaje = esSocio 
@@ -305,11 +305,11 @@ const DashboardMarginalContent: React.FC = () => {
       porSegmento[segmento].facturado += facturado;
       porSegmento[segmento].costos += honorario + costoReceta;
 
-      // Prestadores y OS Ãºnicos
+      // Prestadores y OS únicos
       if (prest.prestador) prestadoresSet.add(prest.prestador);
       if (prest.os_sigla) obrasSocialesSet.add(prest.os_sigla);
 
-      // Agregar por prestaciÃ³n
+      // Agregar por prestación
       const keyPrest = prest.prestacion;
       const existPrest = prestacionesAgregadas.get(keyPrest);
       if (existPrest) {
@@ -363,7 +363,7 @@ const DashboardMarginalContent: React.FC = () => {
       }
     });
 
-    // Calcular mÃ¡rgenes
+    // Calcular márgenes
     const margenBruto = totalFacturado - totalCostos;
     const margenPorcentaje = totalFacturado > 0 ? (margenBruto / totalFacturado) * 100 : 0;
 
@@ -377,12 +377,12 @@ const DashboardMarginalContent: React.FC = () => {
       .sort((a, b) => b.margen - a.margen)
       .slice(0, 5);
 
-    // Top 5 prestadores por facturaciÃ³n
+    // Top 5 prestadores por facturación
     const topPrestadores = Array.from(prestadoresAgregados.values())
       .sort((a, b) => b.facturado - a.facturado)
       .slice(0, 5);
 
-    // Top 5 obras sociales por facturaciÃ³n
+    // Top 5 obras sociales por facturación
     const topObrasSociales = Array.from(obrasSocialesAgregadas.values())
       .map(os => ({
         ...os,
@@ -443,7 +443,7 @@ const DashboardMarginalContent: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* BotÃ³n Generar Informe */}
+      {/* Botón Generar Informe */}
       <div className="flex justify-end">
         <button
           onClick={() => setMostrarInforme(true)}
@@ -489,7 +489,7 @@ const DashboardMarginalContent: React.FC = () => {
           icon={Percent}
           color={analytics.margenPorcentaje >= 30 ? 'green' : analytics.margenPorcentaje >= 0 ? 'yellow' : 'red'}
         />
-        {/* â”€â”€ NUEVO: Resultado Operativo â”€â”€ */}
+        {/* ── NUEVO: Resultado Operativo ── */}
         {(() => {
           const resultadoOperativo = analytics.margenBruto - resumenCF.totalPromedio;
           const resultadoPct = analytics.totalFacturado > 0
@@ -522,7 +522,7 @@ const DashboardMarginalContent: React.FC = () => {
                 </span>
                 <p className="text-xs text-gray-400 mt-1">
                   {resumenCF.sinDatos
-                    ? 'CF: clasificÃ¡ erogaciones'
+                    ? 'CF: clasificá erogaciones'
                     : `CF: ${formatCurrency(resumenCF.totalPromedio)}/mes`
                   }
                 </p>
@@ -662,21 +662,21 @@ const DashboardMarginalContent: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Informe de GestiÃ³n */}
+      {/* Modal Informe de Gestión */}
       <InformeGestionModal isOpen={mostrarInforme} onClose={() => setMostrarInforme(false)} />
     </div>
   );
 };
 
 // ============================================
-// PÃGINA WRAPPER
+// PÁGINA WRAPPER
 // ============================================
 
 const DashboardMarginalPage: React.FC = () => {
   return (
     <MarginalLayout 
-      title="Dashboard AnÃ¡lisis Marginal"
-      subtitle="Vista general de rentabilidad y mÃ¡rgenes de contribuciÃ³n"
+      title="Dashboard Análisis Marginal"
+      subtitle="Vista general de rentabilidad y márgenes de contribución"
     >
       <DashboardMarginalContent />
     </MarginalLayout>

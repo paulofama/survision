@@ -1,5 +1,5 @@
-﻿// ============================================
-// INFORME DE GESTIÃ“N â€” MODAL + BOTÃ“N
+// ============================================
+// INFORME DE GESTIÓN — MODAL + BOTÓN
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/components/analisis-marginal/InformeGestionModal.tsx
@@ -35,7 +35,7 @@ const detectarSegmento = (nombre: string): 'Consultas' | 'Estudios' | 'Cirugias'
 };
 
 // ============================================
-// PROCESADOR DE DATOS (reutiliza lÃ³gica del Dashboard)
+// PROCESADOR DE DATOS (reutiliza lógica del Dashboard)
 // ============================================
 
 function procesarDatosMes(
@@ -234,18 +234,18 @@ const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClo
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-600" />
-            Generar Informe de GestiÃ³n
+            Generar Informe de Gestión
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
 
         <p className="text-sm text-gray-500 mb-4">
-          Genera un informe PDF profesional con anÃ¡lisis de rentabilidad, comparativo mensual y recomendaciones.
+          Genera un informe PDF profesional con análisis de rentabilidad, comparativo mensual y recomendaciones.
         </p>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">AÃ±o</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Año</label>
             <select value={anio} onChange={e => setAnio(Number(e.target.value))}
               className="w-full px-3 py-2 border rounded-lg text-sm">
               {[2025, 2026].map(a => <option key={a} value={a}>{a}</option>)}
@@ -263,7 +263,7 @@ const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClo
         <div className="bg-blue-50 rounded-lg p-3 mb-6">
           <div className="flex items-center gap-2 text-blue-700 text-xs">
             <Calendar className="w-4 h-4" />
-            <span>El informe incluirÃ¡ comparaciÃ³n con {MESES[(mes - 2 + 12) % 12]} {mes === 1 ? anio - 1 : anio}</span>
+            <span>El informe incluirá comparación con {MESES[(mes - 2 + 12) % 12]} {mes === 1 ? anio - 1 : anio}</span>
           </div>
         </div>
 

@@ -133,31 +133,31 @@ const SeguimientoPacientesPage = lazy(() =>
 // SUELDOS - MODULO NUEVO (Fase 1) - LAZY LOADING
 // ============================================
 const SueldosDashboardPage = lazy(() =>
-  import('./pages/sueldos/DashboardSueldosPage').catch(() => ({
+  import('@modules/sueldos/pages/DashboardSueldosPage').catch(() => ({
     default: () => <ComingSoonPage />
   }))
 );
 
 const SueldosEmpleadosPage = lazy(() =>
-  import('./pages/sueldos/EmpleadosPage').catch(() => ({
+  import('@modules/sueldos/pages/EmpleadosPage').catch(() => ({
     default: () => <ComingSoonPage />
   }))
 );
 
 const SueldosEmpleadoFormPage = lazy(() =>
-  import('./pages/sueldos/EmpleadoFormPage').catch(() => ({
+  import('@modules/sueldos/pages/EmpleadoFormPage').catch(() => ({
     default: () => <ComingSoonPage />
   }))
 );
 
 const SueldosMesDetallePage = lazy(() =>
-  import('./pages/sueldos/MesDetallePage').catch(() => ({
+  import('@modules/sueldos/pages/MesDetallePage').catch(() => ({
     default: () => <ComingSoonPage />
   }))
 );
 
 const SueldosReportesPage = lazy(() =>
-  import('./pages/sueldos/ReportesSueldosPage').catch(() => ({
+  import('@modules/sueldos/pages/ReportesSueldosPage').catch(() => ({
     default: () => <ComingSoonPage />
   }))
 );

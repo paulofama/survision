@@ -1,10 +1,10 @@
-﻿// ============================================
-// PÃGINA: ANÃLISIS POR PRESTACIÃ“N
+// ============================================
+// PÁGINA: ANÁLISIS POR PRESTACIÓN
 // Sistema de Costos - Instituto Dr. Mercado
-// VERSIÃ“N 3.0 - TOTALES DESDE SERVIDOR
+// VERSIÓN 3.0 - TOTALES DESDE SERVIDOR
 // ============================================
 // CAMBIO v3.0: KPIs desde totalesPeriodo del servidor,
-// 4 filtros dinÃ¡micos, tfoot, indicador conexiÃ³n, footer.
+// 4 filtros dinámicos, tfoot, indicador conexión, footer.
 // ============================================
 // RUTA: src/pages/analisis/AnalisisPorPrestacionPage.tsx
 // ============================================
@@ -51,7 +51,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [mostrarFiltros, setMostrarFiltros] = useState(true);
 
-  // â˜… v3.0: Filtros por defecto al cargar
+  // ★ v3.0: Filtros por defecto al cargar
   useEffect(() => {
     const fechaActual = new Date();
     const anioActual = fechaActual.getFullYear().toString();
@@ -61,7 +61,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
     }
   }, []);
 
-  // Filtrado local (bÃºsqueda por texto)
+  // Filtrado local (búsqueda por texto)
   const prestacionesFiltradas = useMemo(() => {
     let filtered = [...statsPorPrestacion];
     if (searchTerm) {
@@ -108,7 +108,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
 
   const periodoTexto = filtros.anio && filtros.mes
     ? `${getNombreMes(filtros.mes)} ${filtros.anio}`
-    : filtros.anio ? `AÃ±o ${filtros.anio}` : 'Todos los perÃ­odos';
+    : filtros.anio ? `Año ${filtros.anio}` : 'Todos los períodos';
 
   const handleSort = (field: 'cantidad' | 'total_ingresos') => {
     if (sortField === field) {
@@ -121,7 +121,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
 
   const exportToCSV = () => {
     if (prestacionesFiltradas.length === 0) return;
-    const headers = ['#', 'CÃ³digo', 'PrestaciÃ³n', 'Cantidad', '%', 'Ingresos', 'Coseguro', 'Cobertura', 'Promedio'];
+    const headers = ['#', 'Código', 'Prestación', 'Cantidad', '%', 'Ingresos', 'Coseguro', 'Cobertura', 'Promedio'];
     const rows = prestacionesFiltradas.map((p, idx) => [
       idx + 1, p.codigo, `"${p.prestacion}"`, p.cantidad, p.porcentaje,
       p.total_ingresos, p.coseguro, p.cobertura, p.promedio?.toFixed(0) || 0
@@ -148,15 +148,15 @@ const AnalisisPorPrestacionPage: React.FC = () => {
               <Stethoscope className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">AnÃ¡lisis por PrestaciÃ³n</h1>
+              <h1 className="text-2xl font-bold text-slate-800">Análisis por Prestación</h1>
               <p className="text-sm text-slate-500 mt-0.5">
-                Detalle de prÃ¡cticas realizadas Â· {periodoTexto}
+                Detalle de prácticas realizadas · {periodoTexto}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Indicador de conexiÃ³n */}
+            {/* Indicador de conexión */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
               isConnected
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -203,9 +203,9 @@ const AnalisisPorPrestacionPage: React.FC = () => {
         {mostrarFiltros && (
           <div className="mt-4 pt-4 border-t border-slate-100">
             <div className="flex flex-wrap items-end gap-4">
-              {/* AÃ±o */}
+              {/* Año */}
               <div className="w-32">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">AÃ±o</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Año</label>
                 <select
                   value={filtros.anio}
                   onChange={(e) => aplicarFiltros({ anio: e.target.value })}
@@ -267,7 +267,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* BÃºsqueda local */}
+              {/* Búsqueda local */}
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Buscar</label>
                 <div className="relative">
@@ -276,7 +276,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Filtrar por cÃ³digo o nombre..."
+                    placeholder="Filtrar por código o nombre..."
                     className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
@@ -299,13 +299,13 @@ const AnalisisPorPrestacionPage: React.FC = () => {
       <div className="flex-1 overflow-auto p-6 space-y-6">
 
         {/* Comparativa Inteligente */}
-        <ComparativaInteligente titulo="Comparativa del PerÃ­odo" compacto={true} mostrarProgreso={true} />
+        <ComparativaInteligente titulo="Comparativa del Período" compacto={true} mostrarProgreso={true} />
 
         {/* ==================== STAT CARDS ==================== */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Total PrÃ¡cticas</span>
+              <span className="text-sm text-gray-500">Total Prácticas</span>
               <Hash className="h-4 w-4 text-green-500" />
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(totalesPeriodo.practicas)}</p>
@@ -313,7 +313,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Tipos de PrestaciÃ³n</span>
+              <span className="text-sm text-gray-500">Tipos de Prestación</span>
               <BarChart3 className="h-4 w-4 text-blue-500" />
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(tiposPrestacion)}</p>
@@ -329,22 +329,22 @@ const AnalisisPorPrestacionPage: React.FC = () => {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Promedio/PrÃ¡ctica</span>
+              <span className="text-sm text-gray-500">Promedio/Práctica</span>
               <TrendingUp className="h-4 w-4 text-purple-500" />
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-1">
               {formatCurrency(totalesPeriodo.practicas > 0 ? totalesPeriodo.ingresos / totalesPeriodo.practicas : 0)}
             </p>
-            <p className="text-xs text-slate-400 mt-1">Ingreso por prÃ¡ctica</p>
+            <p className="text-xs text-slate-400 mt-1">Ingreso por práctica</p>
           </div>
         </div>
 
         {/* ==================== TABLA ==================== */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-800">Detalle por PrestaciÃ³n</h3>
+            <h3 className="text-lg font-semibold text-slate-800">Detalle por Prestación</h3>
             <span className="text-sm text-slate-500">
-              {prestacionesFiltradas.length} tipos Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas
+              {prestacionesFiltradas.length} tipos · {formatNumber(totalesPeriodo.practicas)} prácticas
             </span>
           </div>
 
@@ -376,8 +376,8 @@ const AnalisisPorPrestacionPage: React.FC = () => {
                   <thead className="bg-slate-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-12">#</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">CÃ³digo</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">PrestaciÃ³n</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Código</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Prestación</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 w-24" onClick={() => handleSort('cantidad')}>
                         <div className="flex items-center justify-end space-x-1"><span>Cantidad</span><ArrowUpDown className="h-3 w-3" /></div>
                       </th>
@@ -433,7 +433,7 @@ const AnalisisPorPrestacionPage: React.FC = () => {
             Fuente: SQL Server Local - GECLISA
           </span>
           <span className="font-medium">
-            {tiposPrestacion} tipos Â· {formatNumber(totalesPeriodo.practicas)} prÃ¡cticas Â· {formatCurrency(totalesPeriodo.ingresos)}
+            {tiposPrestacion} tipos · {formatNumber(totalesPeriodo.practicas)} prácticas · {formatCurrency(totalesPeriodo.ingresos)}
           </span>
         </div>
       </div>

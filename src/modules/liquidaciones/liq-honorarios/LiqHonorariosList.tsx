@@ -1,6 +1,6 @@
-﻿// ============================================================
+// ============================================================
 // COMPONENT: LiqHonorariosList
-// Tabla + WhatsApp: imagen canvas + telÃ©fono + apertura automÃ¡tica
+// Tabla + WhatsApp: imagen canvas + teléfono + apertura automática
 // ============================================================
 
 import { useState, useRef, useCallback } from 'react';
@@ -11,7 +11,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import type { LiqHonorarioConPrestador } from './types';
 
-// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Props ────────────────────────────────────────────────
 interface Props {
   liquidaciones: LiqHonorarioConPrestador[];
   loading: boolean;
@@ -22,7 +22,7 @@ interface Props {
   onNew: () => void;
 }
 
-// â”€â”€â”€ Formateo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Formateo ─────────────────────────────────────────────
 const FMT = (n: number) =>
   new Intl.NumberFormat('es-AR', {
     style: 'currency', currency: 'ARS', minimumFractionDigits: 2,
@@ -31,7 +31,7 @@ const FMT = (n: number) =>
 const FMT_PLAIN = (n: number) =>
   new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 }).format(n);
 
-// â”€â”€â”€ Normalizar telÃ©fono para wa.me â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Normalizar teléfono para wa.me ───────────────────────
 function normalizarTel(raw: string): string {
   let tel = raw.replace(/\D/g, '');
   if (tel.startsWith('0')) tel = '54' + tel.substring(1);
@@ -40,7 +40,7 @@ function normalizarTel(raw: string): string {
   return tel;
 }
 
-// â”€â”€â”€ Estado del modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Estado del modal ─────────────────────────────────────
 interface ModalState {
   open: boolean;
   liq: LiqHonorarioConPrestador | null;
@@ -56,12 +56,12 @@ const CLOSED: ModalState = {
   copiada: false, loadingImg: false, sending: false, error: null,
 };
 
-// â”€â”€â”€ Colores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Colores ──────────────────────────────────────────────
 const NAVY  = '#1a3558';
 const NAVY2 = '#0f2240';
 const BORDER = '#e2e8f0';
 
-// â”€â”€â”€ Canvas: rounded rect helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Canvas: rounded rect helper ──────────────────────────
 function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number, r: number
@@ -79,7 +79,7 @@ function roundRect(
   ctx.closePath();
 }
 
-// â”€â”€â”€ Generar imagen con Canvas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Generar imagen con Canvas ────────────────────────────
 function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador): string {
   const W = 780;
   const hasRet = liq.retencion_gastos > 0;
@@ -105,7 +105,7 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
   ctx.fill();
   ctx.fillRect(0, 92, W, 16); // bordes inferiores cuadrados
 
-  // TÃ­tulo instituciÃ³n
+  // Título institución
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 26px "Helvetica Neue", Arial, sans-serif';
   ctx.textAlign = 'left';
@@ -113,7 +113,7 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
 
   ctx.font = '15px "Helvetica Neue", Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.fillText('SurvisiÃ³n S.A.', PAD, 70);
+  ctx.fillText('Survisión S.A.', PAD, 70);
 
   // Etiqueta derecha
   ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -122,14 +122,14 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 12px "Helvetica Neue", Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('LIQUIDACIÃ“N DE HONORARIOS', W - PAD, 43);
+  ctx.fillText('LIQUIDACIÓN DE HONORARIOS', W - PAD, 43);
 
   const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   ctx.font = '11px "Helvetica Neue", Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.50)';
   ctx.fillText(hoy, W - PAD, 63);
 
-  // â”€â”€ Prestador + PerÃ­odo â”€â”€
+  // ── Prestador + Período ──
   const fechaLiq = new Date(liq.fecha + 'T12:00:00');
   const periodo  = fechaLiq.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
   const periodoC = periodo.charAt(0).toUpperCase() + periodo.slice(1);
@@ -142,7 +142,7 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
   ctx.fillText('PRESTADOR', PAD, y);
 
   ctx.textAlign = 'right';
-  ctx.fillText('PERÃODO', W - PAD, y);
+  ctx.fillText('PERÍODO', W - PAD, y);
 
   y += 22;
   ctx.textAlign = 'left';
@@ -163,7 +163,7 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
   ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y);
   ctx.stroke();
 
-  // â”€â”€ Montos â”€â”€
+  // ── Montos ──
   y += 30;
 
   const drawRow = (label: string, valor: string, isRed = false, isBig = false) => {
@@ -191,10 +191,10 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
     ctx.stroke();
     ctx.setLineDash([]);
     y += 14;
-    drawRow('(âˆ’) RetenciÃ³n por Gastos', `$ ${FMT_PLAIN(liq.retencion_gastos)}`, true);
+    drawRow('(−) Retención por Gastos', `$ ${FMT_PLAIN(liq.retencion_gastos)}`, true);
   }
 
-  // â”€â”€ Card total â”€â”€
+  // ── Card total ──
   y += 10;
   const CARD_H = 78;
   ctx.fillStyle = NAVY;
@@ -215,7 +215,7 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
   ctx.fillStyle = '#ffffff';
   ctx.fillText(`$ ${FMT_PLAIN(liq.total_abonar)}`, W - PAD - 22, y + 56);
 
-  // â”€â”€ Footer â”€â”€
+  // ── Footer ──
   const footY = H - 26;
   ctx.strokeStyle = BORDER;
   ctx.lineWidth = 1;
@@ -226,23 +226,23 @@ function generarImagen(canvas: HTMLCanvasElement, liq: LiqHonorarioConPrestador)
   ctx.textAlign = 'center';
   ctx.font = '11px "Helvetica Neue", Arial, sans-serif';
   ctx.fillStyle = '#94a3b8';
-  ctx.fillText('Instituto Dr. Mercado Â· SurvisiÃ³n S.A. Â· Documento generado electrÃ³nicamente', W / 2, footY);
+  ctx.fillText('Instituto Dr. Mercado · Survisión S.A. · Documento generado electrónicamente', W / 2, footY);
 
   return canvas.toDataURL('image/png');
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export function LiqHonorariosList({
   liquidaciones, loading, stats, onEdit, onViewReport, onDelete, onNew,
 }: Props) {
   const [modal, setModal] = useState<ModalState>(CLOSED);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // â”€â”€â”€ Abrir modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Abrir modal ─────────────────────────────────────────
   const handleOpenWhatsApp = useCallback(async (liq: LiqHonorarioConPrestador) => {
     setModal({ ...CLOSED, open: true, liq, loadingImg: true });
 
-    // Buscar telÃ©fono guardado
+    // Buscar teléfono guardado
     const { data } = await supabase
       .from('liq_honorarios_prestadores')
       .select('telefono')
@@ -260,7 +260,7 @@ export function LiqHonorariosList({
     }, 80);
   }, []);
 
-  // â”€â”€â”€ Copiar imagen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Copiar imagen ────────────────────────────────────────
   const handleCopiar = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -272,17 +272,17 @@ export function LiqHonorariosList({
       setModal(prev => ({ ...prev, copiada: true }));
       setTimeout(() => setModal(prev => ({ ...prev, copiada: false })), 3000);
     } catch {
-      alert('No se pudo copiar. Clic derecho â†’ Copiar imagen.');
+      alert('No se pudo copiar. Clic derecho → Copiar imagen.');
     }
   }, []);
 
-  // â”€â”€â”€ Abrir WhatsApp â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Abrir WhatsApp ───────────────────────────────────────
   const handleAbrirWhatsApp = useCallback(async () => {
     if (!modal.liq || !modal.telefono.trim()) return;
     setModal(prev => ({ ...prev, sending: true, error: null }));
 
     try {
-      // Guardar telÃ©fono
+      // Guardar teléfono
       await supabase
         .from('liq_honorarios_prestadores')
         .update({ telefono: modal.telefono.trim() })
@@ -292,11 +292,11 @@ export function LiqHonorariosList({
       window.open(`https://wa.me/${tel}`, '_blank');
       setModal(CLOSED);
     } catch (err: any) {
-      setModal(prev => ({ ...prev, sending: false, error: 'Error al guardar el telÃ©fono' }));
+      setModal(prev => ({ ...prev, sending: false, error: 'Error al guardar el teléfono' }));
     }
   }, [modal]);
 
-  // â”€â”€â”€ Loading / Empty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Loading / Empty ──────────────────────────────────────
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
@@ -311,23 +311,23 @@ export function LiqHonorariosList({
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-blue-900 mb-2">No hay liquidaciones guardadas</h3>
-        <p className="text-gray-500 mb-6">Cree una nueva liquidaciÃ³n en la pestaÃ±a "Nueva LiquidaciÃ³n"</p>
+        <p className="text-gray-500 mb-6">Cree una nueva liquidación en la pestaña "Nueva Liquidación"</p>
         <button onClick={onNew}
           className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 text-sm font-medium">
-          <Plus className="w-4 h-4" /> Nueva LiquidaciÃ³n
+          <Plus className="w-4 h-4" /> Nueva Liquidación
         </button>
       </div>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════
   return (
     <>
       {/* Canvas oculto */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       <div className="space-y-4">
-        {/* â”€â”€ Tabla â”€â”€ */}
+        {/* ── Tabla ── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -366,12 +366,12 @@ export function LiqHonorariosList({
                       <td className="px-4 py-3 text-center">
                         {wasModified ? (
                           <span className="inline-flex flex-col items-center text-xs text-amber-600">
-                            âœï¸ Modificada
+                            ✏️ Modificada
                             <span className="text-[10px] text-gray-400">{fechaMod}</span>
                           </span>
                         ) : (
                           <span className="inline-flex flex-col items-center text-xs text-green-600">
-                            âœ… Original
+                            ✅ Original
                             <span className="text-[10px] text-gray-400">{fechaCreacion}</span>
                           </span>
                         )}
@@ -404,10 +404,10 @@ export function LiqHonorariosList({
           </div>
         </div>
 
-        {/* â”€â”€ EstadÃ­sticas â”€â”€ */}
+        {/* ── Estadísticas ── */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
           <h4 className="text-blue-900 font-semibold flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4" /> EstadÃ­sticas
+            <TrendingUp className="w-4 h-4" /> Estadísticas
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -426,9 +426,9 @@ export function LiqHonorariosList({
         </div>
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      {/* ═══════════════════════════════════════════════════════
           MODAL WHATSAPP
-      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      ═══════════════════════════════════════════════════════ */}
       {modal.open && modal.liq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setModal(CLOSED)} />
@@ -440,10 +440,10 @@ export function LiqHonorariosList({
                 <MessageCircle className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-white font-semibold text-sm">Enviar LiquidaciÃ³n</p>
+                <p className="text-white font-semibold text-sm">Enviar Liquidación</p>
                 <p className="text-green-100 text-xs">{modal.liq.prestador_nombre}</p>
               </div>
-              {/* BotÃ³n copiar imagen */}
+              {/* Botón copiar imagen */}
               <button
                 onClick={handleCopiar}
                 disabled={!modal.imagenUrl || modal.loadingImg}
@@ -453,7 +453,7 @@ export function LiqHonorariosList({
                     : 'bg-white/20 hover:bg-white/30 text-white disabled:opacity-40'}`}
               >
                 {modal.copiada
-                  ? <><Check className="w-3.5 h-3.5" /> Â¡Copiada!</>
+                  ? <><Check className="w-3.5 h-3.5" /> ¡Copiada!</>
                   : <><Copy className="w-3.5 h-3.5" /> Copiar imagen</>}
               </button>
               <button onClick={() => setModal(CLOSED)} className="ml-1 text-white/80 hover:text-white">
@@ -463,7 +463,7 @@ export function LiqHonorariosList({
 
             {/* Vista previa imagen */}
             <div className="px-4 pt-4">
-              <p className="text-xs font-medium text-gray-500 mb-2">âœ“ Vista previa de la imagen</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">✓ Vista previa de la imagen</p>
               <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center"
                    style={{ minHeight: '200px' }}>
                 {modal.loadingImg ? (
@@ -474,11 +474,11 @@ export function LiqHonorariosList({
               </div>
             </div>
 
-            {/* TelÃ©fono + Abrir WhatsApp */}
+            {/* Teléfono + Abrir WhatsApp */}
             <div className="px-4 pt-4 pb-4 space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
-                  <Phone className="w-4 h-4" /> TelÃ©fono del prestador
+                  <Phone className="w-4 h-4" /> Teléfono del prestador
                 </label>
                 <input
                   type="tel"
@@ -489,7 +489,7 @@ export function LiqHonorariosList({
                   onKeyDown={e => e.key === 'Enter' && handleAbrirWhatsApp()}
                   autoFocus
                 />
-                <p className="text-xs text-gray-400 mt-1">El nÃºmero se guardarÃ¡ para futuros envÃ­os.</p>
+                <p className="text-xs text-gray-400 mt-1">El número se guardará para futuros envíos.</p>
               </div>
 
               {modal.error && (
@@ -503,15 +503,15 @@ export function LiqHonorariosList({
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pasos para enviar</p>
                 <div className="flex items-start gap-2 text-xs text-gray-600">
                   <span className="w-4 h-4 bg-[#25D366] text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">1</span>
-                  HacÃ© clic en <strong>"Copiar imagen"</strong> (arriba a la derecha)
+                  Hacé clic en <strong>"Copiar imagen"</strong> (arriba a la derecha)
                 </div>
                 <div className="flex items-start gap-2 text-xs text-gray-600">
                   <span className="w-4 h-4 bg-[#25D366] text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">2</span>
-                  IngresÃ¡ el telÃ©fono y hacÃ© clic en <strong>"Abrir WhatsApp"</strong>
+                  Ingresá el teléfono y hacé clic en <strong>"Abrir WhatsApp"</strong>
                 </div>
                 <div className="flex items-start gap-2 text-xs text-gray-600">
                   <span className="w-4 h-4 bg-[#25D366] text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">3</span>
-                  En WhatsApp, presionÃ¡ <strong>Ctrl+V</strong> para pegar la imagen
+                  En WhatsApp, presioná <strong>Ctrl+V</strong> para pegar la imagen
                 </div>
               </div>
 

@@ -1,12 +1,12 @@
-﻿// ============================================
+// ============================================
 // POR GRUPO PAGE - v2.0
-// AnÃ¡lisis Marginal - Sistema de Costos
+// Análisis Marginal - Sistema de Costos
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/analisis-marginal/PorGrupoPage.tsx
 // ============================================
-// v2.0: Flujo correcto de anÃ¡lisis marginal
-//       + costoInsumos + matching fuzzy + CF distribuciÃ³n
+// v2.0: Flujo correcto de análisis marginal
+//       + costoInsumos + matching fuzzy + CF distribución
 // ============================================
 
 import React, { useMemo, useState } from 'react';
@@ -364,7 +364,7 @@ const PorGrupoContent: React.FC = () => {
                   <p className="font-bold text-gray-900">{formatCurrency(grupo.facturado)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 text-xs">M. ContribuciÃ³n</p>
+                  <p className="text-gray-500 text-xs">M. Contribución</p>
                   <p className={`font-bold ${grupo.margenContrib >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatPercent(grupo.margenContribPct)}
                   </p>
@@ -379,7 +379,7 @@ const PorGrupoContent: React.FC = () => {
         })}
       </div>
 
-      {/* Indicador de selecciÃ³n */}
+      {/* Indicador de selección */}
       {segmentoSeleccionado !== 'todos' && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <Activity className="h-4 w-4 text-blue-600" />
@@ -392,7 +392,7 @@ const PorGrupoContent: React.FC = () => {
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input type="text" placeholder="Buscar prestaciÃ³n..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+          <input type="text" placeholder="Buscar prestación..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
         </div>
         <span className="text-sm text-gray-500">{formatNumber(prestacionesFiltradas.length)} prestaciones</span>
@@ -404,7 +404,7 @@ const PorGrupoContent: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <ThSort field="nombre" align="left">PrestaciÃ³n</ThSort>
+                <ThSort field="nombre" align="left">Prestación</ThSort>
                 <ThSort field="cantidad">Cant.</ThSort>
                 <ThSort field="facturado">Facturado</ThSort>
                 <th className="px-2 py-3 text-right text-xs font-medium text-purple-600 uppercase bg-purple-50/50 whitespace-nowrap">Honor.</th>
@@ -465,7 +465,7 @@ const PorGrupoContent: React.FC = () => {
 };
 
 const PorGrupoPage: React.FC = () => (
-  <MarginalLayout title="AnÃ¡lisis por Grupo de PrÃ¡cticas" subtitle="Rentabilidad comparativa por tipo: Consultas, Estudios y CirugÃ­as">
+  <MarginalLayout title="Análisis por Grupo de Prácticas" subtitle="Rentabilidad comparativa por tipo: Consultas, Estudios y Cirugías">
     <PorGrupoContent />
   </MarginalLayout>
 );

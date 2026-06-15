@@ -1,6 +1,6 @@
-﻿// ============================================================
+// ============================================================
 // COMPONENT: LiqHonorariosReport
-// Reporte imprimible â€” diseÃ±o profesional minimalista
+// Reporte imprimible — diseño profesional minimalista
 // ============================================================
 
 import { useRef, useCallback } from 'react';
@@ -15,7 +15,7 @@ interface Props {
 const FMT = (n: number): string =>
   new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-const NUM = (n: number): string => (n === 0 ? 'â€”' : FMT(n));
+const NUM = (n: number): string => (n === 0 ? '—' : FMT(n));
 
 export function LiqHonorariosReport({ liquidacion: liq }: Props) {
   const reportRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,7 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
 
   const handleDownloadPDF = useCallback(() => handlePrint(), [handlePrint]);
 
-  /* â”€â”€â”€ Clases de celda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── Clases de celda ─────────────────────────────────── */
   const TH  = 'px-3 py-2 text-right text-[9.5px] font-semibold uppercase tracking-wide text-gray-500';
   const THL = 'px-3 py-2 text-left  text-[9.5px] font-semibold uppercase tracking-wide text-gray-500';
   const TD  = 'px-3 py-2 text-right text-[11px] tabular-nums text-gray-700';
@@ -68,7 +68,7 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
 
   return (
     <div>
-      {/* Botones â€” se ocultan al imprimir */}
+      {/* Botones — se ocultan al imprimir */}
       <div className="flex gap-3 mb-5 print:hidden">
         <button onClick={handlePrint}
           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
@@ -80,7 +80,7 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
         </button>
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• REPORTE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════════════════ REPORTE ═══════════════════════ */}
       <div
         ref={reportRef}
         data-print-report
@@ -95,14 +95,14 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
             <p className="text-[15px] font-bold tracking-widest text-gray-900 uppercase leading-tight">
               Instituto Dr. Mercado
             </p>
-            <p className="text-[11px] text-gray-500 mt-0.5">SurvisiÃ³n S.A.</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">Survisión S.A.</p>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              DirecciÃ³n Institucional &nbsp;Â·&nbsp; CUIT: XX-XXXXXXXX-X
+              Dirección Institucional &nbsp;·&nbsp; CUIT: XX-XXXXXXXX-X
             </p>
           </div>
           <div className="text-right">
             <p className="text-[9px] font-semibold tracking-widest text-gray-400 uppercase mb-1">
-              LiquidaciÃ³n de Prestador
+              Liquidación de Prestador
             </p>
             <p className="text-[17px] font-bold tracking-wide" style={{ color: NAVY }}>{numeroLiq}</p>
             <p className="text-[10px] text-gray-500 mt-1">
@@ -112,19 +112,19 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
           </div>
         </div>
 
-        {/* PRESTADOR + PERÃODO */}
+        {/* PRESTADOR + PERÍODO */}
         <div className="flex justify-between items-end mb-6 px-0.5">
           <div>
             <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Prestador</p>
             <p className="text-[14px] font-bold text-gray-900">{liq.prestador_nombre}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 mb-1">PerÃ­odo Liquidado</p>
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Período Liquidado</p>
             <p className="text-[14px] font-bold text-gray-900">{periodo}</p>
           </div>
         </div>
 
-        {/* â•â• TABLA PRINCIPAL â•â• */}
+        {/* ══ TABLA PRINCIPAL ══ */}
         <table className="w-full border-collapse mb-6" style={{ fontSize: '11px' }}>
           <thead>
             <tr style={{ background: NAVY }}>
@@ -141,15 +141,15 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
             <tr style={ROW_DIV}>
               <td className={TDL}>Ingreso por Caja</td>
               <td className={TD}>{NUM(liq.ingreso_por_caja)}</td>
-              <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-              <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-              <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-              <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
+              <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+              <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+              <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+              <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
               <td className={`${TD} font-semibold text-gray-800`}>{NUM(liq.ingreso_por_caja)}</td>
             </tr>
 
             <tr style={ROW_DIV}>
-              <td className={TDL}>FacturaciÃ³n por Caja</td>
+              <td className={TDL}>Facturación por Caja</td>
               <td className={TD}>{NUM(liq.caja_exentos)}</td>
               <td className={TD}>{NUM(liq.caja_neto_21)}</td>
               <td className={TD}>{NUM(liq.caja_iva_21)}</td>
@@ -179,14 +179,14 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
               <td className={`${TS} text-gray-900`}>{FMT(liq.total_liquidado)}</td>
             </tr>
 
-            {/* RetenciÃ³n */}
+            {/* Retención */}
             <tr style={{ borderBottom: `1px solid #e5e7eb` }}>
-              <td className="px-3 py-2 text-left text-[11px] text-gray-500 italic">(âˆ’) RetenciÃ³n por Gastos</td>
+              <td className="px-3 py-2 text-left text-[11px] text-gray-500 italic">(−) Retención por Gastos</td>
               {[0,1,2,3,4].map(i => (
-                <td key={i} className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
+                <td key={i} className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
               ))}
               <td className="px-3 py-2 text-right text-[11px] tabular-nums font-semibold text-red-600">
-                {liq.retencion_gastos > 0 ? `(${FMT(liq.retencion_gastos)})` : 'â€”'}
+                {liq.retencion_gastos > 0 ? `(${FMT(liq.retencion_gastos)})` : '—'}
               </td>
             </tr>
 
@@ -202,7 +202,7 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
           </tbody>
         </table>
 
-        {/* â•â• DETALLE PARA FACTURAR â•â• */}
+        {/* ══ DETALLE PARA FACTURAR ══ */}
         <div className="mb-6">
           <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 mb-2">
             Detalle para Facturar
@@ -221,28 +221,28 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
             </thead>
             <tbody>
               <tr style={ROW_DIV}>
-                <td className={TDL}>Honorarios exentos â€” perÃ­odo {periodo}</td>
+                <td className={TDL}>Honorarios exentos — período {periodo}</td>
                 <td className={TD}>{NUM(facturacion.lineaExenta)}</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
                 <td className={`${TD} font-semibold text-gray-800`}>{NUM(facturacion.lineaExenta)}</td>
               </tr>
               <tr style={ROW_DIV}>
-                <td className={TDL}>Honorarios gravados 21% â€” perÃ­odo {periodo}</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
+                <td className={TDL}>Honorarios gravados 21% — período {periodo}</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
                 <td className={TD}>{NUM(facturacion.totalGravados21)}</td>
                 <td className={TD}>{NUM(facturacion.totalIva21)}</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
                 <td className={`${TD} font-semibold text-gray-800`}>{NUM(facturacion.totalConIva21)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td className={TDL}>Honorarios gravados 10,5% â€” perÃ­odo {periodo}</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
-                <td className="px-3 py-2 text-right text-[11px] text-gray-400">â€”</td>
+                <td className={TDL}>Honorarios gravados 10,5% — período {periodo}</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
+                <td className="px-3 py-2 text-right text-[11px] text-gray-400">—</td>
                 <td className={TD}>{NUM(facturacion.totalGravados105)}</td>
                 <td className={TD}>{NUM(facturacion.totalIva105)}</td>
                 <td className={`${TD} font-semibold text-gray-800`}>{NUM(facturacion.totalConIva105)}</td>
@@ -259,15 +259,15 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
             </tbody>
           </table>
           <p className="text-[9px] text-gray-400 italic mt-1.5">
-            * El Ingreso por Caja no se incluye en la facturaciÃ³n.
+            * El Ingreso por Caja no se incluye en la facturación.
           </p>
         </div>
 
-        {/* â•â• RESUMEN â•â• */}
+        {/* ══ RESUMEN ══ */}
         <div className="flex justify-end mb-8">
           <div style={{ minWidth: '220px' }}>
             <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 mb-2">
-              Resumen de LiquidaciÃ³n
+              Resumen de Liquidación
             </p>
             <div style={{ border: '1px solid #e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
               <div className="flex justify-between px-3 py-2 text-[11px]"
@@ -279,7 +279,7 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
                    style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <span className="text-gray-500">Retenciones</span>
                 <span className={`tabular-nums font-medium ${liq.retencion_gastos > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                  {liq.retencion_gastos > 0 ? `$ ${FMT(liq.retencion_gastos)}` : 'â€”'}
+                  {liq.retencion_gastos > 0 ? `$ ${FMT(liq.retencion_gastos)}` : '—'}
                 </span>
               </div>
               <div className="flex justify-between px-3 py-2.5 text-[12px]"
@@ -291,30 +291,30 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
           </div>
         </div>
 
-        {/* â•â• FIRMAS â•â• */}
+        {/* ══ FIRMAS ══ */}
         <div className="grid grid-cols-2 gap-16 mb-6">
           <div>
             <div style={{ borderBottom: '1px solid #9ca3af', height: '36px' }} />
             <p className="text-[10px] font-semibold text-gray-700 mt-2">Firma del Prestador</p>
-            <p className="text-[9px] text-gray-400">RecibÃ­ Conforme &nbsp;Â·&nbsp; Fecha: ___/___/______</p>
+            <p className="text-[9px] text-gray-400">Recibí Conforme &nbsp;·&nbsp; Fecha: ___/___/______</p>
           </div>
           <div>
             <div style={{ borderBottom: '1px solid #9ca3af', height: '36px' }} />
-            <p className="text-[10px] font-semibold text-gray-700 mt-2">AdministraciÃ³n</p>
-            <p className="text-[9px] text-gray-400">Instituto Dr. Mercado &nbsp;Â·&nbsp; Sello y Firma</p>
+            <p className="text-[10px] font-semibold text-gray-700 mt-2">Administración</p>
+            <p className="text-[9px] text-gray-400">Instituto Dr. Mercado &nbsp;·&nbsp; Sello y Firma</p>
           </div>
         </div>
 
         {/* FOOTER */}
         <div className="pt-3 text-center" style={{ borderTop: '1px solid #e5e7eb' }}>
           <p className="text-[8.5px] text-gray-400">
-            Documento generado electrÃ³nicamente â€” {numeroLiq} &nbsp;Â·&nbsp;
-            Comprobante de liquidaciÃ³n y autorizaciÃ³n de pago. Conservar como respaldo contable y administrativo.
+            Documento generado electrónicamente — {numeroLiq} &nbsp;·&nbsp;
+            Comprobante de liquidación y autorización de pago. Conservar como respaldo contable y administrativo.
           </p>
         </div>
       </div>
 
-      {/* ESTILOS DE IMPRESIÃ“N */}
+      {/* ESTILOS DE IMPRESIÓN */}
       <style>{`
         @media print {
           body * { visibility: hidden !important; }

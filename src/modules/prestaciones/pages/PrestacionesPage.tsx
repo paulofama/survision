@@ -1,5 +1,5 @@
-﻿// ============================================
-// PÃGINA: Prestaciones (CatÃ¡logo de PrÃ¡cticas)
+// ============================================
+// PÁGINA: Prestaciones (Catálogo de Prácticas)
 // Sistema de Costos - Instituto Dr. Mercado
 // Con Tipo de Cambio BCRA y columnas USD/ARS
 // ============================================
@@ -39,16 +39,16 @@ interface Agrupacion {
 
 const AGRUPACION_COLORS: Record<string, string> = {
   'Consultas': 'bg-blue-100 text-blue-800',
-  'CirugÃ­as': 'bg-red-100 text-red-800',
+  'Cirugías': 'bg-red-100 text-red-800',
   'Estudios': 'bg-green-100 text-green-800',
   'Procedimientos': 'bg-purple-100 text-purple-800',
   'Tratamientos': 'bg-orange-100 text-orange-800',
-  'DiagnÃ³stico': 'bg-cyan-100 text-cyan-800',
+  'Diagnóstico': 'bg-cyan-100 text-cyan-800',
   'default': 'bg-gray-100 text-gray-800'
 };
 
 // ============================================
-// MODAL DE EDICIÃ“N DE PRECIO (Bidireccional USD/ARS)
+// MODAL DE EDICIÓN DE PRECIO (Bidireccional USD/ARS)
 // ============================================
 
 const EditPrecioModal: React.FC<{
@@ -119,7 +119,7 @@ const EditPrecioModal: React.FC<{
       : parseFloat(precioARS);
     
     if (isNaN(precioFinal) || precioFinal < 0) {
-      setError('Ingrese un precio vÃ¡lido');
+      setError('Ingrese un precio válido');
       return;
     }
     
@@ -156,11 +156,11 @@ const EditPrecioModal: React.FC<{
         </div>
 
         <div className="px-6 py-4 space-y-4">
-          {/* Info de la prestaciÃ³n */}
+          {/* Info de la prestación */}
           <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-500 mb-1">CÃ³digo</p>
+            <p className="text-xs text-gray-500 mb-1">Código</p>
             <p className="font-mono font-medium text-gray-900">{prestacion.codigo}</p>
-            <p className="text-xs text-gray-500 mt-2 mb-1">PrÃ¡ctica</p>
+            <p className="text-xs text-gray-500 mt-2 mb-1">Práctica</p>
             <p className="text-sm text-gray-700">{prestacion.practica}</p>
           </div>
 
@@ -175,7 +175,7 @@ const EditPrecioModal: React.FC<{
           {/* Campo USD */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Precio en DÃ³lares
+              Precio en Dólares
               {campoActivo === 'USD' && <span className="ml-2 text-xs text-green-600">(editando)</span>}
             </label>
             <div className="relative">
@@ -198,7 +198,7 @@ const EditPrecioModal: React.FC<{
           {/* Separador con flecha bidireccional */}
           <div className="flex items-center justify-center">
             <div className="flex-1 border-t border-gray-200"></div>
-            <span className="px-3 text-gray-400 text-lg">â‡…</span>
+            <span className="px-3 text-gray-400 text-lg">⇅</span>
             <div className="flex-1 border-t border-gray-200"></div>
           </div>
 
@@ -224,11 +224,11 @@ const EditPrecioModal: React.FC<{
             </div>
           </div>
 
-          {/* Indicador de quÃ© se guardarÃ¡ */}
+          {/* Indicador de qué se guardará */}
           <div className={`rounded-lg p-3 border ${
             monedaGuardar === 'USD' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'
           }`}>
-            <p className="text-xs text-gray-600 mb-1">Se guardarÃ¡ como:</p>
+            <p className="text-xs text-gray-600 mb-1">Se guardará como:</p>
             <p className={`font-mono font-bold text-lg ${
               monedaGuardar === 'USD' ? 'text-green-800' : 'text-blue-800'
             }`}>
@@ -344,17 +344,17 @@ const PrestacionesPage: React.FC = () => {
     agrupaciones: agrupaciones.length
   };
 
-  // Sync GECLISA â†’ Supabase
+  // Sync GECLISA → Supabase
   const handleSync = async () => {
     setSyncing(true);
     try {
       const response = await fetch('/api/nomenclador/sync', { method: 'POST' });
       const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || 'Error en sincronizaciÃ³n');
+      if (!response.ok || !result.success) throw new Error(result.error || 'Error en sincronización');
       showMessage(`Sync completo: ${result.insertados} nuevas, ${result.actualizados} actualizadas`, 'success');
       await refetch();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Error en sincronizaciÃ³n', 'error');
+      showMessage(err instanceof Error ? err.message : 'Error en sincronización', 'error');
     } finally {
       setSyncing(false);
     }
@@ -385,7 +385,7 @@ const PrestacionesPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await deletePrestacion(id);
-      showMessage('PrestaciÃ³n eliminada', 'success');
+      showMessage('Prestación eliminada', 'success');
       setDeleteConfirm(null);
     } catch (err) {
       showMessage(err instanceof Error ? err.message : 'Error eliminando', 'error');
@@ -425,7 +425,7 @@ const PrestacionesPage: React.FC = () => {
           <DollarSign className="h-8 w-8 text-blue-600" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Prestaciones</h1>
-            <p className="text-gray-600">GestiÃ³n de prÃ¡cticas mÃ©dicas</p>
+            <p className="text-gray-600">Gestión de prácticas médicas</p>
           </div>
         </div>
         <div className="flex items-center space-x-3">
@@ -459,7 +459,7 @@ const PrestacionesPage: React.FC = () => {
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center space-x-3">
-            <span className="text-2xl">ðŸ’µ</span>
+            <span className="text-2xl">💵</span>
             <div><p className="text-sm text-gray-500">Promedio USD</p><p className="text-xl font-bold text-gray-900">{formatCurrency(stats.precioPromedio, 'USD')}</p></div>
           </div>
         </div>
@@ -476,7 +476,7 @@ const PrestacionesPage: React.FC = () => {
         <div className="flex items-center space-x-4">
           <div className="flex-1 relative">
             <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Buscar por cÃ³digo o nombre..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input type="text" placeholder="Buscar por código o nombre..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           <select className="w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value={selectedAgrupacion} onChange={(e) => setSelectedAgrupacion(e.target.value)}>
             <option value="">Todas las agrupaciones</option>
@@ -502,14 +502,14 @@ const PrestacionesPage: React.FC = () => {
               <table className="w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">CÃ³digo</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">PrÃ¡ctica</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">AgrupaciÃ³n</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">Código</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Práctica</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">Agrupación</th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                      <div className="flex items-center justify-end space-x-1"><span>ðŸ’µ</span><span>USD</span></div>
+                      <div className="flex items-center justify-end space-x-1"><span>💵</span><span>USD</span></div>
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">
-                      <div className="flex items-center justify-end space-x-1"><span>ðŸ‡¦ðŸ‡·</span><span>ARS</span></div>
+                      <div className="flex items-center justify-end space-x-1"><span>🇦🇷</span><span>ARS</span></div>
                     </th>
                     <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Estado</th>
                     <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Acc.</th>
@@ -528,14 +528,14 @@ const PrestacionesPage: React.FC = () => {
                         <td className="px-3 py-2 whitespace-nowrap">
                           {p.agrupacion_nombre ? (
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getAgrupacionColor(p.agrupacion_nombre)}`}>{p.agrupacion_nombre}</span>
-                          ) : <span className="text-gray-400 text-xs">â€”</span>}
+                          ) : <span className="text-gray-400 text-xs">—</span>}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm text-right">
                           {p.precio > 0 && monedaReal === 'USD' ? (
                             <span className="font-mono font-medium text-green-600">US$ {p.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                           ) : p.precio > 0 && precioUSD > 0 ? (
                             <span className="font-mono text-gray-400 text-xs">~US$ {precioUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-                          ) : <span className="text-gray-300">â€”</span>}
+                          ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm text-right">
                           {p.precio > 0 ? (
@@ -543,8 +543,8 @@ const PrestacionesPage: React.FC = () => {
                               <span className="font-mono font-medium text-blue-600">$ {p.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                             ) : precioARS > 0 ? (
                               <span className="font-mono text-gray-600">$ {precioARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</span>
-                            ) : <span className="text-gray-300">â€”</span>
-                          ) : <span className="text-gray-300">â€”</span>}
+                            ) : <span className="text-gray-300">—</span>
+                          ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-center">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -570,12 +570,12 @@ const PrestacionesPage: React.FC = () => {
       {/* Modal Editar Precio */}
       {prestacionEditar && <EditPrecioModal prestacion={prestacionEditar} tipoCambio={tipoCambio} isOpen={modalOpen} onClose={cerrarModal} onSave={handleSavePrecio} />}
 
-      {/* Modal Confirmar EliminaciÃ³n */}
+      {/* Modal Confirmar Eliminación */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmar eliminaciÃ³n</h3>
-            <p className="text-gray-600 mb-6">Â¿EstÃ¡s seguro de eliminar esta prestaciÃ³n?</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmar eliminación</h3>
+            <p className="text-gray-600 mb-6">¿Estás seguro de eliminar esta prestación?</p>
             <div className="flex space-x-3">
               <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Eliminar</button>
               <button onClick={() => setDeleteConfirm(null)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Cancelar</button>

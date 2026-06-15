@@ -1,5 +1,5 @@
-﻿// ============================================
-// EVOLUCIÃ“N TEMPORAL
+// ============================================
+// EVOLUCIÓN TEMPORAL
 // Sistema de Costos - Instituto Dr. Mercado
 // Tendencias y comparativos mensuales
 // v3.0 - Con ECharts
@@ -54,11 +54,11 @@ const EvolucionTemporalPage: React.FC = () => {
       setEvolucion(evoData);
       setStats(statsData);
       
-      console.log(`âœ… ${evoData.length} meses de evoluciÃ³n cargados`);
+      console.log(`✅ ${evoData.length} meses de evolución cargados`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error cargando datos';
       setError(errorMessage);
-      console.error('âŒ Error:', errorMessage);
+      console.error('❌ Error:', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -78,12 +78,12 @@ const EvolucionTemporalPage: React.FC = () => {
     }).format(value);
   };
 
-  // Formatear nÃºmero
+  // Formatear número
   const formatNumber = (value: number): string => {
     return new Intl.NumberFormat('es-AR').format(value);
   };
 
-  // Calcular variaciÃ³n mes a mes
+  // Calcular variación mes a mes
   const calcularVariacion = (actual: number, anterior: number): { porcentaje: number; tendencia: 'up' | 'down' | 'equal' } => {
     if (anterior === 0) return { porcentaje: 0, tendencia: 'equal' };
     const porcentaje = ((actual - anterior) / anterior) * 100;
@@ -113,7 +113,7 @@ const EvolucionTemporalPage: React.FC = () => {
   }, [totales, evolucion]);
 
   // ============================================
-  // CONFIGURACIÃ“N ECHARTS - PRÃCTICAS
+  // CONFIGURACIÓN ECHARTS - PRÁCTICAS
   // ============================================
 
   const chartOptionPracticas = useMemo(() => {
@@ -140,7 +140,7 @@ const EvolucionTemporalPage: React.FC = () => {
             const color = variacion.tendencia === 'up' ? '#16a34a' : variacion.tendencia === 'down' ? '#dc2626' : '#6b7280';
             const signo = variacion.porcentaje > 0 ? '+' : '';
             variacionHtml = `<div style="color: ${color}; font-size: 12px; margin-top: 4px;">
-              ${variacion.tendencia === 'up' ? 'â–²' : variacion.tendencia === 'down' ? 'â–¼' : 'â€”'} 
+              ${variacion.tendencia === 'up' ? '▲' : variacion.tendencia === 'down' ? '▼' : '—'} 
               ${signo}${variacion.porcentaje}% vs mes anterior
             </div>`;
           }
@@ -150,7 +150,7 @@ const EvolucionTemporalPage: React.FC = () => {
               <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937;">${data.name}</div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="display: inline-block; width: 10px; height: 10px; background: #3b82f6; border-radius: 2px;"></span>
-                <span style="color: #6b7280;">PrÃ¡cticas:</span>
+                <span style="color: #6b7280;">Prácticas:</span>
                 <span style="font-weight: 600; color: #1f2937;">${formatNumber(data.value)}</span>
               </div>
               ${variacionHtml}
@@ -204,7 +204,7 @@ const EvolucionTemporalPage: React.FC = () => {
       },
       series: [
         {
-          name: 'PrÃ¡cticas',
+          name: 'Prácticas',
           type: 'bar',
           data: practicasData,
           barWidth: '60%',
@@ -253,7 +253,7 @@ const EvolucionTemporalPage: React.FC = () => {
   }, [evolucion, meses]);
 
   // ============================================
-  // CONFIGURACIÃ“N ECHARTS - INGRESOS
+  // CONFIGURACIÓN ECHARTS - INGRESOS
   // ============================================
 
   const chartOptionIngresos = useMemo(() => {
@@ -429,7 +429,7 @@ const EvolucionTemporalPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           <TrendingUp className="h-8 w-8 text-blue-600" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">EvoluciÃ³n Temporal</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Evolución Temporal</h1>
             <p className="text-gray-600">Tendencias y comparativos mensuales</p>
           </div>
         </div>
@@ -440,9 +440,9 @@ const EvolucionTemporalPage: React.FC = () => {
             onChange={(e) => setMeses(parseInt(e.target.value))}
             className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
           >
-            <option value={6}>Ãšltimos 6 meses</option>
-            <option value={12}>Ãšltimos 12 meses</option>
-            <option value={24}>Ãšltimos 24 meses</option>
+            <option value={6}>Últimos 6 meses</option>
+            <option value={12}>Últimos 12 meses</option>
+            <option value={24}>Últimos 24 meses</option>
           </select>
           
           <button
@@ -465,7 +465,7 @@ const EvolucionTemporalPage: React.FC = () => {
             <span className="font-semibold"> TODAS </span> las atenciones registradas, independientemente de si tienen costos configurados.
           </p>
           <p className="text-xs text-blue-600 mt-1">
-            Para anÃ¡lisis de rentabilidad con costos asignados, consulte <span className="font-medium">AnÃ¡lisis Marginal â†’ Por PrestaciÃ³n</span>.
+            Para análisis de rentabilidad con costos asignados, consulte <span className="font-medium">Análisis Marginal → Por Prestación</span>.
           </p>
         </div>
       </div>
@@ -488,7 +488,7 @@ const EvolucionTemporalPage: React.FC = () => {
                 {evolucion.length >= 2 && (
                   <>
                     <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                      <p className="text-sm text-blue-600 mb-1">PrÃ¡cticas Mes Actual</p>
+                      <p className="text-sm text-blue-600 mb-1">Prácticas Mes Actual</p>
                       <p className="text-2xl font-bold text-blue-900">
                         {formatNumber(evolucion[evolucion.length - 1]?.practicas || 0)}
                       </p>
@@ -511,7 +511,7 @@ const EvolucionTemporalPage: React.FC = () => {
                     </div>
                     
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600 mb-1">PrÃ¡cticas Mes Anterior</p>
+                      <p className="text-sm text-gray-600 mb-1">Prácticas Mes Anterior</p>
                       <p className="text-2xl font-bold text-gray-700">
                         {formatNumber(evolucion[evolucion.length - 2]?.practicas || 0)}
                       </p>
@@ -535,16 +535,16 @@ const EvolucionTemporalPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Promedios del PerÃ­odo */}
+            {/* Promedios del Período */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <BarChart3 className="h-5 w-5 mr-2 text-purple-600" />
-                Promedios del PerÃ­odo
+                Promedios del Período
               </h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-purple-50 rounded-lg">
-                  <p className="text-sm text-purple-600 mb-1">PrÃ¡cticas Promedio/Mes</p>
+                  <p className="text-sm text-purple-600 mb-1">Prácticas Promedio/Mes</p>
                   <p className="text-2xl font-bold text-purple-900">
                     {formatNumber(promedios.practicas)}
                   </p>
@@ -558,14 +558,14 @@ const EvolucionTemporalPage: React.FC = () => {
                 </div>
 
                 <div className="p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-600 mb-1">Total PerÃ­odo</p>
+                  <p className="text-sm text-blue-600 mb-1">Total Período</p>
                   <p className="text-2xl font-bold text-blue-900">
                     {formatNumber(totales.practicas)}
                   </p>
                 </div>
 
                 <div className="p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-600 mb-1">Ingreso Total PerÃ­odo</p>
+                  <p className="text-sm text-green-600 mb-1">Ingreso Total Período</p>
                   <p className="text-2xl font-bold text-green-900">
                     {formatCurrency(totales.ingreso)}
                   </p>
@@ -574,11 +574,11 @@ const EvolucionTemporalPage: React.FC = () => {
             </div>
           </div>
 
-          {/* GrÃ¡fico ECharts - PrÃ¡cticas */}
+          {/* Gráfico ECharts - Prácticas */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
-              EvoluciÃ³n de PrÃ¡cticas por Mes
+              Evolución de Prácticas por Mes
             </h3>
             
             <ReactECharts 
@@ -588,11 +588,11 @@ const EvolucionTemporalPage: React.FC = () => {
             />
           </div>
 
-          {/* GrÃ¡fico ECharts - Ingresos */}
+          {/* Gráfico ECharts - Ingresos */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
-              EvoluciÃ³n de Ingresos por Mes
+              Evolución de Ingresos por Mes
             </h3>
             
             <ReactECharts 
@@ -613,10 +613,10 @@ const EvolucionTemporalPage: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      PerÃ­odo
+                      Período
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      PrÃ¡cticas
+                      Prácticas
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       Var. %

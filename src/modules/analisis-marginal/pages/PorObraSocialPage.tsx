@@ -1,13 +1,13 @@
-﻿// ============================================
+// ============================================
 // POR OBRA SOCIAL PAGE - v2.0
-// AnÃ¡lisis Marginal - Sistema de Costos
+// Análisis Marginal - Sistema de Costos
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/analisis-marginal/PorObraSocialPage.tsx
 // ============================================
-// v2.0: Flujo correcto de anÃ¡lisis marginal
-//       Variables â†’ Margen Contrib â†’ C.Fijos â†’ Resultado Operativo
-//       + costoInsumos + matching fuzzy + CF distribuciÃ³n
+// v2.0: Flujo correcto de análisis marginal
+//       Variables → Margen Contrib → C.Fijos → Resultado Operativo
+//       + costoInsumos + matching fuzzy + CF distribución
 // ============================================
 
 import React, { useMemo, useState } from 'react';
@@ -96,7 +96,7 @@ const normalizarNombre = (s: string): string =>
   s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 
 // ============================================
-// BADGE SEMÃFORO
+// BADGE SEMÁFORO
 // ============================================
 
 const SemaforoBadge: React.FC<{ pct: number }> = ({ pct }) => {
@@ -232,7 +232,7 @@ const PorObraSocialContent: React.FC = () => {
     });
   }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases]);
 
-  // Total facturado para distribuciÃ³n CF
+  // Total facturado para distribución CF
   const totalFacturadoGlobal = useMemo(
     () => obrasSocialesBase.reduce((s, os) => s + os.facturado, 0),
     [obrasSocialesBase]
@@ -348,7 +348,7 @@ const PorObraSocialContent: React.FC = () => {
   return (
     <div className="space-y-4">
 
-      {/* â”€â”€ BANNER CF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── BANNER CF ────────────────────────────── */}
       {!resumenCF.sinDatos && !loadingCF && (
         <div className="flex items-center gap-4 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
           <Info className="w-4 h-4 flex-shrink-0 text-blue-500" />
@@ -360,7 +360,7 @@ const PorObraSocialContent: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ COMPARATIVA OS vs PARTICULARES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── COMPARATIVA OS vs PARTICULARES ─────────── */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -406,13 +406,13 @@ const PorObraSocialContent: React.FC = () => {
         </div>
       </div>
 
-      {/* â”€â”€ KPIs + BARRAS RESULTADO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── KPIs + BARRAS RESULTADO ────────────── */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-4 text-white flex items-center justify-between">
           <div>
-            <p className="text-blue-100 text-sm">Margen de ContribuciÃ³n</p>
+            <p className="text-blue-100 text-sm">Margen de Contribución</p>
             <p className="text-3xl font-bold">{formatPercent(totales.margenContribPct)}</p>
-            <p className="text-blue-200 text-xs mt-1">Facturado âˆ’ Honorarios âˆ’ Pools âˆ’ Insumos</p>
+            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Pools − Insumos</p>
           </div>
           <div className="text-right text-blue-100 text-sm">
             <p>{formatCurrency(totales.margenContrib)}</p>
@@ -426,7 +426,7 @@ const PorObraSocialContent: React.FC = () => {
           <div>
             <p className="text-white/80 text-sm">Resultado Operativo</p>
             <p className="text-3xl font-bold">{formatPercent(totales.resultadoNetoPct)}</p>
-            <p className="text-white/60 text-xs mt-1">Margen Contrib. âˆ’ C.Fijos</p>
+            <p className="text-white/60 text-xs mt-1">Margen Contrib. − C.Fijos</p>
           </div>
           <div className="text-right text-white/80 text-sm">
             <p>{formatCurrency(totales.resultadoNeto)}</p>
@@ -435,7 +435,7 @@ const PorObraSocialContent: React.FC = () => {
         </div>
       </div>
 
-      {/* â”€â”€ CONTROLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── CONTROLES ────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -461,13 +461,13 @@ const PorObraSocialContent: React.FC = () => {
         </div>
       </div>
 
-      {/* â”€â”€ TABLA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── TABLA ────────────────────────────────── */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {/* IdentificaciÃ³n */}
+                {/* Identificación */}
                 <ThSort field="sigla" align="left">Obra Social</ThSort>
                 <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tipo</th>
                 <ThSort field="cantidad">Cant.</ThSort>
@@ -570,7 +570,7 @@ const PorObraSocialContent: React.FC = () => {
               <tfoot className="bg-gray-100 font-semibold border-t-2 border-gray-300">
                 <tr>
                   <td className="px-2 py-3 text-sm text-gray-700">TOTALES</td>
-                  <td className="px-2 py-3 text-center text-sm text-gray-500">â€”</td>
+                  <td className="px-2 py-3 text-center text-sm text-gray-500">—</td>
                   <td className="px-2 py-3 text-sm text-right text-gray-900">{formatNumber(totales.cantidad)}</td>
                   <td className="px-2 py-3 text-sm text-right text-gray-500">{formatNumber(totales.pacientes)}</td>
                   <td className="px-2 py-3 text-sm text-right text-blue-700">{formatCurrency(totales.facturado)}</td>
@@ -606,12 +606,12 @@ const PorObraSocialContent: React.FC = () => {
 };
 
 // ============================================
-// PÃGINA WRAPPER
+// PÁGINA WRAPPER
 // ============================================
 
 const PorObraSocialPage: React.FC = () => (
   <MarginalLayout
-    title="AnÃ¡lisis por Obra Social"
+    title="Análisis por Obra Social"
     subtitle="Rentabilidad y volumen por financiador de salud"
   >
     <PorObraSocialContent />

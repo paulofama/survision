@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // HOOK: useLiqHonorarios
 // CRUD completo contra Supabase + estado local
 // ============================================================
@@ -20,7 +20,7 @@ export function useLiqHonorarios() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // â”€â”€â”€ Cargar prestadores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Cargar prestadores ───────────────────────────────
   const loadPrestadores = useCallback(async () => {
     const { data, error: err } = await supabase
       .from('liq_honorarios_prestadores')
@@ -36,7 +36,7 @@ export function useLiqHonorarios() {
     setPrestadores(data || []);
   }, []);
 
-  // â”€â”€â”€ Cargar liquidaciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Cargar liquidaciones ─────────────────────────────
   const loadLiquidaciones = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -78,10 +78,10 @@ export function useLiqHonorarios() {
     }
   }, []);
 
-  // â”€â”€â”€ Guardar (crear o actualizar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Guardar (crear o actualizar) ─────────────────────
   const guardar = useCallback(
     async (params: {
-      id?: string; // Si existe â†’ update, sino â†’ insert
+      id?: string; // Si existe → update, sino → insert
       fecha: string;
       prestadorId: string;
       ingresoPorCaja: number;
@@ -153,7 +153,7 @@ export function useLiqHonorarios() {
 
           if (err) throw new Error(err.message);
           await loadLiquidaciones();
-          return { success: true, message: 'LiquidaciÃ³n actualizada exitosamente', data };
+          return { success: true, message: 'Liquidación actualizada exitosamente', data };
         } else {
           // INSERT
           const { data, error: err } = await supabase
@@ -164,7 +164,7 @@ export function useLiqHonorarios() {
 
           if (err) throw new Error(err.message);
           await loadLiquidaciones();
-          return { success: true, message: 'LiquidaciÃ³n guardada exitosamente', data };
+          return { success: true, message: 'Liquidación guardada exitosamente', data };
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al guardar';
@@ -174,7 +174,7 @@ export function useLiqHonorarios() {
     [loadLiquidaciones]
   );
 
-  // â”€â”€â”€ Eliminar (soft delete) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Eliminar (soft delete) ───────────────────────────
   const eliminar = useCallback(
     async (id: string): Promise<LiqOperationResult> => {
       try {
@@ -185,7 +185,7 @@ export function useLiqHonorarios() {
 
         if (err) throw new Error(err.message);
         await loadLiquidaciones();
-        return { success: true, message: 'LiquidaciÃ³n eliminada correctamente' };
+        return { success: true, message: 'Liquidación eliminada correctamente' };
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al eliminar';
         return { success: false, message: msg };
@@ -194,7 +194,7 @@ export function useLiqHonorarios() {
     [loadLiquidaciones]
   );
 
-  // â”€â”€â”€ Obtener una liquidaciÃ³n por ID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Obtener una liquidación por ID ───────────────────
   const getById = useCallback(
     (id: string): LiqHonorarioConPrestador | undefined => {
       return liquidaciones.find((l) => l.id === id);
@@ -202,14 +202,14 @@ export function useLiqHonorarios() {
     [liquidaciones]
   );
 
-  // â”€â”€â”€ EstadÃ­sticas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Estadísticas ─────────────────────────────────────
   const stats = {
     count: liquidaciones.length,
     totalLiquidado: liquidaciones.reduce((sum, l) => sum + l.total_liquidado, 0),
     totalAbonar: liquidaciones.reduce((sum, l) => sum + l.total_abonar, 0),
   };
 
-  // â”€â”€â”€ Carga inicial â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Carga inicial ────────────────────────────────────
   useEffect(() => {
     loadPrestadores();
     loadLiquidaciones();

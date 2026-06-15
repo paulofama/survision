@@ -1,6 +1,6 @@
-﻿// ============================================================
+// ============================================================
 // HOOK - useInformeGestion
-// Fetch y gestiÃ³n de datos para Informe de GestiÃ³n Mensual
+// Fetch y gestión de datos para Informe de Gestión Mensual
 // Instituto Dr. Mercado - Sistema de Costos
 // ============================================================
 
@@ -13,7 +13,7 @@ import type {
   crearFiltros,
 } from '@/types/informes';
 
-// ---- ConfiguraciÃ³n ----
+// ---- Configuración ----
 const API_BASE = 'http://localhost:3001/api/informes';
 
 interface UseInformeGestionReturn {

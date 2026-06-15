@@ -1,12 +1,12 @@
-﻿// ============================================
+// ============================================
 // POR PRESTADOR PAGE - v1.0
-// AnÃ¡lisis Marginal - Sistema de Costos
+// Análisis Marginal - Sistema de Costos
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/analisis-marginal/PorPrestadorPage.tsx
 // ============================================
-// Rentabilidad por prestador (cirujano/mÃ©dico)
-// Flujo: Facturado â†’ Variables â†’ Margen Contrib â†’ C.Fijos â†’ Res.Op
+// Rentabilidad por prestador (cirujano/médico)
+// Flujo: Facturado → Variables → Margen Contrib → C.Fijos → Res.Op
 // ============================================
 
 import React, { useMemo, useState } from 'react';
@@ -91,7 +91,7 @@ const normalizarNombre = (s: string): string =>
   s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 
 // ============================================
-// BADGE SEMÃFORO
+// BADGE SEMÁFORO
 // ============================================
 
 const SemaforoBadge: React.FC<{ pct: number }> = ({ pct }) => {
@@ -118,7 +118,7 @@ const PorPrestadorContent: React.FC = () => {
 
   const { resumen: resumenCF, loading: loadingCF, calcularAsignacion } = useCostosFijosDistribucion(anioActual, mesActual);
 
-  // Mapeo de nombres GECLISA â†’ Receta
+  // Mapeo de nombres GECLISA → Receta
   const { agregarAliases } = useNombreMapping();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -196,7 +196,7 @@ const PorPrestadorContent: React.FC = () => {
     });
   }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases]);
 
-  // Total facturado para distribuciÃ³n CF
+  // Total facturado para distribución CF
   const totalFacturadoGlobal = useMemo(
     () => prestadoresBase.reduce((s, p) => s + p.facturado, 0),
     [prestadoresBase]
@@ -313,9 +313,9 @@ const PorPrestadorContent: React.FC = () => {
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-4 text-white flex items-center justify-between">
           <div>
-            <p className="text-blue-100 text-sm">Margen de ContribuciÃ³n</p>
+            <p className="text-blue-100 text-sm">Margen de Contribución</p>
             <p className="text-3xl font-bold">{formatPercent(totales.margenContribPct)}</p>
-            <p className="text-blue-200 text-xs mt-1">Facturado âˆ’ Honorarios âˆ’ Pools âˆ’ Insumos</p>
+            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Pools − Insumos</p>
           </div>
           <div className="text-right text-blue-100 text-sm"><p>{formatCurrency(totales.margenContrib)}</p></div>
         </div>
@@ -327,7 +327,7 @@ const PorPrestadorContent: React.FC = () => {
           <div>
             <p className="text-white/80 text-sm">Resultado Operativo</p>
             <p className="text-3xl font-bold">{formatPercent(totales.resultadoNetoPct)}</p>
-            <p className="text-white/60 text-xs mt-1">Margen Contrib. âˆ’ C.Fijos</p>
+            <p className="text-white/60 text-xs mt-1">Margen Contrib. − C.Fijos</p>
           </div>
           <div className="text-right text-white/80 text-sm">
             <p>{formatCurrency(totales.resultadoNeto)}</p>
@@ -425,11 +425,11 @@ const PorPrestadorContent: React.FC = () => {
                           <td colSpan={11} className="px-6 py-3">
                             <div className="flex flex-wrap gap-6 text-xs text-gray-600">
                               <div className="flex flex-col gap-1">
-                                <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] mb-1">Mix de PrÃ¡cticas</span>
+                                <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] mb-1">Mix de Prácticas</span>
                                 <div className="flex items-center gap-2">
                                   <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Consultas: {prest.consultas}</span>
                                   <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">Estudios: {prest.estudios}</span>
-                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs">CirugÃ­as: {prest.cirugias}</span>
+                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs">Cirugías: {prest.cirugias}</span>
                                 </div>
                                 <span className="mt-1">Ticket promedio: <strong>{formatCurrency(prest.ticketPromedio)}</strong></span>
                               </div>
@@ -443,7 +443,7 @@ const PorPrestadorContent: React.FC = () => {
                               <div className="border-l border-gray-300 pl-4 flex flex-col gap-1">
                                 <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] mb-1">Resultado</span>
                                 <span>Margen: <strong className="text-blue-600">{formatCurrency(prest.margenContrib)}</strong> ({formatPercent(prest.margenContribPct)})</span>
-                                <span>âˆ’ C.Fijos: <strong className="text-teal-700">{formatCurrency(prest.costoFijoAsignado)}</strong></span>
+                                <span>− C.Fijos: <strong className="text-teal-700">{formatCurrency(prest.costoFijoAsignado)}</strong></span>
                                 <span className="border-t pt-1 mt-1 font-semibold">
                                   Res. Operativo: <strong className={prest.resultadoNeto >= 0 ? 'text-emerald-700' : 'text-red-700'}>{formatCurrency(prest.resultadoNeto)}</strong>
                                   {' '}<SemaforoBadge pct={prest.resultadoNetoPct} />
@@ -497,7 +497,7 @@ const PorPrestadorContent: React.FC = () => {
 };
 
 const PorPrestadorPage: React.FC = () => (
-  <MarginalLayout title="AnÃ¡lisis por Prestador" subtitle="Rentabilidad y productividad por profesional mÃ©dico">
+  <MarginalLayout title="Análisis por Prestador" subtitle="Rentabilidad y productividad por profesional médico">
     <PorPrestadorContent />
   </MarginalLayout>
 );

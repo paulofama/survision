@@ -1,7 +1,7 @@
-﻿// ============================================
-// INFORMES EJECUTIVOS - PÃGINA PRINCIPAL
+// ============================================
+// INFORMES EJECUTIVOS - PÁGINA PRINCIPAL
 // Sistema de Costos - Instituto Dr. Mercado
-// v2.0 - Con HomogeneizaciÃ³n USD + ExoftalmologÃ­a
+// v2.0 - Con Homogeneización USD + Exoftalmología
 // ============================================
 // RUTA: src/pages/InformesEjecutivosPage.tsx
 // ============================================
@@ -172,7 +172,7 @@ const getApiUrl = (): string => {
 };
 
 // ============================================
-// COMPONENTE: BADGE DE VARIACIÃ“N
+// COMPONENTE: BADGE DE VARIACIÓN
 // ============================================
 
 const VariationBadge: React.FC<{ value: number; showIcon?: boolean; size?: 'sm' | 'md' }> = ({ 
@@ -226,12 +226,12 @@ const InformesEjecutivosPage: React.FC = () => {
   const [pinGuardado, setPinGuardado] = useState('');
   
   // ============================================
-  // VERIFICACIÃ“N DE PIN
+  // VERIFICACIÓN DE PIN
   // ============================================
   
   const verificarPin = async () => {
     if (intentosFallidos >= 3) {
-      setErrorPin('Demasiados intentos fallidos. Recarga la pÃ¡gina.');
+      setErrorPin('Demasiados intentos fallidos. Recarga la página.');
       return;
     }
     
@@ -256,7 +256,7 @@ const InformesEjecutivosPage: React.FC = () => {
         setPinIngresado('');
       }
     } catch (err) {
-      setErrorPin('Error de conexiÃ³n con el servidor');
+      setErrorPin('Error de conexión con el servidor');
     }
   };
   
@@ -286,13 +286,13 @@ const InformesEjecutivosPage: React.FC = () => {
         throw new Error(data.error || 'Error desconocido');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de conexiÃ³n');
+      setError(err instanceof Error ? err.message : 'Error de conexión');
     } finally {
       setLoading(false);
     }
   };
   
-  // Recargar cuando cambia perÃ­odo
+  // Recargar cuando cambia período
   useEffect(() => {
     if (autenticado && pinGuardado) {
       cargarDatos();
@@ -300,7 +300,7 @@ const InformesEjecutivosPage: React.FC = () => {
   }, [anioSeleccionado, mesSeleccionado]);
   
   // ============================================
-  // GENERACIÃ“N DE PDF
+  // GENERACIÓN DE PDF
   // ============================================
   
   const generarPDF = async () => {
@@ -323,14 +323,14 @@ const InformesEjecutivosPage: React.FC = () => {
       const colorGris: [number, number, number] = [107, 114, 128];
       
       // ============================================
-      // PÃGINA 1: PORTADA
+      // PÁGINA 1: PORTADA
       // ============================================
       
       // Header con gradiente
       doc.setFillColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
       doc.rect(0, 0, pageWidth, 80, 'F');
       
-      // Logo cÃ­rculo
+      // Logo círculo
       doc.setFillColor(255, 255, 255);
       doc.circle(pageWidth / 2, 35, 18, 'F');
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
@@ -338,12 +338,12 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.text('IDM', pageWidth / 2, 38, { align: 'center' });
       
-      // TÃ­tulo
+      // Título
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.text('INFORME EJECUTIVO MENSUAL', pageWidth / 2, 65, { align: 'center' });
       
-      // PerÃ­odo
+      // Período
       const nombreMes = datos.periodo.nombre.charAt(0).toUpperCase() + datos.periodo.nombre.slice(1);
       doc.setFontSize(14);
       doc.text(nombreMes, pageWidth / 2, 73, { align: 'center' });
@@ -363,12 +363,12 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setFontSize(10);
       doc.text(`${datos.indicadorSalud.emoji} ${datos.indicadorSalud.texto}`, pageWidth / 2, 98, { align: 'center' });
       
-      // SubtÃ­tulo
+      // Subtítulo
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.setFontSize(12);
-      doc.text('Instituto Dr. Mercado - Centro de OftalmologÃ­a', pageWidth / 2, 115, { align: 'center' });
+      doc.text('Instituto Dr. Mercado - Centro de Oftalmología', pageWidth / 2, 115, { align: 'center' });
       
-      // Box de mÃ©tricas principales
+      // Box de métricas principales
       doc.setFillColor(248, 250, 252);
       doc.roundedRect(margin, 130, contentWidth, 80, 3, 3, 'F');
       
@@ -402,16 +402,16 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.text(String(datos.resumen.profesionales), margin + kpiWidth * 2.5, kpiY + 12, { align: 'center' });
       
-      // LÃ­nea separadora
+      // Línea separadora
       doc.setDrawColor(200, 200, 200);
       doc.line(margin + 10, kpiY + 25, pageWidth - margin - 10, kpiY + 25);
       
-      // MÃ‰TRICAS HOMOGENEIZADAS
+      // MÉTRICAS HOMOGENEIZADAS
       const homY = kpiY + 35;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
-      doc.text('MÃ‰TRICAS HOMOGENEIZADAS (AJUSTADAS POR INFLACIÃ“N)', margin + 10, homY);
+      doc.text('MÉTRICAS HOMOGENEIZADAS (AJUSTADAS POR INFLACIÓN)', margin + 10, homY);
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
@@ -426,10 +426,10 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.text(`(TC: \$${formatNumber(datos.resumen.ingresosUSD.tipoCambio)})`, margin + 80, homY + 10);
       
-      // ExoftalmologÃ­as
+      // Exoftalmologías
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
       doc.setFontSize(10);
-      doc.text('En ExoftalmologÃ­as:', margin + 10, homY + 20);
+      doc.text('En Exoftalmologías:', margin + 10, homY + 20);
       doc.setFont('helvetica', 'bold');
       doc.text(`${formatNumber(datos.resumen.ingresosExoft.valor)} equiv.`, margin + 55, homY + 20);
       doc.setFont('helvetica', 'normal');
@@ -442,16 +442,16 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.roundedRect(margin, 220, contentWidth, 15, 2, 2, 'F');
       doc.setTextColor(146, 64, 14);
       doc.setFontSize(9);
-      doc.text('âš ï¸ DOCUMENTO CONFIDENCIAL - Solo para uso interno de la DirecciÃ³n', pageWidth / 2, 229, { align: 'center' });
+      doc.text('⚠️ DOCUMENTO CONFIDENCIAL - Solo para uso interno de la Dirección', pageWidth / 2, 229, { align: 'center' });
       
       // Footer
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.setFontSize(8);
       doc.text(`Generado: ${new Date().toLocaleString('es-AR')}`, pageWidth / 2, 280, { align: 'center' });
-      doc.text('Sistema de Costos - P. FamÃ¡ | Desarrollo', pageWidth / 2, 285, { align: 'center' });
+      doc.text('Sistema de Costos - P. Famá | Desarrollo', pageWidth / 2, 285, { align: 'center' });
       
       // ============================================
-      // PÃGINA 2: RESUMEN EJECUTIVO
+      // PÁGINA 2: RESUMEN EJECUTIVO
       // ============================================
       
       doc.addPage();
@@ -483,7 +483,7 @@ const InformesEjecutivosPage: React.FC = () => {
       
       doc.setFontSize(8);
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
-      doc.text('PerÃ­odo', colX[0], y + 20);
+      doc.text('Período', colX[0], y + 20);
       doc.text('Nominal (\$)', colX[1], y + 20);
       doc.text('En USD', colX[2], y + 20);
       doc.text('En Exoft.', colX[3], y + 20);
@@ -533,8 +533,8 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
-      doc.text('* "Var. Real" muestra la variaciÃ³n en USD, que refleja el crecimiento/decrecimiento real ajustado por inflaciÃ³n.', margin + 5, y);
-      doc.text(`* "En Exoft." muestra cuÃ¡ntas exoftalmologÃ­as equivalentes se facturaron (precio ref: ${formatCurrency(datos.homogeneizacion.precioExoftalmologia.actual)}).`, margin + 5, y + 5);
+      doc.text('* "Var. Real" muestra la variación en USD, que refleja el crecimiento/decrecimiento real ajustado por inflación.', margin + 5, y);
+      doc.text(`* "En Exoft." muestra cuántas exoftalmologías equivalentes se facturaron (precio ref: ${formatCurrency(datos.homogeneizacion.precioExoftalmologia.actual)}).`, margin + 5, y + 5);
       
       // KPIs adicionales
       y += 25;
@@ -552,12 +552,12 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.text(formatCurrency(datos.resumen.ingresos.ticketPromedio), margin + kpi2Width * 0.5, y + 20, { align: 'center' });
       
       doc.setFont('helvetica', 'normal');
-      doc.text('DÃ­as Activos', margin + kpi2Width * 1.5, y + 10, { align: 'center' });
+      doc.text('Días Activos', margin + kpi2Width * 1.5, y + 10, { align: 'center' });
       doc.setFont('helvetica', 'bold');
       doc.text(String(datos.resumen.diasActivos), margin + kpi2Width * 1.5, y + 20, { align: 'center' });
       
       doc.setFont('helvetica', 'normal');
-      doc.text('Promedio/DÃ­a', margin + kpi2Width * 2.5, y + 10, { align: 'center' });
+      doc.text('Promedio/Día', margin + kpi2Width * 2.5, y + 10, { align: 'center' });
       doc.setFont('helvetica', 'bold');
       doc.text(String(datos.resumen.promedioDiario), margin + kpi2Width * 2.5, y + 20, { align: 'center' });
       
@@ -566,7 +566,7 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.text(String(datos.resumen.obrasSociales), margin + kpi2Width * 3.5, y + 20, { align: 'center' });
       
-      // ParÃ¡metros de homogeneizaciÃ³n
+      // Parámetros de homogeneización
       y += 55;
       doc.setFillColor(239, 246, 255);
       doc.roundedRect(margin, y, contentWidth, 35, 3, 3, 'F');
@@ -574,7 +574,7 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text('ðŸ“Š ParÃ¡metros de HomogeneizaciÃ³n Utilizados', margin + 5, y + 10);
+      doc.text('📊 Parámetros de Homogeneización Utilizados', margin + 5, y + 10);
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
@@ -582,15 +582,15 @@ const InformesEjecutivosPage: React.FC = () => {
       
       const homData = datos.homogeneizacion;
       doc.text(`Tipo de Cambio: Actual \$${formatNumber(homData.tipoCambio.actual)} | Anterior \$${formatNumber(homData.tipoCambio.anterior)} | Interanual \$${formatNumber(homData.tipoCambio.interanual)}`, margin + 5, y + 20);
-      doc.text(`Precio ExoftalmologÃ­a: Actual ${formatCurrency(homData.precioExoftalmologia.actual)} | Anterior ${formatCurrency(homData.precioExoftalmologia.anterior)} | Interanual ${formatCurrency(homData.precioExoftalmologia.interanual)}`, margin + 5, y + 28);
+      doc.text(`Precio Exoftalmología: Actual ${formatCurrency(homData.precioExoftalmologia.actual)} | Anterior ${formatCurrency(homData.precioExoftalmologia.anterior)} | Interanual ${formatCurrency(homData.precioExoftalmologia.interanual)}`, margin + 5, y + 28);
       
-      // Footer pÃ¡gina
+      // Footer página
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.setFontSize(8);
-      doc.text('PÃ¡gina 2 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('Página 2 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
       
       // ============================================
-      // PÃGINA 3: TOP PRESTACIONES
+      // PÁGINA 3: TOP PRESTACIONES
       // ============================================
       
       doc.addPage();
@@ -601,7 +601,7 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('ANÃLISIS POR PRESTACIÃ“N', margin, 17);
+      doc.text('ANÁLISIS POR PRESTACIÓN', margin, 17);
       
       y = 35;
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
@@ -618,8 +618,8 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.text('#', margin + 3, y + 6);
-      doc.text('CÃ³digo', margin + 12, y + 6);
-      doc.text('PrestaciÃ³n', margin + 35, y + 6);
+      doc.text('Código', margin + 12, y + 6);
+      doc.text('Prestación', margin + 35, y + 6);
       doc.text('Cant.', margin + 115, y + 6);
       doc.text('Ingresos', margin + 135, y + 6);
       doc.text('%', margin + 170, y + 6);
@@ -647,13 +647,13 @@ const InformesEjecutivosPage: React.FC = () => {
         doc.text(`${prest.porcentaje.toFixed(1)}%`, margin + 170, rowY + 6);
       });
       
-      // Footer pÃ¡gina
+      // Footer página
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.setFontSize(8);
-      doc.text('PÃ¡gina 3 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('Página 3 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
       
       // ============================================
-      // PÃGINA 4: TOP PRESTADORES
+      // PÁGINA 4: TOP PRESTADORES
       // ============================================
       
       doc.addPage();
@@ -664,7 +664,7 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('ANÃLISIS POR PROFESIONAL', margin, 17);
+      doc.text('ANÁLISIS POR PROFESIONAL', margin, 17);
       
       y = 35;
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
@@ -708,13 +708,13 @@ const InformesEjecutivosPage: React.FC = () => {
         doc.text(`${prest.porcentaje.toFixed(1)}%`, margin + 170, rowY + 7);
       });
       
-      // Footer pÃ¡gina
+      // Footer página
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.setFontSize(8);
-      doc.text('PÃ¡gina 4 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('Página 4 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
       
       // ============================================
-      // PÃGINA 5: TOP OBRAS SOCIALES
+      // PÁGINA 5: TOP OBRAS SOCIALES
       // ============================================
       
       doc.addPage();
@@ -725,7 +725,7 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('ANÃLISIS POR FINANCIADOR', margin, 17);
+      doc.text('ANÁLISIS POR FINANCIADOR', margin, 17);
       
       y = 35;
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
@@ -771,13 +771,13 @@ const InformesEjecutivosPage: React.FC = () => {
         doc.text(`${os.porcentaje.toFixed(1)}%`, margin + 170, rowY + 6);
       });
       
-      // Footer pÃ¡gina
+      // Footer página
       doc.setTextColor(colorGris[0], colorGris[1], colorGris[2]);
       doc.setFontSize(8);
-      doc.text('PÃ¡gina 5 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('Página 5 de 6', pageWidth / 2, pageHeight - 10, { align: 'center' });
       
       // ============================================
-      // PÃGINA 6: INSIGHTS Y CONCLUSIONES
+      // PÁGINA 6: INSIGHTS Y CONCLUSIONES
       // ============================================
       
       doc.addPage();
@@ -793,7 +793,7 @@ const InformesEjecutivosPage: React.FC = () => {
       y = 35;
       doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
       doc.setFontSize(11);
-      doc.text('Observaciones AutomÃ¡ticas del PerÃ­odo', margin, y);
+      doc.text('Observaciones Automáticas del Período', margin, y);
       
       y += 10;
       
@@ -833,7 +833,7 @@ const InformesEjecutivosPage: React.FC = () => {
         y += 25;
       });
       
-      // SecciÃ³n "PrÃ³ximamente"
+      // Sección "Próximamente"
       y = Math.max(y, 200);
       doc.setFillColor(254, 249, 195);
       doc.roundedRect(margin, y, contentWidth, 30, 3, 3, 'F');
@@ -841,11 +841,11 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(146, 64, 14);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('ðŸš€ PrÃ³ximamente: AnÃ¡lisis de Rentabilidad', margin + 5, y + 12);
+      doc.text('🚀 Próximamente: Análisis de Rentabilidad', margin + 5, y + 12);
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text('En futuras versiones incluiremos anÃ¡lisis de costos, mÃ¡rgenes por prestaciÃ³n y rentabilidad por profesional.', margin + 5, y + 22);
+      doc.text('En futuras versiones incluiremos análisis de costos, márgenes por prestación y rentabilidad por profesional.', margin + 5, y + 22);
       
       // Footer final
       doc.setFillColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
@@ -853,11 +853,11 @@ const InformesEjecutivosPage: React.FC = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
       doc.text('Sistema de Costos - Instituto Dr. Mercado', pageWidth / 2, pageHeight - 12, { align: 'center' });
-      doc.text('P. FamÃ¡ | Desarrollo', pageWidth / 2, pageHeight - 6, { align: 'center' });
+      doc.text('P. Famá | Desarrollo', pageWidth / 2, pageHeight - 6, { align: 'center' });
       
-      // Footer pÃ¡gina
+      // Footer página
       doc.setTextColor(255, 255, 255);
-      doc.text('PÃ¡gina 6 de 6', pageWidth - margin, pageHeight - 12, { align: 'right' });
+      doc.text('Página 6 de 6', pageWidth - margin, pageHeight - 12, { align: 'right' });
       
       // ============================================
       // GUARDAR PDF
@@ -965,7 +965,7 @@ const InformesEjecutivosPage: React.FC = () => {
               </div>
             </div>
             
-            {/* Selector de perÃ­odo */}
+            {/* Selector de período */}
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-blue-300" />
               <select
@@ -1020,7 +1020,7 @@ const InformesEjecutivosPage: React.FC = () => {
           </div>
         ) : datos ? (
           <div className="space-y-6">
-            {/* Indicador de Salud + BotÃ³n PDF */}
+            {/* Indicador de Salud + Botón PDF */}
             <div className="flex items-center justify-between">
               <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium ${
                 datos.indicadorSalud.nivel === 'excelente' ? 'bg-green-500' :
@@ -1091,13 +1091,13 @@ const InformesEjecutivosPage: React.FC = () => {
                 </div>
               </div>
               
-              {/* ExoftalmologÃ­as Equivalentes */}
+              {/* Exoftalmologías Equivalentes */}
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 shadow-sm border border-purple-200">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-lg">ðŸ¥</span>
+                    <span className="text-white text-lg">🏥</span>
                   </div>
-                  <span className="text-purple-700 text-sm font-medium">ExoftalmologÃ­as Equiv.</span>
+                  <span className="text-purple-700 text-sm font-medium">Exoftalmologías Equiv.</span>
                 </div>
                 <div className="text-2xl font-bold text-purple-800">{formatNumber(datos.resumen.ingresosExoft.valor)}</div>
                 <div className="mt-2 flex items-center gap-2">
@@ -1109,7 +1109,7 @@ const InformesEjecutivosPage: React.FC = () => {
             
             {/* Insights */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Insights AutomÃ¡ticos</h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Insights Automáticos</h2>
               <div className="space-y-3">
                 {datos.insights.map((insight, index) => (
                   <div 
@@ -1182,14 +1182,14 @@ const InformesEjecutivosPage: React.FC = () => {
               </div>
             </div>
             
-            {/* PrÃ³ximamente */}
+            {/* Próximamente */}
             <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">ðŸš€</span>
+                <span className="text-2xl">🚀</span>
                 <div>
-                  <h3 className="font-bold text-amber-800">PrÃ³ximamente: AnÃ¡lisis de Rentabilidad</h3>
+                  <h3 className="font-bold text-amber-800">Próximamente: Análisis de Rentabilidad</h3>
                   <p className="text-amber-700 text-sm mt-1">
-                    En futuras versiones incluiremos anÃ¡lisis de costos, mÃ¡rgenes por prestaciÃ³n y rentabilidad por profesional.
+                    En futuras versiones incluiremos análisis de costos, márgenes por prestación y rentabilidad por profesional.
                   </p>
                 </div>
               </div>
@@ -1197,7 +1197,7 @@ const InformesEjecutivosPage: React.FC = () => {
             
             {/* Footer */}
             <div className="text-center text-gray-400 text-sm pt-4">
-              Sistema de Costos - Instituto Dr. Mercado | P. FamÃ¡ | Desarrollo
+              Sistema de Costos - Instituto Dr. Mercado | P. Famá | Desarrollo
             </div>
           </div>
         ) : null}

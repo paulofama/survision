@@ -1,10 +1,10 @@
-﻿// ============================================
-// ANÃLISIS MARGINAL - INDEX
+// ============================================
+// ANÁLISIS MARGINAL - INDEX
 // Sistema de Costos - Instituto Dr. Mercado
-// Exportaciones centralizadas del mÃ³dulo
+// Exportaciones centralizadas del módulo
 // ============================================
 
-// PÃ¡ginas
+// Páginas
 export { default as DashboardMarginalPage } from './DashboardMarginalPage';
 export { default as PorPrestacionPage } from './PorPrestacionPage';
 export { default as PorPrestadorPage } from './PorPrestadorPage';
