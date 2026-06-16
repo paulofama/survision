@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import { FileText, ShoppingCart, Scale, TrendingUp, RefreshCw } from 'lucide-react';
 import {
-  useFiscalPeriodos, getAlicuotas, sincronizarPeriodo, IvaAlicuota,
+  useFiscalPeriodos, useAutoRefresh, getAlicuotas, sincronizarPeriodo, IvaAlicuota,
   fmtMoneda0, fmtMoneda, fmtPeriodo,
 } from '../hooks/useFiscalIva';
 
@@ -23,6 +23,11 @@ const FiscalDashboardPage: React.FC = () => {
   useEffect(() => { if (periodo) getAlicuotas(periodo).then(setAlic).catch(() => setAlic([])); }, [periodo]);
 
   const sel = useMemo(() => periodos.find(p => p.periodo === periodo) || null, [periodos, periodo]);
+
+  const { refreshing, autoMsg } = useAutoRefresh(periodo, async () => {
+    await refetch();
+    if (periodo) { try { setAlic(await getAlicuotas(periodo)); } catch { /* */ } }
+  });
 
   const actualizar = async () => {
     if (!periodo) return;
@@ -84,13 +89,13 @@ const FiscalDashboardPage: React.FC = () => {
           <select value={periodo || ''} onChange={e => setPeriodo(e.target.value)} disabled={loading} className="px-3 py-2 border border-gray-300 rounded-lg">
             {periodos.map(p => <option key={p.periodo} value={p.periodo}>{fmtPeriodo(p.periodo)}</option>)}
           </select>
-          <button onClick={actualizar} disabled={sincronizando || !periodo} className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50">
-            <RefreshCw className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`} /> Actualizar
+          <button onClick={actualizar} disabled={sincronizando || refreshing || !periodo} className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50">
+            <RefreshCw className={`h-4 w-4 ${(sincronizando || refreshing) ? 'animate-spin' : ''}`} /> Actualizar
           </button>
         </div>
       </div>
 
-      {msg && <div className="mb-4 p-3 rounded-lg bg-slate-100 text-slate-800 text-sm">{msg}</div>}
+      {(msg || autoMsg) && <div className="mb-4 p-3 rounded-lg bg-slate-100 text-slate-800 text-sm">{msg || autoMsg}</div>}
 
       {/* KPIs del periodo seleccionado */}
       {sel && (

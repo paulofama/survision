@@ -5,7 +5,7 @@
 // el backend SOLO la sincronizacion GECLISA->Supabase (auto/manual).
 // ============================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { getApiBaseUrl } from '@shared/lib/apiConfig';
 
@@ -115,4 +115,41 @@ export const useFiscalLibro = (tipo: 'ventas' | 'compras', periodo: string | nul
 
   useEffect(() => { cargar(); }, [cargar]);
   return { rows, loading, error, refetch: cargar };
+};
+
+// ---- hook: auto-refresh al abrir/cambiar periodo ----
+// Chequea freshness (GECLISA vs Supabase) y, si esta desactualizado, sincroniza
+// solo. Una vez por periodo por sesion. Silencioso si GECLISA no responde
+// (se sigue mostrando lo que hay en Supabase).
+export const useAutoRefresh = (periodo: string | null, onSynced: () => Promise<void> | void) => {
+  const [refreshing, setRefreshing] = useState(false);
+  const [autoMsg, setAutoMsg] = useState('');
+  const done = useRef<Set<string>>(new Set());
+  const cb = useRef(onSynced);
+  cb.current = onSynced;
+
+  useEffect(() => {
+    if (!periodo || done.current.has(periodo)) return;
+    done.current.add(periodo);
+    let cancel = false;
+    (async () => {
+      try {
+        const f = await getFreshness(periodo);
+        if (f.stale && !cancel) {
+          setRefreshing(true);
+          setAutoMsg(`Actualizando ${fmtPeriodo(periodo)} desde GECLISA...`);
+          await sincronizarPeriodo(periodo);
+          await cb.current?.();
+          if (!cancel) { setAutoMsg('Datos actualizados desde GECLISA.'); setTimeout(() => setAutoMsg(''), 3500); }
+        }
+      } catch {
+        /* GECLISA inaccesible: se muestra lo de Supabase, sin ruido */
+      } finally {
+        if (!cancel) setRefreshing(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [periodo]);
+
+  return { refreshing, autoMsg };
 };

@@ -6,7 +6,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, RefreshCw, Download, Search, ShoppingCart } from 'lucide-react';
 import {
-  useFiscalPeriodos, useFiscalLibro, sincronizarPeriodo, fmtMoneda, fmtMoneda0, fmtNum, fmtPeriodo,
+  useFiscalPeriodos, useFiscalLibro, useAutoRefresh, sincronizarPeriodo, fmtMoneda, fmtMoneda0, fmtNum, fmtPeriodo,
 } from '../hooks/useFiscalIva';
 
 const IvaComprasPage: React.FC = () => {
@@ -19,6 +19,7 @@ const IvaComprasPage: React.FC = () => {
   useEffect(() => { if (!periodo && periodos.length) setPeriodo(periodos[periodos.length - 1].periodo); }, [periodos, periodo]);
 
   const { rows, loading, error, refetch } = useFiscalLibro('compras', periodo);
+  const { refreshing, autoMsg } = useAutoRefresh(periodo, async () => { await refetch(); await refetchPer(); });
 
   const filtradas = useMemo(() => {
     if (!busqueda.trim()) return rows;
@@ -65,13 +66,13 @@ const IvaComprasPage: React.FC = () => {
             {periodos.map(p => <option key={p.periodo} value={p.periodo}>{fmtPeriodo(p.periodo)}</option>)}
           </select>
           <button onClick={exportarCSV} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"><Download className="h-4 w-4" /> Exportar</button>
-          <button onClick={actualizar} disabled={sincronizando || !periodo} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-            <RefreshCw className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`} /> Actualizar
+          <button onClick={actualizar} disabled={sincronizando || refreshing || !periodo} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+            <RefreshCw className={`h-4 w-4 ${(sincronizando || refreshing) ? 'animate-spin' : ''}`} /> Actualizar
           </button>
         </div>
       </div>
 
-      {msg && <div className="mb-4 p-3 rounded-lg bg-indigo-50 text-indigo-800 text-sm">{msg}</div>}
+      {(msg || autoMsg) && <div className="mb-4 p-3 rounded-lg bg-indigo-50 text-indigo-800 text-sm">{msg || autoMsg}</div>}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-gray-500">Comprobantes</p><p className="text-2xl font-bold text-gray-900">{fmtNum(filtradas.length)}</p></div>
