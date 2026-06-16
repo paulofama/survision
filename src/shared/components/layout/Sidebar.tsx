@@ -173,6 +173,21 @@ const navItems: NavItem[] = [
   },
 
   // ============================================
+  // FISCAL (IVA Ventas / Compras / Dashboard)
+  // Sin requierePermiso: lo usa Paulo (Auditor/Contador).
+  // ============================================
+  {
+    path: '/fiscal',
+    icon: FileBarChart,
+    label: 'Fiscal',
+    subItems: [
+      { path: '/fiscal', label: 'Dashboard IVA', icon: LayoutDashboard },
+      { path: '/fiscal/ventas', label: 'IVA Ventas', icon: FileText },
+      { path: '/fiscal/compras', label: 'IVA Compras', icon: Receipt }
+    ]
+  },
+
+  // ============================================
   // SUELDOS (Modulo nuevo - Fase 1 + Fase 2)
   // Reportes se agrega en Fase 5 (gated por sueldos:reportes).
   // ============================================
@@ -257,6 +272,8 @@ const navItems: NavItem[] = [
 const getCategoryForItem = (item: NavItem): string | null => {
   switch (item.path) {
     case '/tesoreria':
+      return 'FINANZAS';
+    case '/fiscal':
       return 'FINANZAS';
     case '/gestion-accesos':
       return 'ADMINISTRACIÓN';

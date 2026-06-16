@@ -91,6 +91,21 @@ const PagosProveedoresPage = lazy(() =>
     default: () => <ComingSoonPage title="Pagos a Proveedores" />
   }))
 );
+const FiscalDashboardPage = lazy(() =>
+  import('@modules/fiscal/pages/FiscalDashboardPage').catch(() => ({
+    default: () => <ComingSoonPage title="Fiscal - Dashboard IVA" />
+  }))
+);
+const IvaVentasPage = lazy(() =>
+  import('@modules/fiscal/pages/IvaVentasPage').catch(() => ({
+    default: () => <ComingSoonPage title="IVA Ventas" />
+  }))
+);
+const IvaComprasPage = lazy(() =>
+  import('@modules/fiscal/pages/IvaComprasPage').catch(() => ({
+    default: () => <ComingSoonPage title="IVA Compras" />
+  }))
+);
 
 // ============================================
 // DERIVACIONES - LAZY LOADING
@@ -265,6 +280,9 @@ const App: React.FC = () => {
                       <Route path="/tesoreria/caja/movimientos" element={<CajaMovimientosPage />} />
                       <Route path="/tesoreria/caja/saldo-historico" element={<SaldoHistoricoPage />} />
                       <Route path="/tesoreria/proveedores" element={<PagosProveedoresPage />} />
+                      <Route path="/fiscal" element={<FiscalDashboardPage />} />
+                      <Route path="/fiscal/ventas" element={<IvaVentasPage />} />
+                      <Route path="/fiscal/compras" element={<IvaComprasPage />} />
                       <Route path="/tesoreria/bancos" element={<ComingSoonPage title="Bancos" />} />
                       
                       {/* ============================================ */}
