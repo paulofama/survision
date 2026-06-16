@@ -86,6 +86,7 @@ const FiscalDashboardPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <Link to="/fiscal/ventas" className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><FileText className="h-4 w-4" /> IVA Ventas</Link>
           <Link to="/fiscal/compras" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"><ShoppingCart className="h-4 w-4" /> IVA Compras</Link>
+          <Link to="/fiscal/resumen" className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800"><Scale className="h-4 w-4" /> Resumen Anual</Link>
           <select value={periodo || ''} onChange={e => setPeriodo(e.target.value)} disabled={loading} className="px-3 py-2 border border-gray-300 rounded-lg">
             {periodos.map(p => <option key={p.periodo} value={p.periodo}>{fmtPeriodo(p.periodo)}</option>)}
           </select>

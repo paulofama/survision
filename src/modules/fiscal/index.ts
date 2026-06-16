@@ -11,3 +11,4 @@ export { useFiscalPeriodos, useFiscalLibro } from './hooks/useFiscalIva';
 export { default as FiscalDashboardPage } from './pages/FiscalDashboardPage';
 export { default as IvaVentasPage } from './pages/IvaVentasPage';
 export { default as IvaComprasPage } from './pages/IvaComprasPage';
+export { default as ResumenAnualPage } from './pages/ResumenAnualPage';

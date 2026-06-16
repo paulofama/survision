@@ -183,7 +183,8 @@ const navItems: NavItem[] = [
     subItems: [
       { path: '/fiscal', label: 'Dashboard IVA', icon: LayoutDashboard },
       { path: '/fiscal/ventas', label: 'IVA Ventas', icon: FileText },
-      { path: '/fiscal/compras', label: 'IVA Compras', icon: Receipt }
+      { path: '/fiscal/compras', label: 'IVA Compras', icon: Receipt },
+      { path: '/fiscal/resumen', label: 'Resumen Anual', icon: BarChart3 }
     ]
   },
 

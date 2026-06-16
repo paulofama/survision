@@ -106,6 +106,11 @@ const IvaComprasPage = lazy(() =>
     default: () => <ComingSoonPage title="IVA Compras" />
   }))
 );
+const ResumenAnualPage = lazy(() =>
+  import('@modules/fiscal/pages/ResumenAnualPage').catch(() => ({
+    default: () => <ComingSoonPage title="Resumen Anual IVA" />
+  }))
+);
 
 // ============================================
 // DERIVACIONES - LAZY LOADING
@@ -283,6 +288,7 @@ const App: React.FC = () => {
                       <Route path="/fiscal" element={<FiscalDashboardPage />} />
                       <Route path="/fiscal/ventas" element={<IvaVentasPage />} />
                       <Route path="/fiscal/compras" element={<IvaComprasPage />} />
+                      <Route path="/fiscal/resumen" element={<ResumenAnualPage />} />
                       <Route path="/tesoreria/bancos" element={<ComingSoonPage title="Bancos" />} />
                       
                       {/* ============================================ */}
