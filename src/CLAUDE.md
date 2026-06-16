@@ -116,7 +116,7 @@ src/
 ## Estado actual de módulos
 
 ### Módulos en producción
-- **Análisis Marginal**: `DashboardMarginalPage`, `PorPrestacionPage`, `EvolucionTemporalPage`. (Hay bug pendiente en evolución temporal — ver "Issues conocidos".)
+- **Análisis Marginal**: `DashboardMarginalPage`, `PorPrestacionPage`, `EvolucionTemporalPage`.
 - **Presupuestador**: `Presupuestador.tsx`, `BusquedaPresupuestosPage`. Base secundaria.
 - **Liquidaciones de honorarios**: `LiqHonorariosForm`, `LiqHonorariosList`, `LiqHonorariosReport`.
 - **Tesorería/Caja**: implementado. Caja (`MovValoresEnca`: FAC/IC/NC/EC/...) + sección **Pagos a Proveedores** (OP/PV desde `MovProv`, egresos a proveedores, aparte del saldo de caja). Resuelto 2026-06-15.
@@ -126,7 +126,8 @@ src/
 - **PDFs de gestión**: `generarInformeGestion.ts`, `InformeGestionModal`.
 
 ### Issues conocidos
-- **Evolución Temporal**: muestra "No hay meses en el rango seleccionado" en algunos casos. Hipótesis: `anioHasta`/`mesHasta` llegan como falsy, o el endpoint difiere de `/prestaciones/:anio/:mes`. Debug hook con tags `[EvolucionTemporal]` ya disponible.
+
+- Ninguno pendiente. (Evolución Temporal y Tesorería OP/PV resueltos el 2026-06-15.)
 
 ---
 
