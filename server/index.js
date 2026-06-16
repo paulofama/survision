@@ -31,6 +31,7 @@ const empleadosRoutes = require('./routes/empleados'); // ← SUELDOS - EMPLEADO
 const f931Routes = require('./routes/f931');           // ← SUELDOS - F.931 PARSER (FASE 3)
 const conciliacionRoutes = require('./routes/conciliacion'); // ← SUELDOS - CONCILIACION (FASE 3)
 const asientosRoutes = require('./routes/asientos');         // ← SUELDOS - ASIENTOS (FASE 4)
+const fiscalRoutes = require('./routes/fiscal');             // ← MODULO FISCAL (IVA)
 
 // ============================================
 // FUNCIÓN PARA OBTENER IP LOCAL
@@ -237,6 +238,9 @@ app.use('/api/conciliacion', conciliacionRoutes);
 
 // Rutas de Asientos (Modulo Sueldos - propuesta de devengamiento, Fase 4)
 app.use('/api/asientos', asientosRoutes);
+
+// Modulo Fiscal (IVA): sync GECLISA -> Supabase + freshness
+app.use('/api/fiscal', fiscalRoutes);
 
 // ============================================
 // MANEJO DE ERRORES
