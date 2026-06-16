@@ -414,4 +414,86 @@ router.get('/caja/dashboard', async (req, res) => {
   }
 });
 
+// ============================================
+// PAGOS A PROVEEDORES (OP / PV) — viven en MovProv, NO en la caja (MovValoresEnca).
+// Sección aparte: egresos a proveedores desde banco. No se mezclan con el saldo de caja.
+//   OP = Orden de Pago (TComp_id 4), PV = Pagos Varios (TComp_id 13). Signo -1 (egreso).
+// ============================================
+
+// GET /api/tesoreria/proveedores/movimientos
+// Lista OP/PV con filtros (fechaDesde, fechaHasta, tipo OP|PV, busqueda) + totales.
+router.get('/proveedores/movimientos', async (req, res) => {
+  try {
+    const { fechaDesde, fechaHasta, tipo, busqueda, limite = 500 } = req.query;
+    const pool = await getPool();
+    const request = pool.request();
+
+    // OP=4, PV=13. Si tipo viene, se acota a uno; si no, ambos.
+    let tcompFilter = 'mp.TComp_id IN (4, 13)';
+    if (tipo === 'OP') tcompFilter = 'mp.TComp_id = 4';
+    else if (tipo === 'PV') tcompFilter = 'mp.TComp_id = 13';
+
+    const where = ['(mp.Anulado IS NULL OR mp.Anulado = 0)', tcompFilter];
+    if (fechaDesde) { where.push('mp.Fecha >= @fechaDesde'); request.input('fechaDesde', sql.VarChar, formatDateForSQL(fechaDesde)); }
+    if (fechaHasta) { where.push('mp.Fecha <= @fechaHasta'); request.input('fechaHasta', sql.VarChar, formatDateForSQL(fechaHasta)); }
+    if (busqueda) {
+      where.push('(mp.Nombre LIKE @busqueda OR mp.Obs LIKE @busqueda OR mp.ObsPagosVarios LIKE @busqueda OR CAST(mp.Numero AS VARCHAR) LIKE @busqueda)');
+      request.input('busqueda', sql.VarChar, `%${busqueda}%`);
+    }
+    request.input('limite', sql.Int, parseInt(limite));
+    const whereClause = where.join(' AND ');
+
+    const result = await request.query(`
+      SELECT TOP (@limite)
+        mp.MProv_id AS id,
+        CAST(mp.Fecha AS DATE) AS fecha,
+        RTRIM(tc.TComp_sigla) AS tipo_comprobante,
+        RTRIM(tc.TComp_Nombre) AS tipo_nombre,
+        mp.Letra AS letra,
+        mp.Suc AS sucursal,
+        mp.Numero AS numero,
+        RTRIM(ISNULL(mp.Nombre, '')) AS proveedor,
+        RTRIM(ISNULL(mp.CUIT, '')) AS cuit,
+        RTRIM(COALESCE(NULLIF(RTRIM(mp.ObsPagosVarios), ''), mp.Obs, '')) AS observaciones,
+        mp.Total AS importe,
+        mp.Usu_Alta AS usuario,
+        mp.Fec_Alta AS fecha_alta
+      FROM MovProv mp
+      LEFT JOIN TipoComp tc ON mp.TComp_id = tc.TComp_id
+      WHERE ${whereClause}
+      ORDER BY mp.Fecha DESC, mp.MProv_id DESC
+    `);
+
+    const totRequest = pool.request();
+    if (fechaDesde) totRequest.input('fechaDesde', sql.VarChar, formatDateForSQL(fechaDesde));
+    if (fechaHasta) totRequest.input('fechaHasta', sql.VarChar, formatDateForSQL(fechaHasta));
+    if (busqueda) totRequest.input('busqueda', sql.VarChar, `%${busqueda}%`);
+    const totales = await totRequest.query(`
+      SELECT
+        COUNT(*) AS registros,
+        SUM(CASE WHEN mp.TComp_id = 4 THEN mp.Total ELSE 0 END) AS total_op,
+        SUM(CASE WHEN mp.TComp_id = 13 THEN mp.Total ELSE 0 END) AS total_pv,
+        SUM(mp.Total) AS total_egresos
+      FROM MovProv mp
+      WHERE ${whereClause}
+    `);
+    const t = totales.recordset[0] || {};
+
+    res.json({
+      success: true,
+      data: result.recordset,
+      totales: {
+        registros: t.registros || 0,
+        total_op: t.total_op || 0,
+        total_pv: t.total_pv || 0,
+        total_egresos: t.total_egresos || 0,
+      },
+      generadoEn: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo pagos a proveedores:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

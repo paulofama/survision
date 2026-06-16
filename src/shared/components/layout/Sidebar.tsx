@@ -167,6 +167,7 @@ const navItems: NavItem[] = [
       { path: '/tesoreria', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/tesoreria/caja/movimientos', label: 'Movimientos Caja', icon: CreditCard },
       { path: '/tesoreria/caja/saldo-historico', label: 'Saldo Histórico', icon: History },
+      { path: '/tesoreria/proveedores', label: 'Pagos a Proveedores', icon: Receipt },
       { path: '/tesoreria/bancos', label: 'Bancos', icon: Banknote }
     ]
   },

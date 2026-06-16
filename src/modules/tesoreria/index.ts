@@ -9,6 +9,9 @@
 export { useTesoreriaCaja } from './hooks/useTesoreriaCaja';
 export type { SaldoHistorico } from './hooks/useTesoreriaCaja';
 
+export { useTesoreriaProveedores } from './hooks/useTesoreriaProveedores';
+
 export { default as TesoreriaDashboardPage } from './pages/TesoreriaDashboardPage';
 export { default as CajaMovimientosPage } from './pages/CajaMovimientosPage';
 export { default as SaldoHistoricoPage } from './pages/SaldoHistoricoPage';
+export { default as PagosProveedoresPage } from './pages/PagosProveedoresPage';

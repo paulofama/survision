@@ -86,6 +86,11 @@ const SaldoHistoricoPage = lazy(() =>
     default: () => <ComingSoonPage title="Saldo Histórico" />
   }))
 );
+const PagosProveedoresPage = lazy(() =>
+  import('@modules/tesoreria/pages/PagosProveedoresPage').catch(() => ({
+    default: () => <ComingSoonPage title="Pagos a Proveedores" />
+  }))
+);
 
 // ============================================
 // DERIVACIONES - LAZY LOADING
@@ -259,6 +264,7 @@ const App: React.FC = () => {
                       <Route path="/tesoreria" element={<TesoreriaDashboardPage />} />
                       <Route path="/tesoreria/caja/movimientos" element={<CajaMovimientosPage />} />
                       <Route path="/tesoreria/caja/saldo-historico" element={<SaldoHistoricoPage />} />
+                      <Route path="/tesoreria/proveedores" element={<PagosProveedoresPage />} />
                       <Route path="/tesoreria/bancos" element={<ComingSoonPage title="Bancos" />} />
                       
                       {/* ============================================ */}
