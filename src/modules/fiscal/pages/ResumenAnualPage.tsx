@@ -47,6 +47,12 @@ const ResumenAnualPage: React.FC = () => {
       ROWS.forEach(r => { if (r.tipo === 'dato') tot[r.k] = porAnio[y].reduce((s, p) => s + (Number(p[r.k]) || 0), 0); });
       out.push({ tipo: 'total', key: `tot-${y}`, label: `Total ${y}`, year: y, data: tot });
     });
+    // Total general (todos los anios)
+    if (out.length) {
+      const g: any = { periodo: 'Total General' };
+      ROWS.forEach(r => { if (r.tipo === 'dato') g[r.k] = periodos.reduce((s, p) => s + (Number(p[r.k]) || 0), 0); });
+      out.push({ tipo: 'total', key: 'tot-general', label: 'Total Gral.', year: 'TOTAL', data: g });
+    }
     return out;
   }, [periodos]);
 
@@ -95,11 +101,11 @@ const ResumenAnualPage: React.FC = () => {
             <thead>
               <tr className="bg-gray-100 border-b">
                 <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase border-r sticky left-0 bg-gray-100 z-20 min-w-[150px]">Concepto</th>
-                {years.map(y => <th key={y.year} colSpan={y.span} className="px-3 py-1 text-center text-xs font-bold text-gray-700 border-r">{y.year}</th>)}
+                {years.map(y => <th key={y.year} colSpan={y.span} className={`px-3 py-1 text-center text-xs font-bold border-r ${y.year === 'TOTAL' ? 'bg-slate-200 text-slate-800' : 'text-gray-700'}`}>{y.year === 'TOTAL' ? 'Total Gral.' : y.year}</th>)}
               </tr>
               <tr className="bg-gray-50 border-b">
                 {cols.map(c => (
-                  <th key={c.key} className={`px-3 py-2 text-right text-xs font-medium whitespace-nowrap ${c.tipo === 'total' ? 'bg-amber-100 text-amber-800 font-bold border-r' : 'text-gray-500'}`}>{c.tipo === 'total' ? 'Total' : c.label}</th>
+                  <th key={c.key} className={`px-3 py-2 text-right text-xs font-medium whitespace-nowrap ${c.tipo === 'total' ? (c.year === 'TOTAL' ? 'bg-slate-200 text-slate-800 font-bold border-r' : 'bg-amber-100 text-amber-800 font-bold border-r') : 'text-gray-500'}`}>{c.tipo === 'total' ? (c.year === 'TOTAL' ? 'General' : 'Total') : c.label}</th>
                 ))}
               </tr>
             </thead>
@@ -119,7 +125,8 @@ const ResumenAnualPage: React.FC = () => {
                   {cols.map(c => {
                     const v = val(c, r.k);
                     const cls = r.grupo === 'p' ? (v >= 0 ? 'text-red-600' : 'text-green-700') : '';
-                    return <td key={c.key} className={`px-3 py-1.5 text-right font-mono text-xs whitespace-nowrap ${c.tipo === 'total' ? 'bg-amber-50 font-semibold border-r' : ''} ${cls}`}>{fmtC(v)}</td>;
+                    const totCls = c.tipo === 'total' ? (c.year === 'TOTAL' ? 'bg-slate-100 font-bold border-r' : 'bg-amber-50 font-semibold border-r') : '';
+                    return <td key={c.key} className={`px-3 py-1.5 text-right font-mono text-xs whitespace-nowrap ${totCls} ${cls}`}>{fmtC(v)}</td>;
                   })}
                 </tr>
               ))}
