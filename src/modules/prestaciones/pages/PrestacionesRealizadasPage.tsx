@@ -80,6 +80,28 @@ const PrestacionesRealizadasPage: React.FC = () => {
     );
   }, [prestaciones, busquedaLocal]);
 
+  // Totales del conjunto filtrado: reflejan el día (y todos los filtros, incl. búsqueda local),
+  // porque se calculan sobre las filas que el backend ya devolvió filtradas. Para un día/mes
+  // las filas entran completas en el límite de 5000, así que los importes son exactos.
+  const totalesTabla = useMemo(() => {
+    return prestacionesFiltradas.reduce((acc, p) => ({
+      cantidad: acc.cantidad + 1,
+      coseguro: acc.coseguro + (p.coseguro || 0),
+      cobertura: acc.cobertura + (p.cobertura || 0),
+      total: acc.total + (p.total || 0),
+    }), { cantidad: 0, coseguro: 0, cobertura: 0, total: 0 });
+  }, [prestacionesFiltradas]);
+
+  const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const periodoLabel = filtros.dia
+    ? `${String(filtros.dia).padStart(2, '0')}/${String(filtros.mes || '').padStart(2, '0')}/${filtros.anio}`
+    : filtros.mes
+      ? `${MESES_NOMBRE[Number(filtros.mes) - 1] || ''} ${filtros.anio}`
+      : `${filtros.anio}`;
+  const fmtMoneda = (n: number) =>
+    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
+
   // Formatear fecha
   const formatFecha = (fecha: string) => {
     if (!fecha) return '';
@@ -253,6 +275,43 @@ const PrestacionesRealizadasPage: React.FC = () => {
             subtitle="Registros filtrados"
             icon={<FileSpreadsheet className="h-5 w-5" />}
             variant="violet"
+          />
+        </div>
+      </div>
+
+      {/* Totales del período filtrado (responden al Día y a todos los filtros) */}
+      <div className="px-6 pb-2">
+        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          Totales del período filtrado · {periodoLabel}
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            title="Cantidad"
+            value={totalesTabla.cantidad}
+            subtitle="Prácticas filtradas"
+            icon={<FileSpreadsheet className="h-5 w-5" />}
+            variant="violet"
+          />
+          <StatCard
+            title="Coseguro"
+            value={fmtMoneda(totalesTabla.coseguro)}
+            subtitle={periodoLabel}
+            icon={<Activity className="h-5 w-5" />}
+            variant="cyan"
+          />
+          <StatCard
+            title="Cobertura"
+            value={fmtMoneda(totalesTabla.cobertura)}
+            subtitle={periodoLabel}
+            icon={<Building2 className="h-5 w-5" />}
+            variant="blue"
+          />
+          <StatCard
+            title="Facturado"
+            value={fmtMoneda(totalesTabla.total)}
+            subtitle={periodoLabel}
+            icon={<TrendingUp className="h-5 w-5" />}
+            variant="emerald"
           />
         </div>
       </div>
