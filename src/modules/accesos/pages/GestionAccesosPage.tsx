@@ -139,6 +139,12 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     icono: Shield,
     color: 'red'
   },
+  sueldos: {
+    nombre: 'Sueldos',
+    descripcion: 'Acceso al módulo de carga de sueldos',
+    icono: DollarSign,
+    color: 'green'
+  },
   'sueldos:reportes': {
     nombre: 'Sueldos - Reportes',
     descripcion: 'Reportes auditoría de sueldos (sólo Auditor)',
@@ -160,6 +166,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'seguimiento_pacientes',
   'usuarios',
   'roles',
+  'sueldos',
   'sueldos:reportes',
 ];
 

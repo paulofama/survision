@@ -22,6 +22,8 @@ export const MODULOS_SISTEMA = {
   seguimiento_pacientes: { nombre: 'Seguimiento Pacientes', descripcion: 'Seguimiento clínico de pacientes' },
   usuarios: { nombre: 'Usuarios', descripcion: 'Gestión de usuarios del sistema' },
   roles: { nombre: 'Roles y Permisos', descripcion: 'Configuración de roles' },
+  // Acceso a TODO el módulo Sueldos (restringido: se asigna solo al rol del Auditor).
+  sueldos: { nombre: 'Sueldos', descripcion: 'Acceso al módulo de carga de sueldos' },
   // Permiso granular del módulo Sueldos: sólo Auditor (Paulo) lo tiene.
   // Gatea la sección Reportes (Fase 5) y los reportes mensuales en PDF.
   'sueldos:reportes': { nombre: 'Sueldos - Reportes', descripcion: 'Reportes auditoría de sueldos (sólo Auditor)' },
@@ -168,6 +170,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   seguimiento_pacientes: false,
   usuarios: false,
   roles: false,
+  sueldos: false,
   'sueldos:reportes': false,
 };
 
@@ -185,5 +188,6 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   seguimiento_pacientes: true,
   usuarios: true,
   roles: true,
+  sueldos: true,
   'sueldos:reportes': true,
 };

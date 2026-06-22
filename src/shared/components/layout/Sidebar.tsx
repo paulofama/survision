@@ -196,8 +196,9 @@ const navItems: NavItem[] = [
     path: '/sueldos',
     icon: Coins,
     label: 'Sueldos',
-    // Sin requierePermiso a nivel item: contadoras y Paulo usan Sueldos.
-    // El sub-item Reportes se gatea con 'sueldos:reportes' (solo Auditor).
+    // Acceso restringido: requiere el permiso de modulo 'sueldos' (se asigna al
+    // rol del Auditor en Gestion de Accesos). Las rutas tambien lo exigen en App.tsx.
+    requierePermiso: 'sueldos',
     subItems: [
       { path: '/sueldos', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/sueldos/empleados', label: 'Empleados', icon: Users },

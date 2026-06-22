@@ -246,12 +246,12 @@ const App: React.FC = () => {
                       {/* ============================================ */}
                       {/* SUELDOS - MODULO NUEVO (Fase 1 + Fase 2)     */}
                       {/* ============================================ */}
-                      <Route path="/sueldos" element={<SueldosDashboardPage />} />
-                      <Route path="/sueldos/empleados" element={<SueldosEmpleadosPage />} />
-                      <Route path="/sueldos/empleados/nuevo" element={<SueldosEmpleadoFormPage />} />
-                      <Route path="/sueldos/empleados/:id" element={<SueldosEmpleadoFormPage />} />
-                      <Route path="/sueldos/mes/:anio/:mes" element={<SueldosMesDetallePage />} />
-                      <Route path="/sueldos/reportes" element={<SueldosReportesPage />} />
+                      <Route path="/sueldos" element={<ProtectedRoute modulo="sueldos"><SueldosDashboardPage /></ProtectedRoute>} />
+                      <Route path="/sueldos/empleados" element={<ProtectedRoute modulo="sueldos"><SueldosEmpleadosPage /></ProtectedRoute>} />
+                      <Route path="/sueldos/empleados/nuevo" element={<ProtectedRoute modulo="sueldos"><SueldosEmpleadoFormPage /></ProtectedRoute>} />
+                      <Route path="/sueldos/empleados/:id" element={<ProtectedRoute modulo="sueldos"><SueldosEmpleadoFormPage /></ProtectedRoute>} />
+                      <Route path="/sueldos/mes/:anio/:mes" element={<ProtectedRoute modulo="sueldos"><SueldosMesDetallePage /></ProtectedRoute>} />
+                      <Route path="/sueldos/reportes" element={<ProtectedRoute modulo="sueldos"><SueldosReportesPage /></ProtectedRoute>} />
 
                       {/* ============================================ */}
                       {/* ANÁLISIS MARGINAL - RUTAS MULTIPÁGINA */}
