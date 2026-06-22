@@ -20,7 +20,7 @@ const path = require('path');
 const XLSX = require(path.join(__dirname, '..', '..', 'node_modules', 'xlsx'));
 const { supabase, mensajeError } = require('../config/supabase');
 
-const ARCHIVO = 'C:\\FISCAL\\Minuta contable 2026.xlsx';
+const ARCHIVO = 'C:\\FISCAL\\Minuta contable 2026 (2).xlsx';
 const WRITE = process.argv.includes('--write');
 const ANIO = 2026;
 const CTA_BANCO = '1.1.1.03';
@@ -47,6 +47,18 @@ const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 });
 const $ = (n) => fmt.format(Number(n) || 0);
 const log = console.log;
 const r2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+// Agrega lineas por empleado (suma montos): la minuta puede traer 2+ bloques del
+// mismo tipo (ej. 03-2026 tiene 2 bloques de HC) -> se suman por empleado para no
+// romper el upsert (mismo bloque_id,empleado_id repetido en el lote).
+function aggLineas(arr) {
+  const m = new Map();
+  for (const x of arr) {
+    const prev = m.get(x.empleado_id);
+    if (prev) prev.monto_neto_cargado = r2(prev.monto_neto_cargado + x.monto_neto_cargado);
+    else m.set(x.empleado_id, { ...x });
+  }
+  return [...m.values()];
+}
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
 function montoFila(fila) { for (let i = fila.length - 1; i >= 1; i--) { const v = fila[i]; if (typeof v === 'number' && Number.isFinite(v)) return v; if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v); } return null; }
 function seccionEmpleados(filas, headerRe, finRe) {
@@ -127,8 +139,8 @@ async function inicializarMes(mes) {
     log(`  Sind: ${sindOk?'$'+$(sind):'(no)'}`);
 
     if (WRITE && liq) {
-      if (pIns.length) { const { error } = await supabase.from('liquidacion_lineas_empleado').upsert(pIns, { onConflict: 'bloque_id,empleado_id' }); if (error) throw new Error('pago '+hoja+': '+mensajeError(error)); }
-      if (hIns.length) { const { error } = await supabase.from('liquidacion_lineas_empleado').upsert(hIns, { onConflict: 'bloque_id,empleado_id' }); if (error) throw new Error('hc '+hoja+': '+mensajeError(error)); }
+      if (pIns.length) { const { error } = await supabase.from('liquidacion_lineas_empleado').upsert(aggLineas(pIns), { onConflict: 'bloque_id,empleado_id' }); if (error) throw new Error('pago '+hoja+': '+mensajeError(error)); }
+      if (hIns.length) { const { error } = await supabase.from('liquidacion_lineas_empleado').upsert(aggLineas(hIns), { onConflict: 'bloque_id,empleado_id' }); if (error) throw new Error('hc '+hoja+': '+mensajeError(error)); }
       if (ss.length) { const rows = ss.map(c=>({ bloque_id: bSS, concepto_codigo: c.cod, concepto_nombre: TPL[c.cod].nombre, cuenta_contable: TPL[c.cod].cuenta, monto: c.monto, origen: 'recibo' })); const { error } = await supabase.from('liquidacion_lineas_concepto').upsert(rows, { onConflict: 'bloque_id,concepto_codigo' }); if (error) throw new Error('ss '+hoja+': '+mensajeError(error)); }
       if (sindOk && sind > 0) { const { error } = await supabase.from('liquidacion_lineas_concepto').upsert([{ bloque_id: bSind, concepto_codigo: 'SINDICATO', concepto_nombre: TPL.SINDICATO.nombre, cuenta_contable: TPL.SINDICATO.cuenta, monto: sind, origen: 'recibo' }], { onConflict: 'bloque_id,concepto_codigo' }); if (error) throw new Error('sind '+hoja+': '+mensajeError(error)); }
     }
@@ -137,6 +149,6 @@ async function inicializarMes(mes) {
   log('\n' + '='.repeat(66));
   if (!WRITE) log('DRY-RUN. Para escribir: node scripts/cargar-minuta-2026.js --write');
   else log('Listo. Minuta 2026 cargada (meses presentes en el Excel).');
-  log('NOTA: no se cargan asientos 2026 (enero F.931 es VEP; feb/mar F.931 sin minuta).');
+  log('NOTA: los asientos se generan con generar-asientos-2026.js (para los meses con F.931 confirmado).');
   process.exit(0);
 })().catch((e) => { console.error('ERROR:', e.message); process.exit(1); });

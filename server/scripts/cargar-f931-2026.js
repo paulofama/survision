@@ -29,7 +29,7 @@ const { parsearF931, SURVISION_CUIT } = require('../services/f931Parser');
 const DIR = 'C:\\FISCAL\\931\\931\\';
 const WRITE = process.argv.includes('--write');
 const ANIO = 2026;
-const MESES = [2, 3];
+const MESES = [1, 2, 3];
 const BUCKET = 'sueldos-adjuntos';
 const NOMBRE_USUARIO = 'P. Famá (carga masiva)';
 const CTA_BANCO = '1.1.1.03';
@@ -160,7 +160,7 @@ async function inicializarMes(mes) {
 
   log('\n' + '='.repeat(70));
   if (!WRITE) log('DRY-RUN. Para escribir: node scripts/cargar-f931-2026.js --write');
-  else log(`Listo. ${okCount} F.931 cargados y confirmados (feb/mar 2026).`);
-  log('NOTA: feb/mar 2026 quedan SIN minuta (sin netos) -> no se generan asientos aun.');
+  else log(`Listo. ${okCount} F.931 cargados y confirmados.`);
+  log('NOTA: con minuta+F.931, generar asientos con generar-asientos-2026.js. Falta F.931 de abril/mayo+.');
   process.exit(0);
 })().catch((e) => { console.error('ERROR:', e.message); process.exit(1); });
