@@ -26,6 +26,7 @@
 // ===========================================================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { fetchConAuth } from '@shared/lib/apiAuth';
 import type {
   ConciliacionDiferencia,
   ResultadoOperacion,
@@ -72,7 +73,7 @@ async function fetchJson<T = unknown>(
   init?: RequestInit
 ): Promise<{ ok: boolean; status: number; body: T | null; error?: string }> {
   try {
-    const resp = await fetch(url, init);
+    const resp = await fetchConAuth(url, init);
     let body: T | null = null;
     try {
       body = (await resp.json()) as T;

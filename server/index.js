@@ -31,6 +31,7 @@ const empleadosRoutes = require('./routes/empleados'); // ← SUELDOS - EMPLEADO
 const f931Routes = require('./routes/f931');           // ← SUELDOS - F.931 PARSER (FASE 3)
 const conciliacionRoutes = require('./routes/conciliacion'); // ← SUELDOS - CONCILIACION (FASE 3)
 const asientosRoutes = require('./routes/asientos');         // ← SUELDOS - ASIENTOS (FASE 4)
+const { requireAuth, requireSueldos } = require('./middleware/auth'); // ← AUTH reutilizable (requireAuth(modulo)) + alias sueldos
 const fiscalRoutes = require('./routes/fiscal');             // ← MODULO FISCAL (IVA)
 
 // ============================================
@@ -186,61 +187,61 @@ app.get('/api/health', (req, res) => {
 });
 
 // Rutas de nomenclador (prestaciones)
-app.use('/api/nomenclador', nomencladorRoutes);
+app.use('/api/nomenclador', requireAuth(), nomencladorRoutes);
 
 // Rutas de movimientos (atenciones)
-app.use('/api/movimientos', movimientosRoutes);
+app.use('/api/movimientos', requireAuth('prestaciones'), movimientosRoutes);
 
 // Rutas de obras sociales
-app.use('/api/obras-sociales', obrasSocialesRoutes);
+app.use('/api/obras-sociales', requireAuth(), obrasSocialesRoutes);
 
 // Rutas de prestadores
-app.use('/api/prestadores', prestadoresRoutes);
+app.use('/api/prestadores', requireAuth(), prestadoresRoutes);
 
 // Rutas de prestaciones realizadas (Dashboard tipo Power BI)
-app.use('/api/prestaciones-realizadas', prestacionesRealizadasRoutes);
+app.use('/api/prestaciones-realizadas', requireAuth('prestaciones'), prestacionesRealizadasRoutes);
 
 // Rutas de elementos GECLISA (Sincronización con Supabase)
-app.use('/api/elementos-geclisa', elementosGeclisaRoutes);
+app.use('/api/elementos-geclisa', requireAuth(), elementosGeclisaRoutes);
 
 // Rutas de prestadores GECLISA (Sincronización con Supabase)
-app.use('/api/prestadores-geclisa', prestadoresGeclisaRoutes);
+app.use('/api/prestadores-geclisa', requireAuth(), prestadoresGeclisaRoutes);
 
 // Rutas de Turnos (Análisis)
-app.use('/api/turnos', turnosRoutes);
+app.use('/api/turnos', requireAuth('analisis'), turnosRoutes);
 
 // Rutas de Erogaciones (Costos Fijos)
-app.use('/api/erogaciones', erogacionesRoutes);
+app.use('/api/erogaciones', requireAuth('analisis'), erogacionesRoutes);
 
 // Rutas de Tesorería (Caja y Bancos)
-app.use('/api/tesoreria', tesoreriaRoutes);
+app.use('/api/tesoreria', requireAuth('tesoreria'), tesoreriaRoutes);
 
 // Rutas de Informes Ejecutivos (Acceso Restringido)
-app.use('/api/informes', informesRoutes);
+app.use('/api/informes', requireAuth('informes'), informesRoutes);
 
 // Rutas de Derivaciones (Liquidación)
-app.use('/api/derivaciones', derivacionesRoutes);
+app.use('/api/derivaciones', requireAuth('liquidaciones'), derivacionesRoutes);
 
 // Rutas de Pacientes (Búsqueda por DNI - Presupuestador)
-app.use('/api/pacientes', pacientesRoutes); // ← PACIENTES (NUEVO)
+app.use('/api/pacientes', requireAuth('presupuestador'), pacientesRoutes); // ← PACIENTES (NUEVO)
 
 // Rutas de Seguimiento de Pacientes (Informe Mensual Clínico)
-app.use('/api/seguimiento-pacientes', seguimientoPacientesRoutes);
+app.use('/api/seguimiento-pacientes', requireAuth('seguimiento_pacientes'), seguimientoPacientesRoutes);
 
 // Rutas de Empleados (Modulo Sueldos - tabla Supabase)
-app.use('/api/empleados', empleadosRoutes);
+app.use('/api/empleados', requireSueldos, empleadosRoutes);
 
-// Rutas de F.931 (Modulo Sueldos - parser PDF)
-app.use('/api/f931', f931Routes);
+// Rutas de F.931 (Modulo Sueldos - parser PDF) — protegidas (auth + permiso sueldos)
+app.use('/api/f931', requireSueldos, f931Routes);
 
-// Rutas de Conciliacion (Modulo Sueldos - minuta vs F.931)
-app.use('/api/conciliacion', conciliacionRoutes);
+// Rutas de Conciliacion (Modulo Sueldos - minuta vs F.931) — protegidas
+app.use('/api/conciliacion', requireSueldos, conciliacionRoutes);
 
-// Rutas de Asientos (Modulo Sueldos - propuesta de devengamiento, Fase 4)
-app.use('/api/asientos', asientosRoutes);
+// Rutas de Asientos (Modulo Sueldos - propuesta de devengamiento, Fase 4) — protegidas
+app.use('/api/asientos', requireSueldos, asientosRoutes);
 
 // Modulo Fiscal (IVA): sync GECLISA -> Supabase + freshness
-app.use('/api/fiscal', fiscalRoutes);
+app.use('/api/fiscal', requireAuth(), fiscalRoutes);
 
 // ============================================
 // MANEJO DE ERRORES

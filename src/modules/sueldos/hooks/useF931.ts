@@ -36,6 +36,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { fetchConAuth } from '@shared/lib/apiAuth';
 import type {
   EstadoF931,
   F931Adjunto,
@@ -165,7 +166,7 @@ async function llamarParseEndpoint(
 ): Promise<ResultadoOperacion<F931ParseResult>> {
   try {
     const url = `/api/f931/parse?anio=${anio}&mes=${mes}`;
-    const resp = await fetch(url, {
+    const resp = await fetchConAuth(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/pdf' },
       body: file,

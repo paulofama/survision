@@ -19,14 +19,23 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Faltan variables de entorno: SUPABASE_URL y/o SUPABASE_ANON_KEY');
-  console.error('Asegurate de que server/.env tenga ambas definidas.');
+// El backend opera server-side con la SERVICE_ROLE key (bypassa RLS), necesaria
+// despues del endurecimiento de RLS (migracion 07b) para que conciliacion/asientos
+// sigan funcionando. Si no esta definida, cae a la anon key (modo legacy / RLS
+// permisivo). La service key es SECRETA: solo en server/.env, nunca en el frontend.
+const supabaseKey = supabaseServiceKey || supabaseAnonKey;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Faltan variables de entorno: SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY (o SUPABASE_ANON_KEY)');
+  console.error('Asegurate de que server/.env las tenga definidas.');
+} else {
+  console.log(`Supabase backend: usando ${supabaseServiceKey ? 'SERVICE_ROLE key (bypassa RLS)' : 'ANON key (RLS aplica)'}`);
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: false,    // backend stateless
     autoRefreshToken: false,

@@ -63,17 +63,20 @@ npm run dev
 
 ## 📊 Configuración de Base de Datos
 
-La conexión al servidor SQL Server está configurada en `server/config/database.js`:
+La conexión al servidor SQL Server se configura en `server/config/database.js`, que lee
+las credenciales de `server/.env` (NUNCA hardcodear credenciales en el código ni en docs):
 
 ```javascript
 const dbConfig = {
-  server: '192.168.1.73',      // IP del servidor Servergeclisa
-  database: 'GECLISA',          // Base de datos
-  user: 'survision',            // Usuario
-  password: 'survision2024',    // Contraseña
-  port: 1433,                   // Puerto SQL Server
+  server: process.env.DB_SERVER,                   // ej. 192.168.1.73 (GECLISA, LAN)
+  database: process.env.DB_DATABASE,               // ej. GECLISA
+  user: process.env.DB_USER,                       // usuario
+  password: process.env.DB_PASSWORD,               // contraseña (solo en server/.env)
+  port: parseInt(process.env.DB_PORT, 10) || 1433, // puerto SQL Server
 };
 ```
+
+Las variables van en `server/.env` (ignorado por git): `DB_SERVER`, `DB_DATABASE`, `DB_USER`, `DB_PASSWORD`, `DB_PORT`.
 
 ### Tabla Nomenclador
 - **Filtro aplicado**: `nom_id = 10` (Agrupación de cirugías)

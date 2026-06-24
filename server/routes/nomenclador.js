@@ -34,7 +34,7 @@ function fetchJSON(url) {
 // CONFIGURACIÓN SUPABASE (CONTACTO)
 // ============================================
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ecraryyvngnyxusdggvj.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
 
 let supabase = null;

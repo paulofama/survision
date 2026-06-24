@@ -2,7 +2,17 @@
 // AUTH CONTEXT - Autenticación y Permisos
 // Sistema de Costos - Instituto Dr. Mercado
 // ============================================
-// RUTA DESTINO: src/context/AuthContext.tsx
+// RUTA DESTINO: src/shared/context/AuthContext.tsx
+// ============================================
+//
+// Login vía SUPABASE AUTH (signInWithPassword). La sesión (JWT) la maneja
+// Supabase; el perfil de la app (rol + permisos) se carga desde
+// usuarios_sistema vinculando por auth_user_id = auth.uid().
+//
+// El gating por módulo (tienePermiso) sigue igual para la UI, pero ahora
+// el acceso real a las tablas lo enforcea RLS server-side (ver migración 07b
+// + función app_tiene_permiso). Ya no hay contraseñas en texto plano ni
+// sesión custom en localStorage.
 // ============================================
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -14,7 +24,6 @@ import {
   PERMISOS_DEFAULT,
   PERMISOS_ADMIN,
   STORAGE_KEYS,
-  SESSION_DURATION_MS,
 } from '../types/auth.types';
 
 // ============================================
@@ -28,16 +37,25 @@ interface AuthContextType {
   isOnline: boolean;
   error?: string | null;
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   tienePermiso: (modulo: ModuloSistema) => boolean;
   puedeAcceder: (modulo: ModuloSistema) => boolean;
   esAdmin: () => boolean;
   refreshPermisos: () => Promise<void>;
 }
 
-interface StoredSession {
-  usuario: UsuarioPublico;
-  timestamp: number;
+// ============================================
+// HELPERS
+// ============================================
+
+/** Traduce un error de Supabase Auth a un mensaje claro en español. */
+function mapAuthError(error: { message?: string } | null): string {
+  const m = (error?.message || '').toLowerCase();
+  if (m.includes('invalid login credentials')) return 'Usuario o contraseña incorrectos';
+  if (m.includes('email not confirmed')) return 'El usuario todavía no está confirmado';
+  if (m.includes('too many requests') || m.includes('rate limit')) return 'Demasiados intentos, esperá un momento';
+  if (m.includes('network') || m.includes('fetch')) return 'Error de conexión';
+  return error?.message || 'No se pudo iniciar sesión';
 }
 
 // ============================================
@@ -56,241 +74,238 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // ============================================
-  // CARGAR PERMISOS DEL USUARIO
+  // CARGAR PERMISOS DEL ROL
   // ============================================
-  
-  const cargarPermisosUsuario = async (rolId: string): Promise<Record<ModuloSistema, boolean>> => {
-    try {
-      const { data, error } = await supabase
-        .from('permisos_rol')
-        .select('modulo, puede_ver')
-        .eq('rol_id', rolId);
 
-      if (error) {
-        console.error('Error cargando permisos:', error);
-        return { ...PERMISOS_DEFAULT };
-      }
+  const cargarPermisosUsuario = useCallback(
+    async (rolId: string): Promise<Record<ModuloSistema, boolean>> => {
+      try {
+        const { data, error } = await supabase
+          .from('permisos_rol')
+          .select('modulo, puede_ver')
+          .eq('rol_id', rolId);
 
-      const permisos = { ...PERMISOS_DEFAULT };
-      
-      if (data) {
-        data.forEach((permiso) => {
+        if (error) {
+          console.error('Error cargando permisos:', error);
+          return { ...PERMISOS_DEFAULT };
+        }
+
+        const permisos = { ...PERMISOS_DEFAULT };
+        (data || []).forEach((permiso) => {
           const modulo = permiso.modulo as ModuloSistema;
           if (modulo in permisos) {
             permisos[modulo] = permiso.puede_ver;
           }
         });
+        return permisos;
+      } catch (err) {
+        console.error('Error en cargarPermisosUsuario:', err);
+        return { ...PERMISOS_DEFAULT };
       }
-
-      return permisos;
-    } catch (err) {
-      console.error('Error en cargarPermisosUsuario:', err);
-      return { ...PERMISOS_DEFAULT };
-    }
-  };
+    },
+    []
+  );
 
   // ============================================
-  // LOGIN
+  // CONSTRUIR EL USUARIO PÚBLICO DESDE EL auth.uid()
   // ============================================
+  // Carga la fila de usuarios_sistema vinculada al usuario autenticado
+  // (por auth_user_id), su rol y permisos. Devuelve un error tipado si no
+  // hay perfil activo (p.ej. usuario de Auth sin fila o dado de baja).
 
-  const login = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setIsLoading(true);
-
-      // Buscar usuario con rol
-      const { data: usuarios, error } = await supabase
+  const construirUsuarioPublico = useCallback(
+    async (authUid: string): Promise<{ usuario?: UsuarioPublico; error?: string }> => {
+      const { data: filas, error } = await supabase
         .from('usuarios_sistema')
         .select(`
           id,
           username,
           nombre_completo,
-          password_hash,
           telefono,
           email,
           rol_id,
           activo,
           ultimo_acceso,
-          created_at,
-          updated_at,
           roles:rol_id (
             id,
             nombre,
             es_admin
           )
         `)
-        .eq('username', credentials.username.toLowerCase().trim())
+        .eq('auth_user_id', authUid)
         .eq('activo', true)
         .limit(1);
 
       if (error) {
-        console.error('Error en login:', error);
-        return { success: false, error: 'Error de conexión' };
+        console.error('Error cargando perfil:', error);
+        return { error: 'Error cargando el perfil del usuario' };
+      }
+      if (!filas || filas.length === 0) {
+        return { error: 'Tu usuario no tiene un perfil activo en el sistema' };
       }
 
-      if (!usuarios || usuarios.length === 0) {
-        return { success: false, error: 'Usuario no encontrado' };
-      }
-
-      const usuarioData = usuarios[0];
-
-      // Verificar contraseña (simple para desarrollo)
-      if (usuarioData.password_hash !== credentials.password) {
-        return { success: false, error: 'Contraseña incorrecta' };
-      }
-
-      // Cargar permisos
-      const rolData = usuarioData.roles as any;
+      const u = filas[0];
+      const rolData = u.roles as any;
       const esAdmin = rolData?.es_admin || false;
-      
-      let permisos: Record<ModuloSistema, boolean>;
-      
-      if (esAdmin) {
-        permisos = { ...PERMISOS_ADMIN };
-      } else if (usuarioData.rol_id) {
-        permisos = await cargarPermisosUsuario(usuarioData.rol_id);
-      } else {
-        permisos = { ...PERMISOS_DEFAULT };
-      }
 
-      // Crear usuario público
+      const permisos: Record<ModuloSistema, boolean> = esAdmin
+        ? { ...PERMISOS_ADMIN }
+        : u.rol_id
+          ? await cargarPermisosUsuario(u.rol_id)
+          : { ...PERMISOS_DEFAULT };
+
       const usuarioPublico: UsuarioPublico = {
-        id: usuarioData.id,
-        username: usuarioData.username,
-        nombre_completo: usuarioData.nombre_completo,
-        telefono: usuarioData.telefono,
-        email: usuarioData.email,
-        rol_id: usuarioData.rol_id,
+        id: u.id,
+        username: u.username,
+        nombre_completo: u.nombre_completo,
+        telefono: u.telefono,
+        email: u.email,
+        rol_id: u.rol_id,
         rol_nombre: rolData?.nombre || null,
         es_admin: esAdmin,
         permisos,
-        activo: usuarioData.activo,
-        ultimo_acceso: usuarioData.ultimo_acceso,
+        activo: u.activo,
+        ultimo_acceso: u.ultimo_acceso,
       };
+      return { usuario: usuarioPublico };
+    },
+    [cargarPermisosUsuario]
+  );
 
-      // Guardar en estado y localStorage
-      setUsuario(usuarioPublico);
-      
-      const session: StoredSession = {
-        usuario: usuarioPublico,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+  // ============================================
+  // LOGIN (Supabase Auth)
+  // ============================================
 
-      // Actualizar último acceso
-      await supabase
-        .from('usuarios_sistema')
-        .update({ ultimo_acceso: new Date().toISOString() })
-        .eq('id', usuarioData.id);
+  const login = useCallback(
+    async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
+      try {
+        setIsLoading(true);
 
-      return { success: true };
-    } catch (err) {
-      console.error('Error en login:', err);
-      return { success: false, error: 'Error inesperado' };
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: credentials.email.toLowerCase().trim(),
+          password: credentials.password,
+        });
+
+        if (error || !data.user) {
+          return { success: false, error: mapAuthError(error) };
+        }
+
+        // Cargar el perfil de la app vinculado a este usuario de Auth
+        const { usuario: perfil, error: perfilError } = await construirUsuarioPublico(data.user.id);
+        if (!perfil) {
+          // Hay credenciales válidas pero no hay perfil activo: cerrar la sesión.
+          await supabase.auth.signOut();
+          return { success: false, error: perfilError || 'No se pudo cargar el perfil' };
+        }
+
+        setUsuario(perfil);
+
+        // Actualizar último acceso (best-effort, no bloquea el login)
+        supabase
+          .from('usuarios_sistema')
+          .update({ ultimo_acceso: new Date().toISOString() })
+          .eq('id', perfil.id)
+          .then(() => {}, () => {});
+
+        return { success: true };
+      } catch (err) {
+        console.error('Error en login:', err);
+        return { success: false, error: 'Error inesperado al iniciar sesión' };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [construirUsuarioPublico]
+  );
 
   // ============================================
   // LOGOUT
   // ============================================
 
-  const logout = useCallback(() => {
-    setUsuario(null);
-    localStorage.removeItem(STORAGE_KEYS.SESSION);
-    localStorage.removeItem(STORAGE_KEYS.USUARIOS_CACHE);
-    localStorage.removeItem(STORAGE_KEYS.ROLES_CACHE);
+  const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Error en signOut:', err);
+    } finally {
+      setUsuario(null);
+      // Limpieza de claves legacy de la sesión custom anterior
+      localStorage.removeItem(STORAGE_KEYS.SESSION);
+      localStorage.removeItem(STORAGE_KEYS.USUARIOS_CACHE);
+      localStorage.removeItem(STORAGE_KEYS.ROLES_CACHE);
+    }
   }, []);
 
   // ============================================
   // VERIFICAR PERMISOS
   // ============================================
 
-  const tienePermiso = useCallback((modulo: ModuloSistema): boolean => {
-    if (!usuario) return false;
-    if (usuario.es_admin) return true;
-    return usuario.permisos[modulo] === true;
-  }, [usuario]);
+  const tienePermiso = useCallback(
+    (modulo: ModuloSistema): boolean => {
+      if (!usuario) return false;
+      if (usuario.es_admin) return true;
+      return usuario.permisos[modulo] === true;
+    },
+    [usuario]
+  );
 
-  const puedeAcceder = useCallback((modulo: ModuloSistema): boolean => {
-    return tienePermiso(modulo);
-  }, [tienePermiso]);
+  const puedeAcceder = useCallback(
+    (modulo: ModuloSistema): boolean => tienePermiso(modulo),
+    [tienePermiso]
+  );
 
-  const esAdmin = useCallback((): boolean => {
-    return usuario?.es_admin === true;
-  }, [usuario]);
+  const esAdmin = useCallback((): boolean => usuario?.es_admin === true, [usuario]);
 
   // ============================================
   // REFRESCAR PERMISOS
   // ============================================
 
   const refreshPermisos = useCallback(async () => {
-    if (!usuario || !usuario.rol_id) return;
-
-    try {
-      const permisos = usuario.es_admin 
-        ? { ...PERMISOS_ADMIN }
-        : await cargarPermisosUsuario(usuario.rol_id);
-
-      const usuarioActualizado = { ...usuario, permisos };
-      setUsuario(usuarioActualizado);
-
-      const session: StoredSession = {
-        usuario: usuarioActualizado,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    } catch (err) {
-      console.error('Error refrescando permisos:', err);
-    }
-  }, [usuario]);
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return;
+    const { usuario: perfil } = await construirUsuarioPublico(data.session.user.id);
+    if (perfil) setUsuario(perfil);
+  }, [construirUsuarioPublico]);
 
   // ============================================
-  // RESTAURAR SESIÓN
+  // RESTAURAR SESIÓN + ESCUCHAR CAMBIOS DE AUTH
   // ============================================
 
   useEffect(() => {
-    const restaurarSesion = async () => {
+    let activo = true;
+
+    // 1. Al montar: si hay sesión de Supabase, reconstruir el perfil.
+    (async () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEYS.SESSION);
-        
-        if (stored) {
-          const session: StoredSession = JSON.parse(stored);
-          
-          // Verificar expiración
-          if (Date.now() - session.timestamp < SESSION_DURATION_MS) {
-            setUsuario(session.usuario);
-            
-            // Refrescar permisos en background si hay conexión
-            if (navigator.onLine && session.usuario.rol_id) {
-              const permisos = session.usuario.es_admin
-                ? { ...PERMISOS_ADMIN }
-                : await cargarPermisosUsuario(session.usuario.rol_id);
-              
-              const usuarioActualizado = { ...session.usuario, permisos };
-              setUsuario(usuarioActualizado);
-              
-              const newSession: StoredSession = {
-                usuario: usuarioActualizado,
-                timestamp: Date.now(),
-              };
-              localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(newSession));
-            }
-          } else {
-            // Sesión expirada
-            logout();
-          }
+        const { data } = await supabase.auth.getSession();
+        if (activo && data.session) {
+          const { usuario: perfil } = await construirUsuarioPublico(data.session.user.id);
+          if (activo && perfil) setUsuario(perfil);
         }
       } catch (err) {
         console.error('Error restaurando sesión:', err);
-        logout();
       } finally {
-        setIsLoading(false);
+        if (activo) setIsLoading(false);
       }
-    };
+    })();
 
-    restaurarSesion();
-  }, [logout]);
+    // 2. Escuchar cierres de sesión (otra pestaña, expiración sin refresh).
+    //    El login positivo lo maneja login(); acá solo limpiamos en SIGNED_OUT
+    //    para evitar carreras. setTimeout(0) evita el deadlock conocido de
+    //    llamar a Supabase dentro del callback de onAuthStateChange.
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setTimeout(() => {
+          if (activo) setUsuario(null);
+        }, 0);
+      }
+    });
+
+    return () => {
+      activo = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [construirUsuarioPublico]);
 
   // ============================================
   // DETECTAR CONEXIÓN
@@ -299,10 +314,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);

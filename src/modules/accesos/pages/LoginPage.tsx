@@ -1,34 +1,29 @@
 // ============================================
-// LOGIN PAGE - Con Selector de Usuario
+// LOGIN PAGE - Email + Contraseña (Supabase Auth)
 // Sistema Integral de Gestión - Instituto Dr. Mercado
+// ============================================
+//
+// Login por EMAIL + contraseña contra Supabase Auth (ver AuthContext).
+// Se eliminó el selector de usuarios (que listaba toda usuarios_sistema sin
+// estar logueado): ahora cada uno ingresa su email.
+//   - Contadoras: <usuario>@survision.local
+//   - Paulo: su email real
 // ============================================
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@shared/context/AuthContext';
-import { supabase } from '@shared/lib/supabase';
-import { 
-  Eye, 
-  EyeOff, 
-  LogIn, 
-  AlertCircle, 
+import {
+  Eye,
+  EyeOff,
+  LogIn,
+  AlertCircle,
   Loader2,
   DollarSign,
   WifiOff,
   Wifi,
-  User,
-  ChevronDown
+  Mail,
 } from 'lucide-react';
-
-// ============================================
-// INTERFACES
-// ============================================
-
-interface UsuarioLista {
-  id: string;
-  username: string;
-  nombre_completo: string;
-}
 
 // ============================================
 // COMPONENTE PRINCIPAL
@@ -40,45 +35,14 @@ const LoginPage: React.FC = () => {
   const { login, isAuthenticated, isLoading: authLoading, error: authError, isOnline } = useAuth();
 
   // Estados del formulario
-  const [usuarios, setUsuarios] = useState<UsuarioLista[]>([]);
-  const [loadingUsuarios, setLoadingUsuarios] = useState(true);
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // Obtener la ruta de origen para redirigir después del login
+  // Ruta de origen para redirigir después del login
   const from = (location.state as any)?.from?.pathname || '/';
-
-  // ============================================
-  // CARGAR USUARIOS
-  // ============================================
-
-  useEffect(() => {
-    const cargarUsuarios = async () => {
-      try {
-        setLoadingUsuarios(true);
-        
-        const { data, error } = await supabase
-          .from('usuarios_sistema')
-          .select('id, username, nombre_completo')
-          .eq('activo', true)
-          .order('nombre_completo');
-
-        if (error) throw error;
-
-        setUsuarios(data || []);
-      } catch (err) {
-        console.error('Error cargando usuarios:', err);
-        setLocalError('Error al cargar la lista de usuarios');
-      } finally {
-        setLoadingUsuarios(false);
-      }
-    };
-
-    cargarUsuarios();
-  }, []);
 
   // ============================================
   // EFECTOS
@@ -93,10 +57,8 @@ const LoginPage: React.FC = () => {
 
   // Limpiar error local cuando cambian los inputs
   useEffect(() => {
-    if (localError) {
-      setLocalError(null);
-    }
-  }, [selectedUserId, password]);
+    if (localError) setLocalError(null);
+  }, [email, password]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================
   // HANDLERS
@@ -106,37 +68,26 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLocalError(null);
 
-    // Validaciones básicas
-    if (!selectedUserId) {
-      setLocalError('Selecciona tu usuario');
+    if (!email.trim()) {
+      setLocalError('Ingresá tu email');
       return;
     }
-
     if (!password) {
-      setLocalError('Ingresa tu contraseña');
-      return;
-    }
-
-    // Obtener el username del usuario seleccionado
-    const usuarioSeleccionado = usuarios.find(u => u.id === selectedUserId);
-    if (!usuarioSeleccionado) {
-      setLocalError('Usuario no válido');
+      setLocalError('Ingresá tu contraseña');
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      const success = await login({ 
-        username: usuarioSeleccionado.username, 
-        password 
-      });
-      
-      if (success) {
+      const result = await login({ email, password });
+      if (result.success) {
         navigate(from, { replace: true });
+      } else {
+        setLocalError(result.error || 'No se pudo iniciar sesión');
       }
     } catch (error) {
       console.error('Error en login:', error);
+      setLocalError('Error inesperado al iniciar sesión');
     } finally {
       setIsSubmitting(false);
     }
@@ -146,7 +97,7 @@ const LoginPage: React.FC = () => {
   // RENDER
   // ============================================
 
-  // Si está cargando la autenticación inicial
+  // Cargando la autenticación inicial (restaurando sesión)
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center">
@@ -164,8 +115,8 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center p-4">
       {/* Indicador de conexión */}
       <div className={`fixed top-4 right-4 px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium ${
-        isOnline 
-          ? 'bg-green-100 text-green-800' 
+        isOnline
+          ? 'bg-green-100 text-green-800'
           : 'bg-yellow-100 text-yellow-800'
       }`}>
         {isOnline ? (
@@ -207,55 +158,32 @@ const LoginPage: React.FC = () => {
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Selector de Usuario */}
+            {/* Email */}
             <div>
-              <label 
-                htmlFor="usuario" 
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Usuario
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email
               </label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <User className="h-5 w-5" />
+                  <Mail className="h-5 w-5" />
                 </div>
-                <select
-                  id="usuario"
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  disabled={isSubmitting || loadingUsuarios}
-                >
-                  <option value="">
-                    {loadingUsuarios ? 'Cargando usuarios...' : 'Selecciona tu usuario'}
-                  </option>
-                  {usuarios.map((usuario) => (
-                    <option key={usuario.id} value={usuario.id}>
-                      {usuario.nombre_completo}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  {loadingUsuarios ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5" />
-                  )}
-                </div>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tuusuario@survision.local"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  disabled={isSubmitting}
+                  autoComplete="username"
+                  autoFocus
+                />
               </div>
-              {usuarios.length > 0 && (
-                <p className="mt-1 text-xs text-gray-500">
-                  {usuarios.length} usuario{usuarios.length !== 1 ? 's' : ''} disponible{usuarios.length !== 1 ? 's' : ''}
-                </p>
-              )}
             </div>
 
             {/* Contraseña */}
             <div>
-              <label 
-                htmlFor="password" 
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Contraseña
               </label>
               <div className="relative">
@@ -264,7 +192,7 @@ const LoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Ingresa tu contraseña"
+                  placeholder="Ingresá tu contraseña"
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   disabled={isSubmitting}
                   autoComplete="current-password"
@@ -275,11 +203,7 @@ const LoginPage: React.FC = () => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -287,12 +211,12 @@ const LoginPage: React.FC = () => {
             {/* Botón de login */}
             <button
               type="submit"
-              disabled={isSubmitting || loadingUsuarios}
+              disabled={isSubmitting}
               className={`
                 w-full py-3 px-4 rounded-lg font-semibold text-white
                 flex items-center justify-center gap-2
                 transition-all duration-200
-                ${isSubmitting || loadingUsuarios
+                ${isSubmitting
                   ? 'bg-blue-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg active:scale-[0.98]'
                 }
@@ -316,7 +240,7 @@ const LoginPage: React.FC = () => {
           {!isOnline && (
             <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-sm text-center">
-                <strong>Modo sin conexión:</strong> Solo puedes iniciar sesión si ya lo hiciste antes en este dispositivo.
+                <strong>Sin conexión:</strong> no se puede iniciar sesión hasta recuperar internet.
               </p>
             </div>
           )}
@@ -324,12 +248,8 @@ const LoginPage: React.FC = () => {
 
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-blue-200 text-sm">
-            Sistema Integral de Gestión v1.0.0
-          </p>
-          <p className="text-blue-300/60 text-xs mt-1">
-            P. Famá | Desarrollo
-          </p>
+          <p className="text-blue-200 text-sm">Sistema Integral de Gestión v1.0.0</p>
+          <p className="text-blue-300/60 text-xs mt-1">P. Famá | Desarrollo</p>
         </div>
       </div>
     </div>

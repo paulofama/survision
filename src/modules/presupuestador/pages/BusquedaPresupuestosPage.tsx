@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import supabase from "@shared/lib/supabase";
+import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,9 +37,8 @@ interface ToastData {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const SUPABASE_URL = "https://eawtvwuayahbldzjzeer.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhd3R2d3VheWFoYmxkemp6ZWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5ODc1OTksImV4cCI6MjA3OTU2MzU5OX0.Fo3kChA3Ozv3XGW19DimlZ_8uH-v6LWd2SvTXZfkIaE";
+const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
 
 const ITEMS_PER_PAGE = 20;
 

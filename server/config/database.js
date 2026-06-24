@@ -4,6 +4,7 @@
 // Servidor: GECLISA (192.168.1.73)
 // ============================================
 
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), quiet: true });
 const sql = require('mssql');
 
 // ============================================
@@ -11,11 +12,11 @@ const sql = require('mssql');
 // ============================================
 
 const dbConfig = {
-  server: '192.168.1.73',           // IP del servidor Servergeclisa
-  database: 'GECLISA',               // Nombre de la base de datos
-  user: 'survision',                 // Usuario
-  password: 'survision2024',         // Contraseña
-  port: 1433,                        // Puerto SQL Server (por defecto)
+  server: process.env.DB_SERVER,                   // IP del servidor GECLISA (server/.env)
+  database: process.env.DB_DATABASE,               // Nombre de la base de datos
+  user: process.env.DB_USER,                       // Usuario
+  password: process.env.DB_PASSWORD,               // Contraseña (NUNCA hardcodear)
+  port: parseInt(process.env.DB_PORT, 10) || 1433, // Puerto SQL Server (por defecto)
   options: {
     encrypt: false,                  // Sin encriptación para red local
     trustServerCertificate: true,    // Confiar en certificado del servidor

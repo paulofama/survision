@@ -1,14 +1,14 @@
 // ============================================================
-// CARGADOR de F.931 2026 (feb y mar) - Modulo Sueldos
+// CARGADOR de F.931 2026 - Modulo Sueldos
 // ============================================================
 // USO:
 //   cd server
 //   node scripts/cargar-f931-2026.js            -> DRY-RUN (parsea y muestra)
 //   node scripts/cargar-f931-2026.js --write     -> sube PDF + crea declaracion confirmada
 //
-// Carga SOLO feb (02) y mar (03) de 2026 (son los unicos F.931 reales 2026;
-// enero-2026 es un VEP y feb/mar no tienen minuta todavia -> sin netos no hay
-// asiento, pero el F.931 queda registrado para conciliar cuando llegue la minuta).
+// Carga los meses en MESES (actual: ene-may 2026). Espera los PDFs nombrados
+// 'F 931 MM2026.pdf' en C:\FISCAL\931\931\. Para sumar mas meses (jun-2026+),
+// agregar el numero a MESES; es idempotente (los ya confirmados se saltean).
 //
 // Para cada mes:
 //   1. Lee 'C:\FISCAL\931\931\F 931 MM2026.pdf' y lo parsea (parser de la UI).
@@ -29,7 +29,7 @@ const { parsearF931, SURVISION_CUIT } = require('../services/f931Parser');
 const DIR = 'C:\\FISCAL\\931\\931\\';
 const WRITE = process.argv.includes('--write');
 const ANIO = 2026;
-const MESES = [1, 2, 3];
+const MESES = [1, 2, 3, 4, 5];
 const BUCKET = 'sueldos-adjuntos';
 const NOMBRE_USUARIO = 'P. Famá (carga masiva)';
 const CTA_BANCO = '1.1.1.03';
@@ -161,6 +161,6 @@ async function inicializarMes(mes) {
   log('\n' + '='.repeat(70));
   if (!WRITE) log('DRY-RUN. Para escribir: node scripts/cargar-f931-2026.js --write');
   else log(`Listo. ${okCount} F.931 cargados y confirmados.`);
-  log('NOTA: con minuta+F.931, generar asientos con generar-asientos-2026.js. Falta F.931 de abril/mayo+.');
+  log('NOTA: con minuta+F.931, generar asientos con generar-asientos-2026.js. Falta F.931 de junio-2026+.');
   process.exit(0);
 })().catch((e) => { console.error('ERROR:', e.message); process.exit(1); });

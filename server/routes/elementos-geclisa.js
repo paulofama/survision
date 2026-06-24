@@ -370,7 +370,7 @@ router.post('/sync-supabase', async (req, res) => {
     // 4. Enviar a Supabase (upsert)
     const { createClient } = require('@supabase/supabase-js');
     
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://ecraryyvngnyxusdggvj.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
     
     if (!supabaseKey) {

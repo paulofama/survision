@@ -5,6 +5,7 @@
 // ============================================
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 // ============================================
 // CONFIGURACIÓN API
@@ -55,6 +56,7 @@ export const TipoCambioProvider: React.FC<TipoCambioProviderProps> = ({ children
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const { isAuthenticated } = useAuth();
 
   // ============================================
   // FETCH TIPO DE CAMBIO
@@ -137,9 +139,14 @@ export const TipoCambioProvider: React.FC<TipoCambioProviderProps> = ({ children
       }
     }
 
-    // Si no hay cache válido, hacer fetch
-    fetchTipoCambio();
-  }, []);
+    // El endpoint /api/nomenclador/tipocambio exige sesión (requireAuth).
+    // Solo lo pedimos cuando el usuario está autenticado; el efecto se vuelve
+    // a ejecutar al cambiar isAuthenticated (post-login).
+    if (isAuthenticated) {
+      fetchTipoCambio();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // ============================================
   // HELPERS DE CONVERSIÓN

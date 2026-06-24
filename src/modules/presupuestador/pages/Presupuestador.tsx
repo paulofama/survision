@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTipoCambio } from "@shared/context/TipoCambioContext";
-import supabase from "@shared/lib/supabase";
+import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -176,9 +176,8 @@ interface GroupedPrestaciones {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE CLIENT (REST API) — usa sesión autenticada del cliente compartido
 // ═══════════════════════════════════════════════════════════════
-const SUPABASE_URL = "https://eawtvwuayahbldzjzeer.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhd3R2d3VheWFoYmxkemp6ZWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5ODc1OTksImV4cCI6MjA3OTU2MzU5OX0.Fo3kChA3Ozv3XGW19DimlZ_8uH-v6LWd2SvTXZfkIaE";
+const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
 
 /**
  * Obtiene los headers con el token JWT del usuario logueado.

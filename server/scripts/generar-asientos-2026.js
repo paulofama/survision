@@ -3,7 +3,7 @@
 // ============================================================
 // USO:  cd server && node scripts/generar-asientos-2026.js
 // Genera/regenera los asientos de 2026 para los meses que tengan netos (minuta)
-// + F.931 REVISADO_CONFIRMADO. Los que no, los saltea (ej. abril/mayo sin F.931).
+// + F.931 REVISADO_CONFIRMADO. Los que no, los saltea (ej. junio-2026+ sin datos).
 // Criterio por datos: REM1_AJUSTE si rem_1 >= reconciliable, si no RECONCILIABLE.
 // Requiere el backend corriendo en localhost:3001.
 // ============================================================

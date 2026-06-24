@@ -38,6 +38,7 @@ storybook-static
 **/.env
 
 # Backups y artefactos del refactor/verificacion
+backups/
 _backup_pre_modular_*.zip
 *_VERIF.pdf
 Reporte_Sueldos_*.pdf

@@ -22,9 +22,8 @@
 
 - **Frontend**: React 18 + TypeScript + Vite (puerto 3000).
 - **Backend**: Express.js (puerto 3001).
-- **Base de datos principal**: Supabase principal (proyecto `ecraryyvngnyxusdggvj`).
-- **Base de datos secundaria**: Supabase presupuestador (proyecto `eawtvwuayahbldzjzeer`).
-- **Base de datos operativa**: GECLISA SQL Server (`192.168.1.73`, DB `GECLISA`, credenciales `survision/survision2024`).
+- **Base de datos (Supabase)**: proyecto `eawtvwuayahbldzjzeer` — **único en uso** (frontend y backend). Anon key en `src/shared/lib/supabase.ts`; service_role en `server/.env`. (El ID `ecraryyvngnyxusdggvj` era un fallback viejo en el backend, ya removido — NO se usa.)
+- **Base de datos operativa**: GECLISA SQL Server. Host y credenciales SOLO en `server/.env` (`DB_SERVER`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `DB_PORT`) — NUNCA hardcodear en código ni en docs.
 - **Estilos**: Tailwind CSS.
 - **Íconos**: Lucide React.
 - **Formularios**: React Hook Form + Zod.
@@ -39,18 +38,22 @@
 - **Frontend**: `/src/...`
 - **Backend**: `/server/...` (o el nombre que tenga)
 
-### Organización de carpetas frontend
+### Organización de carpetas frontend (estructura MODULAR)
 
 ```
 src/
-├── pages/                # Páginas/rutas principales
-├── hooks/                # Custom hooks (uso para estado y lógica de negocio)
-├── types/                # Definiciones TypeScript
-├── components/           # Componentes (a veces agrupados por módulo)
-├── lib/                  # Configuración Supabase y utilidades base
-├── utils/                # Helpers puros
-└── App.tsx               # Router principal
+├── modules/              # Un dominio por carpeta, con pages/components/hooks/types propios
+│   └── <modulo>/         #   sueldos, tesoreria, presupuestador, fiscal, analisis,
+│                         #   analisis-marginal, informes, insumos, liquidaciones,
+│                         #   prestaciones, seguimiento, turnos, accesos
+├── shared/               # Transversal: components/, context/, hooks/, lib/, types/, utils/
+│                         #   lib/: supabase.ts, apiConfig.ts, apiAuth.ts, apiLocal.ts
+├── test/
+└── App.tsx               # Router principal (lazy loading + ProtectedRoute por módulo)
 ```
+
+Alias de imports (ver `vite.config.ts`): `@modules` → `src/modules`, `@shared` → `src/shared`.
+(Refactor modular completado 2026-06; ya NO existen `src/pages`, `src/components`, `src/hooks`, `src/lib` sueltos.)
 
 ---
 
