@@ -183,7 +183,7 @@ const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClo
         const mesAnt = mes === 1 ? 12 : mes - 1;
         const anioAnt = mes === 1 ? anio - 1 : anio;
 
-        const resp = await fetch(`http://localhost:3001/api/movimientos?anio=${anioAnt}&mes=${mesAnt}&limit=5000`);
+        const resp = await fetch(`/api/movimientos?anio=${anioAnt}&mes=${mesAnt}&limit=5000`);
         if (resp.ok) {
           const { data: prestAnt } = await resp.json();
           if (prestAnt && prestAnt.length > 0) {

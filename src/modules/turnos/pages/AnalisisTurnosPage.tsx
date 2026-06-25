@@ -110,7 +110,7 @@ const AnalisisTurnosPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/turnos/analisis');
+      const response = await fetch('/api/turnos/analisis');
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);

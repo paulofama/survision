@@ -164,11 +164,9 @@ const formatPercent = (value: number): string => {
 };
 
 const getApiUrl = (): string => {
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:3001';
-  }
-  return `http://${hostname}:3001`;
+  // Relativo: dev usa el proxy de Vite, Netlify el redirect de netlify.toml.
+  // (Override absoluto opcional vía VITE_API_URL, p.ej. URL del túnel.)
+  return import.meta.env.VITE_API_URL || '';
 };
 
 // ============================================

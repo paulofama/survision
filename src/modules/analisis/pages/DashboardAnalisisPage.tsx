@@ -123,7 +123,7 @@ const DashboardAnalisisPage: React.FC = () => {
   const cargarComparativa = useCallback(async () => {
     setLoadingComparativa(true);
     try {
-      const response = await fetch('http://localhost:3001/api/movimientos/comparativa-inteligente');
+      const response = await fetch('/api/movimientos/comparativa-inteligente');
       const data = await response.json();
       
       if (data.success) {

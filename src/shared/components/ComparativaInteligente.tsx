@@ -85,7 +85,7 @@ const ComparativaInteligente: React.FC<ComparativaInteligenteProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3001/api/movimientos/comparativa-inteligente');
+      const response = await fetch('/api/movimientos/comparativa-inteligente');
       const result = await response.json();
       
       if (result.success) {

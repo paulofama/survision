@@ -6,34 +6,17 @@
 // ============================================
 
 /**
- * Detecta automáticamente la URL base del API
- * - En localhost: usa localhost:3001
- * - En red: usa la IP del servidor (mismo host que el frontend)
- */
-
-const API_PORT = 3001;
-
-/**
- * Obtiene la URL base del API de forma dinámica
- * Funciona tanto en localhost como en acceso por red
+ * Obtiene la URL base del API.
+ * - Por defecto devuelve la ruta RELATIVA '/api': en dev la resuelve el proxy
+ *   de Vite (vite.config.ts) y en Netlify el redirect de netlify.toml. Funciona
+ *   igual en acceso por LAN (mismo host sirve el frontend y proxea /api).
+ * - Si se define VITE_API_URL, se usa como override absoluto (ej. URL del túnel).
  */
 export const getApiBaseUrl = (): string => {
-  // Si hay una variable de entorno definida, usarla
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-
-  // Detectar automáticamente basándose en el hostname actual
-  const hostname = window.location.hostname;
-  
-  // Si es localhost, usar localhost
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `http://localhost:${API_PORT}/api`;
-  }
-  
-  // Si es una IP de red, usar esa misma IP para el API
-  // Esto asume que el backend corre en la misma máquina
-  return `http://${hostname}:${API_PORT}/api`;
+  return '/api';
 };
 
 /**

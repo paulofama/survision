@@ -14,7 +14,7 @@ import type {
 } from '@shared/types/informes';
 
 // ---- Configuración ----
-const API_BASE = 'http://localhost:3001/api/informes';
+const API_BASE = '/api/informes';
 
 interface UseInformeGestionReturn {
   estado: EstadoInforme;

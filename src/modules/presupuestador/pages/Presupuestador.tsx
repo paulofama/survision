@@ -248,7 +248,7 @@ const sb = {
 // ═══════════════════════════════════════════════════════════════
 // BACKEND API (Express → GECLISA)
 // ═══════════════════════════════════════════════════════════════
-const BACKEND_URL = `http://${window.location.hostname}:3001`;
+const BACKEND_URL = import.meta.env.VITE_API_URL || '';
 
 interface PacienteGeclisa {
   fichaId: number;
