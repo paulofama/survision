@@ -1,0 +1,38 @@
+# ============================================================
+# Netlify — Sistema Integral de Gestión (Survisión S.A.)
+# ============================================================
+# Frontend estático (Vite) servido por Netlify. Las llamadas al backend van por
+# rutas relativas /api/* y se PROXEAN al backend on-premise (Express, vía túnel
+# Cloudflare). El proxy server-side (status=200) hace que el navegador vea mismo
+# origen → sin CORS, y el header Authorization (JWT) se reenvía al backend.
+# ============================================================
+
+[build]
+  command = "npm run build"   # tsc && vite build
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ------------------------------------------------------------
+# 1) Proxy de la API al backend on-premise (vía túnel Cloudflare).
+#    DEBE ir ANTES del catch-all del SPA (Netlify usa el primer match).
+#    status = 200 + force = true  -> proxy/rewrite (no redirect 3xx) = mismo origen.
+#    ⚠️ REEMPLAZAR <URL-DEL-TUNEL> por la URL pública del túnel cuando esté lista
+#       (ej. https://api.institutodrmercado.com.ar). Sin '/api' al final: el
+#       backend ya monta las rutas bajo /api (ver server/index.js).
+# ------------------------------------------------------------
+[[redirects]]
+  from = "/api/*"
+  to = "https://URL-DEL-TUNEL/api/:splat"
+  status = 200
+  force = true
+
+# ------------------------------------------------------------
+# 2) SPA: cualquier otra ruta sirve index.html (React Router del lado del cliente).
+#    Va DESPUÉS del proxy de /api.
+# ------------------------------------------------------------
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
