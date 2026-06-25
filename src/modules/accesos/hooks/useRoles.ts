@@ -13,6 +13,7 @@ import {
   NuevoRolForm,
   EditarRolForm,
   ModuloSistema,
+  MODULOS_SISTEMA,
   PERMISOS_DEFAULT,
   PERMISOS_ADMIN,
   STORAGE_KEYS,
@@ -38,13 +39,10 @@ interface UseRolesReturn {
   };
 }
 
-const MODULOS: ModuloSistema[] = [
-  'dashboard', 'prestaciones', 'insumos', 'analisis', 'analisis_marginal',
-  'tesoreria', 'liquidaciones', 'presupuestador',
-  'informes', 'seguimiento_pacientes', 'usuarios', 'roles',
-  // Permiso granular del módulo Sueldos (sólo Auditor lo activa)
-  'sueldos:reportes',
-];
+// Todos los módulos del sistema, derivado de MODULOS_SISTEMA para NO quedar
+// desactualizado al agregar módulos nuevos (antes era una lista hardcodeada que
+// no incluía 'sueldos' ni 'herramientas' → esos permisos no se guardaban).
+const MODULOS = Object.keys(MODULOS_SISTEMA) as ModuloSistema[];
 
 // ============================================
 // HOOK
