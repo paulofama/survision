@@ -49,7 +49,9 @@ import {
   FilePlus,
   Search,
   // Sueldos
-  Coins
+  Coins,
+  // Herramientas
+  Wrench
 } from 'lucide-react';
 
 // ============================================
@@ -203,6 +205,19 @@ const navItems: NavItem[] = [
       { path: '/sueldos', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/sueldos/empleados', label: 'Empleados', icon: Users },
       { path: '/sueldos/reportes', label: 'Reportes', icon: FileBarChart, requierePermiso: 'sueldos:reportes' }
+    ]
+  },
+
+  // ============================================
+  // HERRAMIENTAS (recetario médico, etc.)
+  // ============================================
+  {
+    path: '/recetario',
+    icon: Wrench,
+    label: 'Herramientas',
+    requierePermiso: 'herramientas',
+    subItems: [
+      { path: '/recetario', label: 'Recetario', icon: Stethoscope }
     ]
   },
 

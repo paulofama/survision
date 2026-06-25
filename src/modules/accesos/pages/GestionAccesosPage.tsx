@@ -34,6 +34,7 @@ import {
   FileText,
   Lock,
   Activity,
+  Wrench,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
@@ -151,6 +152,12 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     icono: BarChart3,
     color: 'amber'
   },
+  herramientas: {
+    nombre: 'Herramientas',
+    descripcion: 'Herramientas varias (recetario médico, etc.)',
+    icono: Wrench,
+    color: 'slate'
+  },
 };
 
 const MODULOS_ORDENADOS: ModuloSistema[] = [
@@ -168,6 +175,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'roles',
   'sueldos',
   'sueldos:reportes',
+  'herramientas',
 ];
 
 // ============================================

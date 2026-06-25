@@ -27,6 +27,8 @@ export const MODULOS_SISTEMA = {
   // Permiso granular del módulo Sueldos: sólo Auditor (Paulo) lo tiene.
   // Gatea la sección Reportes (Fase 5) y los reportes mensuales en PDF.
   'sueldos:reportes': { nombre: 'Sueldos - Reportes', descripcion: 'Reportes auditoría de sueldos (sólo Auditor)' },
+  // Sección Herramientas (recetario médico, etc.).
+  herramientas: { nombre: 'Herramientas', descripcion: 'Herramientas varias (recetario médico, etc.)' },
 } as const;
 
 export type ModuloSistema = keyof typeof MODULOS_SISTEMA;
@@ -172,6 +174,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   roles: false,
   sueldos: false,
   'sueldos:reportes': false,
+  herramientas: false,
 };
 
 // Permisos para admin (todos en true)
@@ -190,4 +193,5 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   roles: true,
   sueldos: true,
   'sueldos:reportes': true,
+  herramientas: true,
 };
