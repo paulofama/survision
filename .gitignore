@@ -33,9 +33,12 @@ coverage
 # Storybook
 storybook-static
 
-# Secrets (NO commitear)
+# Secrets (NO commitear) — todas las variantes .env*, salvo el template .env.example
 .env
 **/.env
+.env.*
+**/.env.*
+!.env.example
 
 # Backups y artefactos del refactor/verificacion
 backups/
