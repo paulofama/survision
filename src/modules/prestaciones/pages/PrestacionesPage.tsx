@@ -5,11 +5,12 @@
 // ============================================
 
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   DollarSign, PlusIcon, SearchIcon, EditIcon, TrashIcon,
-  RefreshCwIcon, FilterIcon, TagIcon, X, Save, AlertCircle, DatabaseIcon
+  RefreshCwIcon, FilterIcon, TagIcon, X, Save, AlertCircle
 } from 'lucide-react';
 import { usePrestaciones } from '@shared/hooks/usePrestaciones';
+import { supabase } from '@shared/lib/supabase';
 import { useTipoCambio, TipoCambio } from '@shared/context/TipoCambioContext';
 import { TipoCambioIndicator } from '@shared/components/ui/TipoCambioIndicator';
 import type { PrestacionConAgrupacion } from '@shared/types';
@@ -293,7 +294,6 @@ const PrestacionesPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
 
   // Helpers
   const formatCurrency = (amount: number, moneda: 'USD' | 'ARS' = 'USD'): string => {
@@ -334,35 +334,19 @@ const PrestacionesPage: React.FC = () => {
     agrupaciones: agrupaciones.length
   };
 
-  // Sync GECLISA → Supabase
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const response = await fetch('/api/nomenclador/sync', { method: 'POST' });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || 'Error en sincronización');
-      showMessage(`Sync completo: ${result.insertados} nuevas, ${result.actualizados} actualizadas`, 'success');
-      await refetch();
-    } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Error en sincronización', 'error');
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   // Handlers
   const abrirModalEditar = (prestacion: Prestacion) => { setPrestacionEditar(prestacion); setModalOpen(true); };
   const cerrarModal = () => { setModalOpen(false); setPrestacionEditar(null); };
 
   const handleSavePrecio = async (codigo: string, precio: number, moneda: 'USD' | 'ARS') => {
     try {
-      const response = await fetch(`/api/nomenclador/precio/${codigo}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ precio, moneda }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || 'Error actualizando precio');
+      // Escribe directo a Supabase (la fila ya existe tras el sync del daemon).
+      // Así la edición de precio funciona desde afuera de la clínica.
+      const { error } = await supabase
+        .from('prestaciones')
+        .update({ precio, moneda })
+        .eq('codigo', codigo);
+      if (error) throw new Error(error.message);
       showMessage(`Precio actualizado: ${formatCurrency(precio, moneda)}`, 'success');
       await refetch();
     } catch (err) {
@@ -420,10 +404,6 @@ const PrestacionesPage: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3">
           <TipoCambioIndicator size="md" showDetails={true} />
-          <button onClick={handleSync} disabled={syncing || loading} className="flex items-center space-x-2 bg-white border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 disabled:opacity-50" title="Sincronizar nombres desde GECLISA">
-            <DatabaseIcon className={`h-4 w-4 ${syncing ? 'animate-pulse text-green-600' : 'text-gray-500'}`} />
-            <span>{syncing ? 'Sincronizando...' : 'Sincronizar'}</span>
-          </button>
           <button onClick={refetch} disabled={loading} className="flex items-center space-x-2 bg-white border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 disabled:opacity-50">
             <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span>Actualizar</span>
           </button>

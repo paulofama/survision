@@ -15,6 +15,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), 
 
 const { sincronizarPrestadores } = require('../services/prestadoresExtractor');
 const { sincronizarInsumos } = require('../services/insumosExtractor');
+const { sincronizarNomenclador } = require('../services/nomencladorExtractor');
 
 const write = process.argv.includes('--write');
 
@@ -32,6 +33,12 @@ const write = process.argv.includes('--write');
   console.log(
     `insumos:     ${ins.total} en GECLISA` +
     (write ? ` -> ${ins.nuevos} nuevos, ${ins.actualizados} actualizados, ${ins.sinCambios} sin cambios` : ''),
+  );
+
+  const nom = await sincronizarNomenclador({ write });
+  console.log(
+    `nomenclador: ${nom.total} en GECLISA` +
+    (write ? ` -> ${nom.nuevos} nuevos, ${nom.actualizados} actualizados, ${nom.sinCambios} sin cambios` : ''),
   );
 
   console.log(`== Listo en ${((Date.now() - t0) / 1000).toFixed(1)}s ==`);

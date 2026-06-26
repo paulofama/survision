@@ -5,11 +5,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  fetchPrestacionesLocal, 
-  checkApiHealth,
-  type PrestacionLocal 
-} from '../lib/apiLocal';
+import { supabase } from '../lib/supabase';
 
 // ============================================
 // INTERFACES Y TIPOS
@@ -23,6 +19,7 @@ export interface PrestacionConAgrupacion {
   agrupacion_nombre?: string;
   agrupacion_color?: string;
   precio: number;
+  moneda?: 'USD' | 'ARS';
   activa: boolean;
   observaciones?: string;
   created_at: string;
@@ -170,26 +167,28 @@ export const usePrestaciones = (): UsePrestacionesReturn => {
     setError(null);
 
     try {
-      // Verificar conexión con API
-      const apiOk = await checkApiHealth();
-      if (!apiOk) {
-        throw new Error('El servidor API no está disponible. Verificá que el backend esté corriendo en el puerto 3001.');
-      }
+      // Lee directo de Supabase (tabla `prestaciones`), que el daemon on-prem
+      // mantiene fresca desde GECLISA (nombres) + precios cargados a mano. Así
+      // funciona desde afuera de la clínica, sin pegarle al backend local.
+      const { data, error: sbErr } = await supabase
+        .from('prestaciones')
+        .select('id, codigo, practica, precio, moneda, activa, observaciones, created_at, updated_at')
+        .order('codigo', { ascending: true });
 
-      // Cargar prestaciones desde servidor local
-      const data = await fetchPrestacionesLocal();
+      if (sbErr) throw new Error(sbErr.message);
 
-      // Transformar a formato esperado por el frontend
-      const prestacionesFormateadas: PrestacionConAgrupacion[] = data.map((item: PrestacionLocal) => ({
+      // Agrupación fija "Cirugías" (id '10'): preserva la UX actual y el filtro.
+      const prestacionesFormateadas: PrestacionConAgrupacion[] = (data || []).map((item) => ({
         id: item.id,
         codigo: item.codigo,
-        practica: item.practica,
-        agrupacion_id: item.agrupacion_id,
-        agrupacion_nombre: item.agrupacion_nombre || 'Cirugías',
-        agrupacion_color: item.agrupacion_color,
+        practica: item.practica || '',
+        agrupacion_id: '10',
+        agrupacion_nombre: 'Cirugías',
+        agrupacion_color: '#3B82F6',
         precio: item.precio || 0,
-        activa: item.activa,
-        observaciones: item.observaciones,
+        moneda: (item.moneda as 'USD' | 'ARS') || 'USD',
+        activa: item.activa !== false,
+        observaciones: item.observaciones || undefined,
         created_at: item.created_at,
         updated_at: item.updated_at,
       }));
@@ -198,10 +197,10 @@ export const usePrestaciones = (): UsePrestacionesReturn => {
       setCachedData(CACHE_KEY, prestacionesFormateadas);
       setIsConnected(true);
 
-      console.log(`✅ ${prestacionesFormateadas.length} prestaciones cargadas desde GECLISA`);
+      console.log(`✅ ${prestacionesFormateadas.length} prestaciones cargadas desde Supabase`);
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error cargando datos del servidor local';
+      const errorMessage = err instanceof Error ? err.message : 'Error cargando prestaciones desde Supabase';
       setError(errorMessage);
       setIsConnected(false);
       console.error('❌ Error:', errorMessage);
@@ -322,7 +321,7 @@ export const usePrestaciones = (): UsePrestacionesReturn => {
     
     // Estado de conexión
     isConnected,
-    fuenteDatos: 'SQL Server Local - GECLISA',
+    fuenteDatos: 'Supabase (sync GECLISA)',
     
     // Estadísticas
     estadisticas,
