@@ -23,12 +23,16 @@ const fs = require('fs');
 const path = require('path');
 
 const { sincronizarPacientes } = require('../services/pacientesExtractor');
+const { sincronizarPrestadores } = require('../services/prestadoresExtractor');
+const { sincronizarInsumos } = require('../services/insumosExtractor');
 
 // ------------------------------------------------------------
 // Registro de sincronizaciones (agregar más módulos acá)
 // ------------------------------------------------------------
 const SYNCS = [
   { nombre: 'pacientes (GECLISA→Supabase)', fn: () => sincronizarPacientes({ write: true }) },
+  { nombre: 'prestadores (GECLISA→Supabase)', fn: () => sincronizarPrestadores({ write: true }) },
+  { nombre: 'insumos (GECLISA→Supabase)', fn: () => sincronizarInsumos({ write: true }) },
   // Próximos: movimientos, prestaciones-realizadas, tesoreria, etc.
 ];
 

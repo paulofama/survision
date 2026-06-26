@@ -351,8 +351,10 @@ export function useInsumosSync() {
         setLastSync(lastSyncStored);
       }
 
-      // Ejecutar sincronización automática
-      await sincronizar();
+      // NOTA: el sync GECLISA→Supabase ahora lo hace el daemon on-prem
+      // (server/services/insumosExtractor.js, 2 veces/día). El hook solo LEE de
+      // Supabase para funcionar desde afuera de la clínica. La función
+      // `sincronizar()` sigue disponible como acción manual (solo anda en LAN).
 
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
@@ -360,7 +362,7 @@ export function useInsumosSync() {
     } finally {
       setLoading(false);
     }
-  }, [fetchInsumosSupabase, sincronizar]);
+  }, [fetchInsumosSupabase]);
 
   // ============================================
   // EFECTO: SINCRONIZACIÓN AUTOMÁTICA AL MONTAR

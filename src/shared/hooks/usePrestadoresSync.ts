@@ -308,8 +308,10 @@ export function usePrestadoresSync() {
         setLastSync(lastSyncStored);
       }
 
-      // Sincronizar automáticamente
-      await sincronizar();
+      // NOTA: el sync GECLISA→Supabase ahora lo hace el daemon on-prem
+      // (server/services/prestadoresExtractor.js, 2 veces/día). El hook solo
+      // LEE de Supabase para funcionar desde afuera de la clínica. La función
+      // `sincronizar()` sigue disponible como acción manual (solo anda en LAN).
 
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
@@ -317,7 +319,7 @@ export function usePrestadoresSync() {
     } finally {
       setLoading(false);
     }
-  }, [fetchPrestadoresSupabase, sincronizar]);
+  }, [fetchPrestadoresSupabase]);
 
   // ============================================
   // EFECTO: CARGA INICIAL
