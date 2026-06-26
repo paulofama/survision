@@ -245,10 +245,7 @@ const sb = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════════
-// BACKEND API (Express → GECLISA)
-// ═══════════════════════════════════════════════════════════════
-const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+// (El buscar-DNI ya no usa el backend: lee el espejo pacientes_geclisa en Supabase.)
 
 interface PacienteGeclisa {
   fichaId: number;
@@ -644,18 +641,35 @@ export default function Presupuestador() {
       setDniStatus("idle");
 
       try {
-        // ═══ PASO 1: Buscar en GECLISA ═══
+        // ═══ PASO 1: Buscar en el espejo de GECLISA sincronizado a Supabase ═══
+        // Tabla pacientes_geclisa (la actualiza el daemon de sync on-prem). El
+        // frontend YA NO pega a GECLISA en vivo → funciona remoto sin túnel.
         let geclisaPac: PacienteGeclisa | null = null;
         try {
-          const r = await fetch(`${BACKEND_URL}/api/pacientes/buscar-dni/${dni}`);
-          if (r.ok) {
-            const data: BuscarDniResponse = await r.json();
-            if (data.encontrado && data.paciente) {
-              geclisaPac = data.paciente;
-            }
+          const { data: pg } = await supabase
+            .from("pacientes_geclisa")
+            .select("*")
+            .eq("documento", dni)
+            .order("ficha_id", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (pg) {
+            geclisaPac = {
+              fichaId: pg.ficha_id,
+              apellido: pg.apellido || "",
+              nombre: pg.nombre || "",
+              documento: pg.documento || dni,
+              telefono: pg.telefono || "",
+              fechaNacimiento: pg.fecha_nacimiento || "",
+              obraSocial: pg.obra_social || "",
+              obraSocialSigla: pg.obra_social_sigla || "",
+              numeroAfiliado: pg.numero_afiliado || "",
+              planNombre: pg.plan_nombre || "",
+              esParticular: pg.es_particular,
+            };
           }
         } catch (gErr) {
-          console.warn("⚠️ GECLISA no disponible:", gErr);
+          console.warn("⚠️ pacientes_geclisa query failed:", gErr);
         }
 
         // ═══ PASO 2: Buscar en Supabase ═══
