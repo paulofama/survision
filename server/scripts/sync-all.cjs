@@ -30,6 +30,7 @@ const { sincronizarTurnos } = require('../services/turnosExtractor');
 const { sincronizarSeguimiento } = require('../services/seguimientoExtractor');
 const { sincronizarInformes } = require('../services/informesExtractor');
 const { sincronizarComparativa } = require('../services/analisisExtractor');
+const { sincronizarMovimientos } = require('../services/movimientosExtractor');
 
 // ------------------------------------------------------------
 // Registro de sincronizaciones (agregar más módulos acá)
@@ -46,7 +47,10 @@ const SYNCS = [
   { nombre: 'informes (GECLISA→Supabase)', fn: () => sincronizarInformes({ write: true, soloRecientes: true }) },
   // Comparativa de Análisis: singleton dinámico (depende del día); se recalcula siempre.
   { nombre: 'comparativa (GECLISA→Supabase)', fn: () => sincronizarComparativa({ write: true }) },
-  // Próximos: movimientos crudos (explorador filtrable), prestaciones-realizadas, etc.
+  // Movimientos crudos: solo el mes en curso (las atenciones viejas no cambian).
+  // El histórico se carga una vez con cargar-movimientos-geclisa.cjs --write --historico
+  { nombre: 'movimientos (GECLISA→Supabase)', fn: () => sincronizarMovimientos({ write: true }) },
+  // Próximos: prestaciones-realizadas, tesoreria, etc.
 ];
 
 // ------------------------------------------------------------
