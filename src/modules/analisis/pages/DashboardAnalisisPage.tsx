@@ -32,6 +32,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
+import { supabase } from '@shared/lib/supabase';
 import { Link } from 'react-router-dom';
 
 // ============================================
@@ -123,14 +124,21 @@ const DashboardAnalisisPage: React.FC = () => {
   const cargarComparativa = useCallback(async () => {
     setLoadingComparativa(true);
     try {
-      const response = await fetch('/api/movimientos/comparativa-inteligente');
-      const data = await response.json();
-      
-      if (data.success) {
-        setComparativa(data);
-        console.log('✅ Comparativa inteligente cargada:', data);
+      // Lee el snapshot de Supabase (lo refresca el daemon on-prem 2 veces/día),
+      // para que funcione desde afuera de la clínica.
+      const { data, error } = await supabase
+        .from('dashboards_snapshot')
+        .select('payload')
+        .eq('modulo', 'analisis')
+        .eq('anio', 0)
+        .eq('mes', 0)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (data?.payload) {
+        setComparativa(data.payload as ComparativaInteligente);
       } else {
-        console.error('❌ Error en comparativa:', data.error);
+        console.error('❌ Comparativa: todavía no hay snapshot sincronizado');
       }
     } catch (error) {
       console.error('❌ Error cargando comparativa:', error);

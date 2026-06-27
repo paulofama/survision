@@ -29,6 +29,7 @@ const { sincronizarNomenclador } = require('../services/nomencladorExtractor');
 const { sincronizarTurnos } = require('../services/turnosExtractor');
 const { sincronizarSeguimiento } = require('../services/seguimientoExtractor');
 const { sincronizarInformes } = require('../services/informesExtractor');
+const { sincronizarComparativa } = require('../services/analisisExtractor');
 
 // ------------------------------------------------------------
 // Registro de sincronizaciones (agregar más módulos acá)
@@ -43,7 +44,9 @@ const SYNCS = [
   // histórico se carga una vez con sus CLIs (--write --historico).
   { nombre: 'seguimiento (GECLISA→Supabase)', fn: () => sincronizarSeguimiento({ write: true, soloRecientes: true }) },
   { nombre: 'informes (GECLISA→Supabase)', fn: () => sincronizarInformes({ write: true, soloRecientes: true }) },
-  // Próximos: movimientos, prestaciones-realizadas, tesoreria, etc.
+  // Comparativa de Análisis: singleton dinámico (depende del día); se recalcula siempre.
+  { nombre: 'comparativa (GECLISA→Supabase)', fn: () => sincronizarComparativa({ write: true }) },
+  // Próximos: movimientos crudos (explorador filtrable), prestaciones-realizadas, etc.
 ];
 
 // ------------------------------------------------------------

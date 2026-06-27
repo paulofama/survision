@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface ComparativaData {
   success: boolean;
@@ -85,14 +86,22 @@ const ComparativaInteligente: React.FC<ComparativaInteligenteProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/movimientos/comparativa-inteligente');
-      const result = await response.json();
-      
-      if (result.success) {
-        setData(result);
-      } else {
-        setError(result.error || 'Error cargando comparativa');
+      // Lee el snapshot de Supabase (lo refresca el daemon on-prem 2 veces/día).
+      // Así funciona desde afuera de la clínica.
+      const { data: row, error: sbErr } = await supabase
+        .from('dashboards_snapshot')
+        .select('payload')
+        .eq('modulo', 'analisis')
+        .eq('anio', 0)
+        .eq('mes', 0)
+        .maybeSingle();
+
+      if (sbErr) throw new Error(sbErr.message);
+      if (!row) {
+        setError('Todavía no hay datos sincronizados. El sync corre 2 veces por día (12:00 y 17:00).');
+        return;
       }
+      setData(row.payload as ComparativaData);
     } catch (err) {
       setError('Error de conexión');
       console.error('Error cargando comparativa:', err);
