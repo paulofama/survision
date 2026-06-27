@@ -248,7 +248,7 @@ const InformesPage: React.FC = () => {
               {estado === 'cargando' && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Consultando GECLISA...</span>
+                    <span className="text-sm text-gray-600">Cargando datos...</span>
                     <span className="text-sm font-medium text-blue-600">{progreso}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">

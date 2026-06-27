@@ -5,16 +5,11 @@
 // ============================================================
 
 import { useState, useCallback } from 'react';
+import { supabase } from '@shared/lib/supabase';
 import type {
   DatosInformeGestion,
   EstadoInforme,
-  PeriodoInforme,
-  crearPeriodo,
-  crearFiltros,
 } from '@shared/types/informes';
-
-// ---- Configuración ----
-const API_BASE = '/api/informes';
 
 interface UseInformeGestionReturn {
   estado: EstadoInforme;
@@ -34,28 +29,27 @@ export const useInformeGestion = (): UseInformeGestionReturn => {
   const cargarInforme = useCallback(async (mes: number, anio: number) => {
     setEstado('cargando');
     setError(null);
-    setProgreso(10);
+    setProgreso(30);
 
     try {
-      setProgreso(30);
+      // Lee el snapshot de Supabase (lo refresca el daemon on-prem 2 veces/día).
+      // Así la página /informes funciona desde afuera de la clínica.
+      const { data, error: sbErr } = await supabase
+        .from('dashboards_snapshot')
+        .select('payload')
+        .eq('modulo', 'informes')
+        .eq('anio', anio)
+        .eq('mes', mes)
+        .maybeSingle();
 
-      const response = await fetch(
-        `${API_BASE}/gestion-mensual?mes=${mes}&anio=${anio}`
-      );
+      setProgreso(80);
 
-      setProgreso(70);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.error || `Error ${response.status}: ${response.statusText}`
-        );
+      if (sbErr) throw new Error(sbErr.message);
+      if (!data) {
+        throw new Error('Todavía no hay datos sincronizados para este período. El sync corre 2 veces por día (12:00 y 17:00).');
       }
 
-      const data = await response.json();
-      setProgreso(90);
-
-      setDatos(data);
+      setDatos(data.payload as DatosInformeGestion);
       setEstado('listo');
       setProgreso(100);
     } catch (err) {
