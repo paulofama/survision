@@ -140,12 +140,6 @@ const InformesPage = lazy(() =>
   }))
 );
 
-const InformesEjecutivosPage = lazy(() => 
-  import('@modules/informes/pages/InformesEjecutivosPage').catch(() => ({
-    default: () => <ComingSoonPage title="Informes Ejecutivos" />
-  }))
-);
-
 // ============================================
 // SEGUIMIENTO DE PACIENTES - LAZY LOADING
 // ============================================
@@ -211,17 +205,7 @@ const App: React.FC = () => {
         <Routes>
           {/* Ruta de Login - Sin Layout */}
           <Route path="/login" element={<LoginPage />} />
-          
-          {/* ============================================ */}
-          {/* INFORMES EJECUTIVOS - SIN LAYOUT */}
-          {/* Pantalla completa con su propio sistema de auth */}
-          {/* ============================================ */}
-          <Route path="/informes/ejecutivo" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <InformesEjecutivosPage />
-            </Suspense>
-          } />
-          
+
           {/* Rutas Protegidas - Con Layout */}
           <Route
             path="/*"

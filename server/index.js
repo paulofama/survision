@@ -155,9 +155,7 @@ app.get('/api/health', (req, res) => {
       '/api/tesoreria/caja/tipos-comprobante',
       '/api/tesoreria/caja/resumen-diario',
       '/api/tesoreria/caja/dashboard',
-      '/api/informes/verificar-pin',
-      '/api/informes/ejecutivo-mensual',
-      '/api/informes/meses-disponibles',
+      '/api/informes/gestion-mensual',
       '/api/derivaciones/derivadores',
       '/api/derivaciones/liquidacion',
       '/api/derivaciones/resumen',
@@ -216,7 +214,7 @@ app.use('/api/erogaciones', requireAuth('analisis'), erogacionesRoutes);
 // Rutas de Tesorería (Caja y Bancos)
 app.use('/api/tesoreria', requireAuth('tesoreria'), tesoreriaRoutes);
 
-// Rutas de Informes Ejecutivos (Acceso Restringido)
+// Rutas de Informes de gestión
 app.use('/api/informes', requireAuth('informes'), informesRoutes);
 
 // Rutas de Derivaciones (Liquidación)
@@ -289,7 +287,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('║  👨‍⚕️ Prestadores: /api/prestadores-geclisa                  ║');
   console.log('║  💰 Erogaciones: /api/erogaciones/2025/12                  ║');
   console.log('║  🏦 Tesorería:   /api/tesoreria/caja/dashboard             ║');
-  console.log('║  📊 Informes:    /api/informes/ejecutivo-mensual           ║');
+  console.log('║  📊 Informes:    /api/informes/gestion-mensual             ║');
   console.log('║  🔄 Derivaciones:/api/derivaciones/liquidacion              ║');
   console.log('║  🔍 Pacientes:   /api/pacientes/buscar-dni/:dni            ║');
   console.log('║  📋 Seguimiento: /api/seguimiento-pacientes/informe-mensual ║');
