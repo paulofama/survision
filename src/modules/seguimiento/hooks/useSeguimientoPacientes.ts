@@ -5,8 +5,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { supabase } from '@shared/lib/supabase';
 
 // ============================================
 // TYPES
@@ -131,6 +130,11 @@ export interface MesDisponible {
   atenciones: number;
 }
 
+const MESES_NOMBRE: Record<number, string> = {
+  1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+  7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
+};
+
 // ============================================
 // HOOK
 // ============================================
@@ -142,34 +146,54 @@ export function useSeguimientoPacientes() {
   const [error, setError] = useState<string | null>(null);
   const [mesSeleccionado, setMesSeleccionado] = useState<{ mes: number; anio: number } | null>(null);
 
-  // Cargar meses disponibles
+  // Cargar meses disponibles desde los snapshots de Supabase (dashboards_snapshot,
+  // modulo='seguimiento'). El daemon on-prem los mantiene frescos; así anda remoto.
   const cargarMeses = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/seguimiento-pacientes/meses-disponibles`);
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data = await res.json();
-      setMesesDisponibles(data.meses || []);
+      const { data, error: sbErr } = await supabase
+        .from('dashboards_snapshot')
+        .select('anio, mes, resumen')
+        .eq('modulo', 'seguimiento')
+        .order('anio', { ascending: false })
+        .order('mes', { ascending: false });
+      if (sbErr) throw new Error(sbErr.message);
+
+      const meses: MesDisponible[] = (data || []).map((r) => ({
+        anio: r.anio,
+        mes: r.mes,
+        label: `${MESES_NOMBRE[r.mes] || ''} ${r.anio}`,
+        atenciones: (r.resumen as { atenciones?: number } | null)?.atenciones ?? 0,
+      }));
+      setMesesDisponibles(meses);
       // Auto-seleccionar el más reciente
-      if (data.meses?.length > 0 && !mesSeleccionado) {
-        const ultimo = data.meses[0];
-        setMesSeleccionado({ mes: ultimo.mes, anio: ultimo.anio });
+      if (meses.length > 0 && !mesSeleccionado) {
+        setMesSeleccionado({ mes: meses[0].mes, anio: meses[0].anio });
       }
     } catch (err) {
       console.error('Error cargando meses:', err);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cargar informe mensual
+  // Cargar informe mensual desde el snapshot de Supabase
   const cargarInforme = useCallback(async (mes: number, anio: number) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${API_BASE}/api/seguimiento-pacientes/informe-mensual?mes=${mes}&anio=${anio}`
-      );
-      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-      const data: InformeMensual = await res.json();
-      setInforme(data);
+      const { data, error: sbErr } = await supabase
+        .from('dashboards_snapshot')
+        .select('payload')
+        .eq('modulo', 'seguimiento')
+        .eq('anio', anio)
+        .eq('mes', mes)
+        .maybeSingle();
+      if (sbErr) throw new Error(sbErr.message);
+      if (!data) {
+        setError('Todavía no hay datos sincronizados para este mes. El sync corre 2 veces por día (12:00 y 17:00).');
+        setInforme(null);
+        return;
+      }
+      setInforme(data.payload as InformeMensual);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       setError(msg);

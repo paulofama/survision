@@ -27,6 +27,7 @@ const { sincronizarPrestadores } = require('../services/prestadoresExtractor');
 const { sincronizarInsumos } = require('../services/insumosExtractor');
 const { sincronizarNomenclador } = require('../services/nomencladorExtractor');
 const { sincronizarTurnos } = require('../services/turnosExtractor');
+const { sincronizarSeguimiento } = require('../services/seguimientoExtractor');
 
 // ------------------------------------------------------------
 // Registro de sincronizaciones (agregar más módulos acá)
@@ -37,6 +38,9 @@ const SYNCS = [
   { nombre: 'insumos (GECLISA→Supabase)', fn: () => sincronizarInsumos({ write: true }) },
   { nombre: 'nomenclador (GECLISA→Supabase)', fn: () => sincronizarNomenclador({ write: true }) },
   { nombre: 'turnos (GECLISA→Supabase)', fn: () => sincronizarTurnos({ write: true }) },
+  // Seguimiento: solo mes actual + anterior (lo que cambia). El histórico se
+  // carga una vez con scripts/cargar-seguimiento-geclisa.cjs --write --historico
+  { nombre: 'seguimiento (GECLISA→Supabase)', fn: () => sincronizarSeguimiento({ write: true, soloRecientes: true }) },
   // Próximos: movimientos, prestaciones-realizadas, tesoreria, etc.
 ];
 
