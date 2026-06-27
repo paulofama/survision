@@ -26,6 +26,7 @@ const { sincronizarPacientes } = require('../services/pacientesExtractor');
 const { sincronizarPrestadores } = require('../services/prestadoresExtractor');
 const { sincronizarInsumos } = require('../services/insumosExtractor');
 const { sincronizarNomenclador } = require('../services/nomencladorExtractor');
+const { sincronizarTurnos } = require('../services/turnosExtractor');
 
 // ------------------------------------------------------------
 // Registro de sincronizaciones (agregar más módulos acá)
@@ -35,6 +36,7 @@ const SYNCS = [
   { nombre: 'prestadores (GECLISA→Supabase)', fn: () => sincronizarPrestadores({ write: true }) },
   { nombre: 'insumos (GECLISA→Supabase)', fn: () => sincronizarInsumos({ write: true }) },
   { nombre: 'nomenclador (GECLISA→Supabase)', fn: () => sincronizarNomenclador({ write: true }) },
+  { nombre: 'turnos (GECLISA→Supabase)', fn: () => sincronizarTurnos({ write: true }) },
   // Próximos: movimientos, prestaciones-realizadas, tesoreria, etc.
 ];
 

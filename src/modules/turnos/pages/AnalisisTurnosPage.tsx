@@ -24,6 +24,7 @@ import {
   CalendarX,
   CalendarClock,
 } from 'lucide-react';
+import { supabase } from '@shared/lib/supabase';
 
 // ============================================
 // TIPOS
@@ -110,15 +111,22 @@ const AnalisisTurnosPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/turnos/analisis');
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      // Lee el snapshot de Supabase (lo refresca el daemon on-prem 2 veces/día).
+      // Así el dashboard funciona desde afuera de la clínica.
+      const { data, error: sbErr } = await supabase
+        .from('turnos_analisis')
+        .select('payload, synced_at')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (sbErr) throw new Error(sbErr.message);
+      if (!data) {
+        setError('Todavía no hay datos de turnos sincronizados. El sync corre 2 veces por día (12:00 y 17:00).');
+        return;
       }
 
-      const data = await response.json();
-      setDatos(data);
-      setUltimaActualizacion(new Date());
+      setDatos(data.payload as DatosAnalisis);
+      setUltimaActualizacion(data.synced_at ? new Date(data.synced_at) : null);
     } catch (err) {
       console.error('Error cargando análisis de turnos:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -309,7 +317,7 @@ const AnalisisTurnosPage: React.FC = () => {
         <div className="flex items-center gap-3">
           {ultimaActualizacion && (
             <span className="text-sm text-gray-500">
-              Actualizado: {ultimaActualizacion.toLocaleTimeString('es-AR')}
+              Snapshot: {ultimaActualizacion.toLocaleString('es-AR')}
             </span>
           )}
           <button
@@ -554,7 +562,7 @@ const AnalisisTurnosPage: React.FC = () => {
 
       {/* Footer Info */}
       <div className="text-center text-sm text-gray-400 py-4">
-        <p>Datos obtenidos de GECLISA (192.168.1.73)</p>
+        <p>Datos sincronizados desde GECLISA (snapshot 2 veces/día: 12:00 y 17:00)</p>
         <p className="mt-1">Me_id = 0 → Pendiente | Me_id &gt; 0 → Atendido</p>
       </div>
     </div>
