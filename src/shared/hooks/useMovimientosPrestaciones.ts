@@ -1,18 +1,21 @@
 // ============================================
 // HOOK: useMovimientosPrestaciones
-// Sistema de Costos - Instituto Dr. Mercado
-// VERSIÓN 3.3 - FIX: Limit aumentado a 5000
+// Sistema Integral de Gestión - Instituto Dr. Mercado
 // ============================================
-// CAMBIO v3.3: El limit de 500 truncaba datos en meses con más
-// de 500 atenciones, causando facturación incompleta en Análisis Marginal.
-// CAMBIO v3.2: Los filtros se inicializan con año/mes actual
-// para que la primera carga traiga solo datos del período.
-// ============================================
-// RUTA: src/hooks/useMovimientosPrestaciones.ts
+// v4.0 (2026-06): lee del espejo Supabase `movimientos_geclisa` (sync GECLISA)
+// en vez de /api/movimientos/*. Trae las filas del período UNA vez y deriva
+// listado + stats (totales, por OS/prestador/prestación/grupo) en el cliente con
+// shared/utils/movimientosAgg.ts. Así funciona desde afuera de la clínica.
+// La interfaz pública del hook NO cambió (las páginas consumidoras siguen igual).
 // ============================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { API_BASE_URL } from '../lib/apiConfig';
+import { supabase } from '../lib/supabase';
+import {
+  type MovGecRow,
+  mapearListado,
+  calcularStats,
+} from '../utils/movimientosAgg';
 
 // ============================================
 // INTERFACES
@@ -46,7 +49,6 @@ export interface PrestacionRealizada {
   mes_numero: number;
 }
 
-// ★★★ v3.0: Totales calculados en servidor ★★★
 export interface TotalesPeriodo {
   atenciones: number;
   practicas: number;
@@ -116,7 +118,6 @@ export interface FiltrosPrestaciones {
   derivadorId: string;
 }
 
-// Estadísticas generales (para PrestacionesRealizadasPage)
 export interface Estadisticas {
   practicas_hoy: number;
   ingreso_hoy: number;
@@ -141,11 +142,11 @@ export interface OpcionesFiltros {
 }
 
 // ============================================
-// ★★★ v3.2 FIX: VALORES INICIALES ★★★
+// VALORES INICIALES
 // ============================================
 
 const CURRENT_YEAR = new Date().getFullYear();
-const CURRENT_MONTH = new Date().getMonth() + 1; // getMonth() es 0-indexed
+const CURRENT_MONTH = new Date().getMonth() + 1;
 
 const FILTROS_INICIALES: FiltrosPrestaciones = {
   anio: CURRENT_YEAR.toString(),
@@ -158,352 +159,218 @@ const FILTROS_INICIALES: FiltrosPrestaciones = {
   busqueda: '',
   prestacion: '',
   paciente: '',
-  derivadorId: ''
+  derivadorId: '',
 };
+
+const MESES_LABEL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const ANIO_MIN = 2024; // el espejo arranca en 2024-01
+
+const COLS =
+  'atencion_id,mp_id,pre_id,fecha,anio,mes,dia,hora,paciente,edad,diagnostico,estado,usuario_alta,os_id,os_sigla,os_nombre,practica_codigo,practica_nombre,grupo_id,grupo_nombre,prestador_nombre,derivador_id,derivador,coseguro,cobertura,total,cant_prestadores,es_principal';
+
+// Trae TODAS las filas de un período (paginado de a 1000) aplicando solo
+// anio/mes/dia en la query; los demás filtros se resuelven en el cliente.
+async function fetchFilasPeriodo(f: FiltrosPrestaciones): Promise<MovGecRow[]> {
+  const filas: MovGecRow[] = [];
+  let from = 0;
+  for (;;) {
+    let q = supabase.from('movimientos_geclisa').select(COLS);
+    if (f.anio) q = q.eq('anio', parseInt(f.anio, 10));
+    if (f.mes) q = q.eq('mes', parseInt(f.mes, 10));
+    if (f.dia) q = q.eq('dia', parseInt(f.dia, 10));
+    const { data, error } = await q.range(from, from + 999);
+    if (error) throw new Error(error.message);
+    filas.push(...((data as unknown as MovGecRow[]) || []));
+    if (!data || data.length < 1000) break;
+    from += 1000;
+  }
+  return filas;
+}
+
+function sumPrincipales(rows: MovGecRow[]) {
+  let ingreso = 0;
+  let practicas = 0;
+  for (const r of rows) {
+    if (!r.es_principal) continue;
+    practicas += 1;
+    ingreso += Number(r.total) || 0;
+  }
+  return { practicas, ingreso };
+}
 
 // ============================================
 // HOOK PRINCIPAL
 // ============================================
 
 export const useMovimientosPrestaciones = () => {
-  // Estado de datos (paginados - para tabla)
-  const [prestaciones, setPrestaciones] = useState<PrestacionRealizada[]>([]);
-  
-  // ★★★ v3.0: Totales del servidor ★★★
-  const [totalesPeriodo, setTotalesPeriodo] = useState<TotalesPeriodo>({
-    atenciones: 0,
-    practicas: 0,
-    coseguro: 0,
-    cobertura: 0,
-    ingresos: 0
-  });
-  
-  // ★★★ v3.0: Stats agrupados del servidor ★★★
-  const [statsPorObraSocial, setStatsPorObraSocial] = useState<StatsPorObraSocial[]>([]);
-  const [statsPorPrestador, setStatsPorPrestador] = useState<StatsPorPrestador[]>([]);
-  const [statsPorPrestacion, setStatsPorPrestacion] = useState<StatsPorPrestacion[]>([]);
-  const [statsPorGrupo, setStatsPorGrupo] = useState<StatsPorGrupo[]>([]);
-  
-  // Estadísticas generales (compatibilidad con PrestacionesRealizadasPage)
+  const [filasPeriodo, setFilasPeriodo] = useState<MovGecRow[]>([]);
   const [estadisticas, setEstadisticas] = useState<Estadisticas>({
-    practicas_hoy: 0,
-    ingreso_hoy: 0,
-    practicas_mes_actual: 0,
-    ingreso_mes_actual: 0,
-    practicas_mes_anterior: 0,
-    ingreso_mes_anterior: 0,
-    total_historico: 0,
-    turnos_pendientes: 0
+    practicas_hoy: 0, ingreso_hoy: 0, practicas_mes_actual: 0, ingreso_mes_actual: 0,
+    practicas_mes_anterior: 0, ingreso_mes_anterior: 0, total_historico: 0, turnos_pendientes: 0,
   });
-  
-  // ★★★ v3.2 FIX: Estado de filtros con valores iniciales ★★★
+
   const [filtros, setFiltros] = useState<FiltrosPrestaciones>(FILTROS_INICIALES);
-  
-  // Opciones para dropdowns
-  const [opcionesFiltros, setOpcionesFiltros] = useState<OpcionesFiltros>({
-    anios: [],
-    meses: [],
-    dias: [],
-    obrasSociales: [],
-    prestadores: [],
-    grupos: [],
-    gruposPracticas: [],
-    agentesFacturadores: [],
-    derivadores: []
-  });
-  
-  // Estados de carga
+
   const [loading, setLoading] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
-  const [loadingFiltros, setLoadingFiltros] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // ============================================
-  // CARGAR OPCIONES DE FILTROS
-  // ============================================
-
-  const cargarOpcionesFiltros = useCallback(async () => {
+  // ------------------------------------------------------------
+  // Cargar filas del período (depende solo de anio/mes/dia)
+  // ------------------------------------------------------------
+  const cargarPeriodo = useCallback(async () => {
     try {
-      setLoadingFiltros(true);
-      
-      const response = await fetch(`${API_BASE_URL}/movimientos/filtros`);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        // Mapear datos del servidor con valores por defecto para propiedades faltantes
-        setOpcionesFiltros({
-          anios: result.data.anios || [],
-          meses: result.data.meses || [],
-          dias: result.data.dias || [],
-          obrasSociales: result.data.obrasSociales || [],
-          prestadores: result.data.prestadores || [],
-          grupos: result.data.grupos || result.data.gruposPracticas || [],
-          gruposPracticas: result.data.gruposPracticas || result.data.grupos || [],
-          agentesFacturadores: result.data.agentesFacturadores || [],
-          derivadores: result.data.derivadores || []
-        });
-        setIsConnected(true);
-      }
+      setLoading(true);
+      setLoadingStats(true);
+      setError(null);
+      const filas = await fetchFilasPeriodo(filtros);
+      setFilasPeriodo(filas);
+      setIsConnected(true);
     } catch (err) {
-      console.error('Error cargando filtros:', err);
+      setError(err instanceof Error ? err.message : 'Error de conexión');
       setIsConnected(false);
+      setFilasPeriodo([]);
     } finally {
-      setLoadingFiltros(false);
+      setLoading(false);
+      setLoadingStats(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtros.anio, filtros.mes, filtros.dia]);
 
-  // ============================================
-  // CARGAR ESTADÍSTICAS GENERALES
-  // (Compatibilidad con PrestacionesRealizadasPage)
-  // ============================================
-
+  // ------------------------------------------------------------
+  // Estadísticas generales (hoy / mes actual / mes anterior / total)
+  // ------------------------------------------------------------
   const cargarEstadisticas = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/movimientos/stats`);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        setEstadisticas({
-          practicas_hoy: result.data.hoy?.practicas || 0,
-          ingreso_hoy: result.data.hoy?.ingreso || 0,
-          practicas_mes_actual: result.data.mesActual?.practicas || 0,
-          ingreso_mes_actual: result.data.mesActual?.ingreso || 0,
-          practicas_mes_anterior: result.data.mesAnterior?.practicas || 0,
-          ingreso_mes_anterior: result.data.mesAnterior?.ingreso || 0,
-          total_historico: result.data.total?.practicas || 0,
-          turnos_pendientes: 0
-        });
-      }
+      const hoy = new Date();
+      const anioAct = hoy.getFullYear();
+      const mesAct = hoy.getMonth() + 1;
+      const mesAnt = mesAct === 1 ? 12 : mesAct - 1;
+      const anioMesAnt = mesAct === 1 ? anioAct - 1 : anioAct;
+      const hoyStr = hoy.toISOString().split('T')[0];
+
+      const [mesActualRows, mesAnteriorRows, hoyRows, totalRes] = await Promise.all([
+        supabase.from('movimientos_geclisa').select('total,es_principal').eq('anio', anioAct).eq('mes', mesAct).eq('es_principal', true),
+        supabase.from('movimientos_geclisa').select('total,es_principal').eq('anio', anioMesAnt).eq('mes', mesAnt).eq('es_principal', true),
+        supabase.from('movimientos_geclisa').select('total,es_principal').eq('fecha', hoyStr).eq('es_principal', true),
+        supabase.from('movimientos_geclisa').select('*', { count: 'exact', head: true }).eq('es_principal', true),
+      ]);
+
+      const sum = (rows: { total: number }[] | null) => (rows || []).reduce((s, r) => s + (Number(r.total) || 0), 0);
+      setEstadisticas({
+        practicas_hoy: hoyRows.data?.length || 0,
+        ingreso_hoy: sum(hoyRows.data as { total: number }[]),
+        practicas_mes_actual: mesActualRows.data?.length || 0,
+        ingreso_mes_actual: sum(mesActualRows.data as { total: number }[]),
+        practicas_mes_anterior: mesAnteriorRows.data?.length || 0,
+        ingreso_mes_anterior: sum(mesAnteriorRows.data as { total: number }[]),
+        total_historico: totalRes.count || 0,
+        turnos_pendientes: 0,
+      });
     } catch (err) {
       console.error('Error cargando estadísticas:', err);
     }
   }, []);
 
-  // ============================================
-  // CARGAR PRESTACIONES (PAGINADAS - PARA TABLA)
-  // ============================================
+  // ------------------------------------------------------------
+  // Derivaciones en cliente (memoizadas)
+  // ------------------------------------------------------------
+  const stats = useMemo(() => calcularStats(filasPeriodo, filtros), [filasPeriodo, filtros]);
 
-  const cargarPrestaciones = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const params = new URLSearchParams();
-      
-      if (filtros.anio) params.append('anio', filtros.anio);
-      if (filtros.mes) params.append('mes', filtros.mes);
-      if (filtros.dia) params.append('dia', filtros.dia);
-      if (filtros.obraSocialId) params.append('osId', filtros.obraSocialId);
-      if (filtros.prestadorId) params.append('prestador', filtros.prestadorId);
-      if (filtros.grupoPracticas) params.append('grupoPracticas', filtros.grupoPracticas);
-      if (filtros.prestacion) params.append('prestacion', filtros.prestacion);
-      if (filtros.paciente) params.append('paciente', filtros.paciente);
-      if (filtros.derivadorId) params.append('derivadorId', filtros.derivadorId);
-      params.append('limit', '5000');
-      
-      const url = `${API_BASE_URL}/movimientos?${params.toString()}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setPrestaciones(result.data || []);
-        setIsConnected(true);
-      } else {
-        throw new Error(result.error || 'Error desconocido');
-      }
-    } catch (err) {
-      const mensaje = err instanceof Error ? err.message : 'Error de conexión';
-      setError(mensaje);
-      setIsConnected(false);
-      setPrestaciones([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [filtros]);
-
-  // ============================================
-  // ★★★ v3.0: CARGAR STATS-PERIODO ★★★
-  // Totales calculados en SQL Server
-  // ============================================
-
-  const cargarStatsPeriodo = useCallback(async () => {
-    try {
-      setLoadingStats(true);
-      
-      const params = new URLSearchParams();
-      
-      // ★★★ v3.2: Siempre enviar año y mes (ahora tienen valores iniciales) ★★★
-      if (filtros.anio) params.append('anio', filtros.anio);
-      if (filtros.mes) params.append('mes', filtros.mes);
-      if (filtros.obraSocialId) params.append('obraSocialId', filtros.obraSocialId);
-      if (filtros.prestadorId) params.append('prestadorId', filtros.prestadorId);
-      if (filtros.grupoPracticas) params.append('grupoPracticas', filtros.grupoPracticas);
-      
-      const url = `${API_BASE_URL}/movimientos/stats-periodo?${params.toString()}`;
-      console.log('📊 Cargando stats-periodo:', url);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        // Totales generales
-        setTotalesPeriodo(result.data.totales || {
-          atenciones: 0,
-          practicas: 0,
-          coseguro: 0,
-          cobertura: 0,
-          ingresos: 0
-        });
-        
-        // Stats agrupados
-        setStatsPorObraSocial(result.data.porObraSocial || []);
-        setStatsPorPrestador(result.data.porPrestador || []);
-        setStatsPorPrestacion(result.data.porPrestacion || []);
-        setStatsPorGrupo(result.data.porGrupo || []);
-        
-        console.log(`✅ Stats-periodo cargados: ${result.data.totales?.practicas} prácticas, $${result.data.totales?.ingresos}`);
-      }
-    } catch (err) {
-      console.error('Error cargando stats-periodo:', err);
-    } finally {
-      setLoadingStats(false);
-    }
-  }, [filtros]);
-
-  // ============================================
-  // APLICAR FILTROS
-  // ============================================
-
-  const aplicarFiltros = useCallback((nuevosFiltros: Partial<FiltrosPrestaciones>) => {
-    setFiltros(prev => ({
-      ...prev,
-      ...nuevosFiltros
-    }));
-  }, []);
-
-  // ★★★ v3.2: Limpiar filtros vuelve al mes actual, no vacío ★★★
-  const limpiarFiltros = useCallback(() => {
-    setFiltros(FILTROS_INICIALES);
-  }, []);
-
-  // ============================================
-  // REFETCH COMPLETO
-  // ============================================
-
-  const refetch = useCallback(async () => {
-    await Promise.all([
-      cargarPrestaciones(),
-      cargarStatsPeriodo(),
-      cargarEstadisticas()
-    ]);
-  }, [cargarPrestaciones, cargarStatsPeriodo, cargarEstadisticas]);
-
-  // ============================================
-  // EFFECTS
-  // ============================================
-
-  // Cargar filtros y estadísticas al montar
-  useEffect(() => {
-    cargarOpcionesFiltros();
-    cargarEstadisticas();
-  }, [cargarOpcionesFiltros, cargarEstadisticas]);
-
-  // Cargar datos cuando cambian filtros
-  useEffect(() => {
-    cargarPrestaciones();
-    cargarStatsPeriodo();
-  }, [filtros.anio, filtros.mes, filtros.dia, filtros.obraSocialId, filtros.prestadorId, filtros.grupoPracticas, filtros.prestacion, filtros.paciente, filtros.derivadorId]);
-
-  // ============================================
-  // DATOS FILTRADOS POR BÚSQUEDA LOCAL
-  // ============================================
+  const prestacionesBase = useMemo(() => mapearListado(filasPeriodo, filtros), [filasPeriodo, filtros]);
 
   const prestacionesFiltradas = useMemo(() => {
-    if (!filtros.busqueda.trim()) return prestaciones;
-    
-    const termino = filtros.busqueda.toLowerCase();
-    return prestaciones.filter(p =>
-      p.paciente?.toLowerCase().includes(termino) ||
-      p.prestacion?.toLowerCase().includes(termino) ||
-      p.os_nombre?.toLowerCase().includes(termino) ||
-      p.prestador?.toLowerCase().includes(termino) ||
-      p.codigo_prestacion?.toLowerCase().includes(termino)
+    if (!filtros.busqueda.trim()) return prestacionesBase;
+    const t = filtros.busqueda.toLowerCase();
+    return prestacionesBase.filter((p) =>
+      p.paciente?.toLowerCase().includes(t) ||
+      p.prestacion?.toLowerCase().includes(t) ||
+      p.os_nombre?.toLowerCase().includes(t) ||
+      p.prestador?.toLowerCase().includes(t) ||
+      p.codigo_prestacion?.toLowerCase().includes(t),
     );
-  }, [prestaciones, filtros.busqueda]);
+  }, [prestacionesBase, filtros.busqueda]);
 
-  // ============================================
-  // ⚠️ DEPRECADO: Totales calculados en frontend
-  // Usar `totalesPeriodo` en su lugar
-  // ============================================
+  // Opciones de filtros derivadas de las filas del período (OS/prestador/grupo/
+  // derivador que existen en lo que se está viendo) + años/meses/días genéricos.
+  const opcionesFiltros = useMemo<OpcionesFiltros>(() => {
+    const osMap = new Map<number, { id: number; sigla: string; nombre: string }>();
+    const preMap = new Map<number, { id: number; nombre: string }>();
+    const grupoMap = new Map<number, { id: number; nombre: string }>();
+    const derMap = new Map<number, { id: number; nombre: string }>();
+    for (const r of filasPeriodo) {
+      if (r.os_id != null && !osMap.has(r.os_id)) osMap.set(r.os_id, { id: r.os_id, sigla: r.os_sigla || 'S/D', nombre: r.os_nombre || 'Sin OS' });
+      if (r.pre_id && !preMap.has(r.pre_id)) preMap.set(r.pre_id, { id: r.pre_id, nombre: r.prestador_nombre || 'Sin prestador' });
+      if (r.grupo_id != null && !grupoMap.has(r.grupo_id)) grupoMap.set(r.grupo_id, { id: r.grupo_id, nombre: r.grupo_nombre || 'Sin servicio' });
+      if (r.derivador_id != null && !derMap.has(r.derivador_id)) derMap.set(r.derivador_id, { id: r.derivador_id, nombre: r.derivador || 'Sin derivador' });
+    }
+    const anios: number[] = [];
+    for (let a = CURRENT_YEAR; a >= ANIO_MIN; a--) anios.push(a);
+    const cmp = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre);
+    const grupos = [...grupoMap.values()].sort(cmp);
+    return {
+      anios,
+      meses: MESES_LABEL.map((label, i) => ({ value: i + 1, label })),
+      dias: Array.from({ length: 31 }, (_, i) => ({ value: i + 1, label: String(i + 1) })),
+      obrasSociales: [...osMap.values()].sort(cmp),
+      prestadores: [...preMap.values()].sort(cmp),
+      grupos,
+      gruposPracticas: grupos,
+      agentesFacturadores: [],
+      derivadores: [...derMap.values()].sort(cmp),
+    };
+  }, [filasPeriodo]);
 
-  const totalesLocal = useMemo(() => {
-    console.warn('⚠️ totalesLocal está deprecado. Usar totalesPeriodo del servidor.');
-    return prestacionesFiltradas.reduce((acc, p) => ({
-      cantidad: acc.cantidad + 1,
-      coseguro: acc.coseguro + (p.coseguro || 0),
-      cobertura: acc.cobertura + (p.cobertura || 0),
-      total: acc.total + (p.total || 0)
-    }), { cantidad: 0, coseguro: 0, cobertura: 0, total: 0 });
-  }, [prestacionesFiltradas]);
+  // ------------------------------------------------------------
+  // Acciones
+  // ------------------------------------------------------------
+  const aplicarFiltros = useCallback((nuevos: Partial<FiltrosPrestaciones>) => {
+    setFiltros((prev) => ({ ...prev, ...nuevos }));
+  }, []);
 
-  // ============================================
-  // RETURN
-  // ============================================
+  const limpiarFiltros = useCallback(() => setFiltros(FILTROS_INICIALES), []);
 
+  const refetch = useCallback(async () => {
+    await Promise.all([cargarPeriodo(), cargarEstadisticas()]);
+  }, [cargarPeriodo, cargarEstadisticas]);
+
+  // ------------------------------------------------------------
+  // Effects
+  // ------------------------------------------------------------
+  useEffect(() => { cargarEstadisticas(); }, [cargarEstadisticas]);
+  useEffect(() => { cargarPeriodo(); }, [cargarPeriodo]);
+
+  // ------------------------------------------------------------
+  // Return (interfaz idéntica a v3)
+  // ------------------------------------------------------------
   return {
-    // Datos paginados (para tabla)
     prestaciones: prestacionesFiltradas,
-    totalRegistros: prestaciones.length,
-    
-    // ★★★ v3.0: Totales del servidor (USAR PARA KPIs) ★★★
-    totalesPeriodo,
-    statsPorObraSocial,
-    statsPorPrestador,
-    statsPorPrestacion,
-    statsPorGrupo,
-    
-    // Estadísticas generales (compatibilidad con PrestacionesRealizadasPage)
+    totalRegistros: prestacionesBase.length,
+
+    totalesPeriodo: stats.totales,
+    statsPorObraSocial: stats.porObraSocial,
+    statsPorPrestador: stats.porPrestador,
+    statsPorPrestacion: stats.porPrestacion,
+    statsPorGrupo: stats.porGrupo,
+
     estadisticas,
-    
-    // Filtros
+
     filtros,
     opcionesFiltros,
     aplicarFiltros,
     limpiarFiltros,
-    
-    // Estados
+
     loading,
     loadingStats,
-    loadingFiltros,
+    loadingFiltros: false,
     error,
     isConnected,
-    
-    // Acciones
+
     refetch,
-    
-    // ⚠️ DEPRECADO: No usar para KPIs
-    totalesLocal
+
+    // compat: antes existía; ya no se usa para KPIs
+    totalesLocal: stats.totales,
   };
 };
 
