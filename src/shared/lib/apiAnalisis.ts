@@ -4,7 +4,11 @@
 // Comunicación con endpoints de análisis
 // ============================================
 
+import { supabase } from './supabase';
+
 const API_BASE_URL = '/api';
+
+const MESES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 // ============================================
 // TIPOS
@@ -162,27 +166,46 @@ export const fetchMovimientos = async (params?: {
 };
 
 /**
- * Obtener estadísticas/KPIs
+ * Obtener estadísticas/KPIs — desde el espejo Supabase (movimientos_geclisa).
  */
 export const fetchStats = async (): Promise<StatsData> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/movimientos/stats`);
-    
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
+  const hoy = new Date();
+  const anioAct = hoy.getFullYear();
+  const mesAct = hoy.getMonth() + 1;
+  const mesAnt = mesAct === 1 ? 12 : mesAct - 1;
+  const anioMesAnt = mesAct === 1 ? anioAct - 1 : anioAct;
+  const hoyStr = hoy.toISOString().split('T')[0];
 
-    const result: ApiResponse<StatsData> = await response.json();
+  const sumRows = (rows: any[] | null) =>
+    (rows || []).reduce(
+      (a, r) => ({
+        practicas: a.practicas + 1,
+        ingreso: a.ingreso + (Number(r.total) || 0),
+        coseguro: a.coseguro + (Number(r.coseguro) || 0),
+        cobertura: a.cobertura + (Number(r.cobertura) || 0),
+      }),
+      { practicas: 0, ingreso: 0, coseguro: 0, cobertura: 0 },
+    );
 
-    if (!result.success) {
-      throw new Error(result.error || 'Error obteniendo estadísticas');
-    }
+  const [hoyRes, mesActRes, mesAntRes, totalRes] = await Promise.all([
+    supabase.from('movimientos_geclisa').select('total,coseguro,cobertura').eq('es_principal', true).eq('fecha', hoyStr),
+    supabase.from('movimientos_geclisa').select('total,coseguro,cobertura').eq('es_principal', true).eq('anio', anioAct).eq('mes', mesAct),
+    supabase.from('movimientos_geclisa').select('total,coseguro,cobertura').eq('es_principal', true).eq('anio', anioMesAnt).eq('mes', mesAnt),
+    supabase.from('movimientos_geclisa').select('*', { count: 'exact', head: true }).eq('es_principal', true),
+  ]);
 
-    return result.data;
-  } catch (error) {
-    console.error('❌ Error en fetchStats:', error);
-    throw error;
-  }
+  const hoyD = sumRows(hoyRes.data as any[]);
+  const mesActualD = sumRows(mesActRes.data as any[]);
+  const mesAnteriorD = sumRows(mesAntRes.data as any[]);
+  const variacionPct = mesAnteriorD.ingreso > 0 ? ((mesActualD.ingreso - mesAnteriorD.ingreso) / mesAnteriorD.ingreso) * 100 : 0;
+
+  return {
+    hoy: { practicas: hoyD.practicas, ingreso: hoyD.ingreso, coseguro: hoyD.coseguro, cobertura: hoyD.cobertura },
+    mesActual: { practicas: mesActualD.practicas, ingreso: mesActualD.ingreso, coseguro: mesActualD.coseguro, cobertura: mesActualD.cobertura },
+    mesAnterior: { practicas: mesAnteriorD.practicas, ingreso: mesAnteriorD.ingreso },
+    total: { practicas: totalRes.count || 0, ingreso: 0 },
+    variacion: { porcentaje: Math.round(variacionPct * 10) / 10, tendencia: variacionPct >= 0 ? 'up' : 'down' },
+  };
 };
 
 /**
@@ -256,27 +279,51 @@ export const fetchAnalisisPorPrestador = async (params?: {
 };
 
 /**
- * Obtener evolución mensual
+ * Obtener evolución mensual — desde el espejo Supabase (movimientos_geclisa).
+ * Agrupa por (anio, mes) las atenciones (es_principal) de los últimos N meses.
  */
 export const fetchEvolucionMensual = async (meses: number = 12): Promise<EvolucionMensual[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/movimientos/evolucion-mensual?meses=${meses}`);
-    
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
+  const hoy = new Date();
+  const desde = new Date(hoy.getFullYear(), hoy.getMonth() - (meses - 1), 1);
+  const desdeStr = `${desde.getFullYear()}-${String(desde.getMonth() + 1).padStart(2, '0')}-01`;
 
-    const result: ApiResponse<EvolucionMensual[]> = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.error || 'Error obteniendo evolución mensual');
-    }
-
-    return result.data;
-  } catch (error) {
-    console.error('❌ Error en fetchEvolucionMensual:', error);
-    throw error;
+  // Traer es_principal del rango (paginado) y agrupar en cliente.
+  const filas: any[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from('movimientos_geclisa')
+      .select('anio, mes, total, coseguro, cobertura')
+      .eq('es_principal', true)
+      .gte('fecha', desdeStr)
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    filas.push(...(data || []));
+    if (!data || data.length < 1000) break;
+    from += 1000;
   }
+
+  const map = new Map<string, { practicas: number; ingreso: number; coseguro: number; cobertura: number }>();
+  for (const r of filas) {
+    const k = `${r.anio}-${r.mes}`;
+    const e = map.get(k) || { practicas: 0, ingreso: 0, coseguro: 0, cobertura: 0 };
+    e.practicas += 1;
+    e.ingreso += Number(r.total) || 0;
+    e.coseguro += Number(r.coseguro) || 0;
+    e.cobertura += Number(r.cobertura) || 0;
+    map.set(k, e);
+  }
+
+  // Lista ordenada de los N meses (incluye meses sin datos en 0).
+  const out: EvolucionMensual[] = [];
+  for (let i = meses - 1; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const anio = d.getFullYear();
+    const mes = d.getMonth() + 1;
+    const e = map.get(`${anio}-${mes}`) || { practicas: 0, ingreso: 0, coseguro: 0, cobertura: 0 };
+    out.push({ periodo: `${anio}-${String(mes).padStart(2, '0')}`, anio, mes, mesNombre: `${MESES_CORTO[mes - 1]} ${anio}`, ...e });
+  }
+  return out;
 };
 
 // ============================================

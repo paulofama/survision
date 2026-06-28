@@ -30,7 +30,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { API_BASE_URL } from '../lib/apiConfig';
 import useRecetasCostos from './useRecetasCostos';
 import useHonorariosConfig from './useHonorariosConfig';
 import type {
@@ -44,14 +43,8 @@ import type {
 import { toMesKey, generarRangoMeses, parseMesKey } from '../types/evolucionTemporal';
 
 // ============================================
-// CONFIGURACIÓN — Ajustar si cambia el backend
+// CONFIGURACIÓN
 // ============================================
-
-/** Endpoint que devuelve las atenciones de un mes desde GECLISA.
- *  Usa /movimientos (una fila por atención: fecha/prestacion/prestador/os/total).
- *  limit alto para no truncar meses con muchas atenciones. */
-const ENDPOINT_ATENCIONES = (anio: number, mes: number) =>
-  `${API_BASE_URL}/movimientos?anio=${anio}&mes=${mes}&limit=10000`;
 
 /** Umbral de cobertura de receta debajo del cual se emite advertencia. */
 const UMBRAL_COBERTURA_RECETA = 80; // %
@@ -162,22 +155,33 @@ const useEvolucionMensual = (
 
   const fetchAtencionesMes = useCallback(async (mes: Mes): Promise<AtencionRaw[]> => {
     const { anio, mes: mesN } = parseMesKey(mes);
-    const url = ENDPOINT_ATENCIONES(anio, mesN);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status} al traer atenciones de ${mes}`);
-    const json = await res.json();
-    if (json && json.success === false) {
-      throw new Error(json.error || `Error al traer atenciones de ${mes}`);
+    // Lee del espejo Supabase (movimientos_geclisa, 1 fila por atención =
+    // es_principal). Antes pegaba a /api/movimientos; ahora anda desde afuera.
+    const filas: AtencionRaw[] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from('movimientos_geclisa')
+        .select('fecha, practica_nombre, prestador_nombre, os_sigla, os_nombre, total')
+        .eq('anio', anio)
+        .eq('mes', mesN)
+        .eq('es_principal', true)
+        .range(from, from + 999);
+      if (error) throw new Error(`${error.message} (atenciones de ${mes})`);
+      for (const r of data || []) {
+        filas.push({
+          fecha: (r as any).fecha ?? '',
+          prestacion: (r as any).practica_nombre ?? '',
+          prestador: (r as any).prestador_nombre ?? null,
+          os_sigla: (r as any).os_sigla ?? null,
+          os_nombre: (r as any).os_nombre ?? null,
+          total: Number((r as any).total) || 0,
+        });
+      }
+      if (!data || data.length < 1000) break;
+      from += 1000;
     }
-    const rows: any[] = json?.data ?? json ?? [];
-    return rows.map((r): AtencionRaw => ({
-      fecha: r.fecha ?? r.me_fecha ?? r.fechaAtencion ?? '',
-      prestacion: r.prestacion ?? r.practica ?? '',
-      prestador: r.prestador ?? null,
-      os_sigla: r.os_sigla ?? r.osSigla ?? null,
-      os_nombre: r.os_nombre ?? r.osNombre ?? null,
-      total: Number(r.total) || 0,
-    }));
+    return filas;
   }, []);
 
   // ============================================
