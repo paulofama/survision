@@ -30,7 +30,6 @@ import {
   Check
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
-import { getApiBaseUrl } from '@shared/lib/apiConfig';
 import jsPDF from 'jspdf';
 
 // ============================================
@@ -154,42 +153,39 @@ const DerivacionesLiquidacionPage = () => {
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const API_BASE = getApiBaseUrl();
-
   // ============================================
   // CARGA DE DATOS
   // ============================================
 
-  // Cargar años disponibles
+  // Años disponibles: el espejo movimientos_geclisa arranca en 2024.
   const cargarAnios = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE}/derivaciones/anios-disponibles`);
-      const data = await response.json();
-      if (data.success && data.data.length > 0) {
-        setAniosDisponibles(data.data);
-      } else {
-        // Fallback: últimos 5 años
-        const currentYear = new Date().getFullYear();
-        setAniosDisponibles(Array.from({ length: 5 }, (_, i) => currentYear - i));
-      }
-    } catch {
-      const currentYear = new Date().getFullYear();
-      setAniosDisponibles(Array.from({ length: 5 }, (_, i) => currentYear - i));
-    }
-  }, [API_BASE]);
+    const currentYear = new Date().getFullYear();
+    const anios: number[] = [];
+    for (let a = currentYear; a >= 2024; a--) anios.push(a);
+    setAniosDisponibles(anios);
+  }, []);
 
-  // Cargar derivadores desde GECLISA
+  // Derivadores: distinct desde el espejo (atenciones con derivador y coseguro).
   const cargarDerivadores = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/derivaciones/derivadores`);
-      const data = await response.json();
-      if (data.success) {
-        setDerivadores(data.data);
+      const { data, error } = await supabase
+        .from('movimientos_geclisa')
+        .select('derivador_id, derivador')
+        .eq('es_principal', true)
+        .gt('derivador_id', 0)
+        .gt('coseguro', 0)
+        .limit(5000);
+      if (error) throw new Error(error.message);
+      const map = new Map<number, { id: number; nombre: string }>();
+      for (const r of data || []) {
+        const id = (r as any).derivador_id as number;
+        if (id && !map.has(id)) map.set(id, { id, nombre: (r as any).derivador || 'S/D' });
       }
+      setDerivadores([...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre)));
     } catch (err) {
       console.error('Error cargando derivadores:', err);
     }
-  }, [API_BASE]);
+  }, []);
 
   // Cargar configuración de porcentajes desde Supabase
   const cargarConfig = useCallback(async () => {
@@ -209,23 +205,45 @@ const DerivacionesLiquidacionPage = () => {
     }
   }, []);
 
-  // Cargar datos de liquidación
+  // Liquidación: 1 fila por atención (es_principal) con derivador y coseguro>0,
+  // desde el espejo Supabase movimientos_geclisa.
   const cargarLiquidacion = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      let url = `${API_BASE}/derivaciones/liquidacion?anio=${anio}`;
-      if (mes) url += `&mes=${mes}`;
-      if (derivadorFiltro) url += `&derivador_id=${derivadorFiltro}`;
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.success) {
-        setRegistros(data.data);
-      } else {
-        throw new Error(data.error || 'Error obteniendo datos');
+      const filas: any[] = [];
+      let from = 0;
+      for (;;) {
+        let q = supabase
+          .from('movimientos_geclisa')
+          .select('atencion_id, fecha, paciente, prestador_nombre, derivador_id, derivador, practica_nombre, practica_codigo, coseguro')
+          .eq('es_principal', true)
+          .eq('anio', Number(anio))
+          .gt('derivador_id', 0)
+          .gt('coseguro', 0)
+          .order('fecha', { ascending: false })
+          .order('atencion_id', { ascending: false });
+        if (mes) q = q.eq('mes', Number(mes));
+        if (derivadorFiltro) q = q.eq('derivador_id', Number(derivadorFiltro));
+        const { data, error } = await q.range(from, from + 999);
+        if (error) throw new Error(error.message);
+        filas.push(...(data || []));
+        if (!data || data.length < 1000) break;
+        from += 1000;
       }
+
+      const registros = filas.map((r) => ({
+        atencion_id: r.atencion_id,
+        fecha: r.fecha,
+        apellido_nombre: r.paciente || '',
+        prestador: r.prestador_nombre || 'S/D',
+        derivador_id: r.derivador_id,
+        derivador: r.derivador || 'S/D',
+        prestacion: r.practica_nombre || 'Sin Prestación',
+        prestacion_codigo: r.practica_codigo || '',
+        coseguro: Number(r.coseguro) || 0,
+      }));
+      setRegistros(registros);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido';
       setError(message);
@@ -233,7 +251,7 @@ const DerivacionesLiquidacionPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, anio, mes, derivadorFiltro]);
+  }, [anio, mes, derivadorFiltro]);
 
   // Carga inicial
   useEffect(() => {
