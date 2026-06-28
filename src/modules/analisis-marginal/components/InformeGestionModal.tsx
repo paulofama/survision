@@ -12,6 +12,8 @@ import React, { useState, useCallback } from 'react';
 import { FileText, Loader2, X, Download, Calendar } from 'lucide-react';
 import { useMarginalContext } from './MarginalLayout';
 import { supabase } from '@shared/lib/supabase';
+import { mapearListado, type MovGecRow } from '@shared/utils/movimientosAgg';
+import type { FiltrosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { generarInformeGestionPDF, DatosInforme, DatosMes } from '../utils/generarInformeGestion';
 import useCostosFijosDistribucion from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
@@ -183,9 +185,27 @@ const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClo
         const mesAnt = mes === 1 ? 12 : mes - 1;
         const anioAnt = mes === 1 ? anio - 1 : anio;
 
-        const resp = await fetch(`/api/movimientos?anio=${anioAnt}&mes=${mesAnt}&limit=5000`);
-        if (resp.ok) {
-          const { data: prestAnt } = await resp.json();
+        // Atenciones del mes anterior desde el espejo Supabase (1 fila por
+        // atención = es_principal), mapeadas a la forma del listado. Antes pegaba
+        // a /api/movimientos; ahora funciona desde afuera de la clínica.
+        const filasAnt: MovGecRow[] = [];
+        let fromAnt = 0;
+        for (;;) {
+          const { data, error } = await supabase
+            .from('movimientos_geclisa')
+            .select('*')
+            .eq('anio', anioAnt)
+            .eq('mes', mesAnt)
+            .eq('es_principal', true)
+            .range(fromAnt, fromAnt + 999);
+          if (error) break;
+          filasAnt.push(...((data as unknown as MovGecRow[]) || []));
+          if (!data || data.length < 1000) break;
+          fromAnt += 1000;
+        }
+        {
+          const fVacio = { anio: '', mes: '', dia: '', obraSocialId: '', prestadorId: '', grupoPracticas: '', agenteFacturadorId: '', busqueda: '', prestacion: '', paciente: '', derivadorId: '' } as FiltrosPrestaciones;
+          const prestAnt = mapearListado(filasAnt, fVacio);
           if (prestAnt && prestAnt.length > 0) {
             // CF for previous month
             const periodosCF = [];
