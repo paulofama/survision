@@ -5,7 +5,7 @@
 // ============================================
 
 import { useState, useCallback } from 'react';
-import { getApiBaseUrl } from '@shared/lib/apiConfig';
+import { supabase } from '@shared/lib/supabase';
 
 export interface MovimientoProveedor {
   id: number;
@@ -39,8 +39,6 @@ export interface FiltrosProveedores {
 }
 
 export const useTesoreriaProveedores = () => {
-  const API_BASE = getApiBaseUrl();
-
   const [movimientos, setMovimientos] = useState<MovimientoProveedor[]>([]);
   const [totales, setTotales] = useState<TotalesProveedores | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,23 +63,39 @@ export const useTesoreriaProveedores = () => {
       setLoading(true);
       setError(null);
       const f = { ...filtros, ...customFiltros };
-      const params = new URLSearchParams();
-      if (f.fechaDesde) params.append('fechaDesde', f.fechaDesde);
-      if (f.fechaHasta) params.append('fechaHasta', f.fechaHasta);
-      if (f.tipo) params.append('tipo', f.tipo);
-      if (f.busqueda) params.append('busqueda', f.busqueda);
-      params.append('limite', String(f.limite));
 
-      const response = await fetch(`${API_BASE}/tesoreria/proveedores/movimientos?${params}`);
-      if (!response.ok) throw new Error('Error al obtener pagos a proveedores');
-      const data = await response.json();
-      if (data.success) {
-        setMovimientos(data.data);
-        setTotales(data.totales);
-        setIsConnected(true);
-      } else {
-        throw new Error(data.error || 'Error desconocido');
-      }
+      // Lee del espejo Supabase (tesoreria_proveedores). OP=4, PV=13.
+      let q = supabase
+        .from('tesoreria_proveedores')
+        .select('id, fecha, tcomp_id, tipo_comprobante, tipo_nombre, letra, sucursal, numero, proveedor, cuit, observaciones, importe, usuario, fecha_alta')
+        .order('fecha', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(f.limite || 1000);
+      if (f.fechaDesde) q = q.gte('fecha', f.fechaDesde);
+      if (f.fechaHasta) q = q.lte('fecha', f.fechaHasta);
+      if (f.tipo === 'OP') q = q.eq('tcomp_id', 4);
+      else if (f.tipo === 'PV') q = q.eq('tcomp_id', 13);
+      if (f.busqueda) q = q.or(`proveedor.ilike.%${f.busqueda}%,observaciones.ilike.%${f.busqueda}%`);
+
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+
+      const movs: MovimientoProveedor[] = (data || []).map((r: any) => ({
+        id: r.id, fecha: r.fecha, tipo_comprobante: r.tipo_comprobante || '', tipo_nombre: r.tipo_nombre || '',
+        letra: r.letra || '', sucursal: r.sucursal || 0, numero: r.numero || 0, proveedor: r.proveedor || '',
+        cuit: r.cuit || '', observaciones: r.observaciones || '', importe: Number(r.importe) || 0,
+        usuario: r.usuario || '', fecha_alta: r.fecha_alta || '',
+      }));
+      setMovimientos(movs);
+      // Totales sobre el set filtrado (OP = tcomp 4, PV = tcomp 13)
+      const data2 = (data || []) as any[];
+      setTotales({
+        registros: movs.length,
+        total_op: data2.filter((r) => r.tcomp_id === 4).reduce((s, r) => s + (Number(r.importe) || 0), 0),
+        total_pv: data2.filter((r) => r.tcomp_id === 13).reduce((s, r) => s + (Number(r.importe) || 0), 0),
+        total_egresos: movs.reduce((s, m) => s + m.importe, 0),
+      });
+      setIsConnected(true);
     } catch (err) {
       console.error('Error obteniendo pagos a proveedores:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -89,7 +103,7 @@ export const useTesoreriaProveedores = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, filtros]);
+  }, [filtros]);
 
   const aplicarFiltros = useCallback((nuevos: Partial<FiltrosProveedores>) => {
     setFiltros(prev => ({ ...prev, ...nuevos }));

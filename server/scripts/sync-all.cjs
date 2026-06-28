@@ -33,6 +33,7 @@ const { sincronizarComparativa } = require('../services/analisisExtractor');
 const { sincronizarMovimientos } = require('../services/movimientosExtractor');
 const { sincronizarPeriodo: sincronizarIvaPeriodo } = require('../services/ivaExtractor');
 const { sincronizarTipoCambio } = require('../services/tipoCambioExtractor');
+const { sincronizarTesoreria } = require('../services/tesoreriaExtractor');
 
 // Período YYYY-MM del mes en curso y del anterior (para el ETL fiscal del IVA).
 function periodosIvaRecientes() {
@@ -78,7 +79,10 @@ const SYNCS = [
   },
   // Tipo de cambio USD (DolarAPI/BCRA) -> tabla singleton; el frontend remoto lo lee.
   { nombre: 'tipo de cambio (BNA→Supabase)', fn: () => sincronizarTipoCambio({ write: true }) },
-  // Próximos: prestaciones-realizadas, tesoreria, etc.
+  // Tesorería: caja últimos 2 meses (saldo viejo fijo) + proveedores full. El
+  // histórico de caja (2018+) se carga una vez con cargar-tesoreria-geclisa.cjs --historico
+  { nombre: 'tesorería (GECLISA→Supabase)', fn: () => sincronizarTesoreria({ write: true }) },
+  // Próximos: prestaciones-realizadas, etc.
 ];
 
 // ------------------------------------------------------------

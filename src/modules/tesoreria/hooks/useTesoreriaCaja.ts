@@ -7,7 +7,7 @@
 // ============================================
 
 import { useState, useCallback } from 'react';
-import { getApiBaseUrl } from '@shared/lib/apiConfig';
+import { supabase } from '@shared/lib/supabase';
 
 // ============================================
 // INTERFACES
@@ -94,8 +94,6 @@ export interface FiltrosMovimientos {
 // ============================================
 
 export const useTesoreriaCaja = () => {
-  const API_BASE = getApiBaseUrl();
-
   // Estados
   const [movimientos, setMovimientos] = useState<MovimientoCaja[]>([]);
   const [totales, setTotales] = useState<TotalesCaja | null>(null);
@@ -126,18 +124,23 @@ export const useTesoreriaCaja = () => {
   // FETCHERS
   // ============================================
 
+  // Saldo a una fecha — RPC tes_caja_saldo (agrega server-side sobre el espejo)
   const fetchSaldoHistorico = useCallback(async (fecha: string) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${API_BASE}/tesoreria/caja/saldo-historico?fecha=${fecha}`);
-      if (!response.ok) throw new Error('Error al obtener saldo histórico');
-      const data = await response.json();
-      if (data.success) {
-        setSaldoHistorico(data.data);
-        setIsConnected(true);
-        return data.data;
-      }
+      const { data, error } = await supabase.rpc('tes_caja_saldo', { p_fecha: fecha });
+      if (error) throw new Error(error.message);
+      const res: SaldoHistorico = {
+        fecha,
+        saldo: Number(data?.saldo) || 0,
+        total_ingresos: Number(data?.total_ingresos) || 0,
+        total_egresos: Number(data?.total_egresos) || 0,
+        total_movimientos: Number(data?.total_movimientos) || 0,
+      };
+      setSaldoHistorico(res);
+      setIsConnected(true);
+      return res;
     } catch (err) {
       console.error('Error obteniendo saldo histórico:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -146,31 +149,45 @@ export const useTesoreriaCaja = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE]);
+  }, []);
 
+  // Listado de movimientos con filtros — query directa al espejo (acotado por fecha)
   const fetchMovimientos = useCallback(async (customFiltros?: Partial<FiltrosMovimientos>) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const filtrosActuales = { ...filtros, ...customFiltros };
-      
-      const params = new URLSearchParams();
-      if (filtrosActuales.fechaDesde) params.append('fechaDesde', filtrosActuales.fechaDesde);
-      if (filtrosActuales.fechaHasta) params.append('fechaHasta', filtrosActuales.fechaHasta);
-      if (filtrosActuales.tipoComprobante) params.append('tipoComprobante', filtrosActuales.tipoComprobante);
-      if (filtrosActuales.busqueda) params.append('busqueda', filtrosActuales.busqueda);
-      params.append('limite', String(filtrosActuales.limite));
-      
-      const response = await fetch(`${API_BASE}/tesoreria/caja/movimientos?${params}`);
-      if (!response.ok) throw new Error('Error al obtener movimientos');
-      
-      const data = await response.json();
-      if (data.success) {
-        setMovimientos(data.data);
-        setTotales(data.totales);
-        setIsConnected(true);
-      }
+      const f = { ...filtros, ...customFiltros };
+
+      let q = supabase
+        .from('tesoreria_caja')
+        .select('id, fecha, tipo_comprobante, tipo_nombre, letra, sucursal, numero, nombre, observaciones, importe, signo, usuario, fecha_alta')
+        .order('fecha', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(f.limite || 1000);
+      if (f.fechaDesde) q = q.gte('fecha', f.fechaDesde);
+      if (f.fechaHasta) q = q.lte('fecha', f.fechaHasta);
+      if (f.tipoComprobante) q = q.eq('tipo_comprobante', f.tipoComprobante);
+      if (f.busqueda) q = q.or(`nombre.ilike.%${f.busqueda}%,numero.eq.${/^\d+$/.test(f.busqueda) ? f.busqueda : 0}`);
+
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+
+      const movs: MovimientoCaja[] = (data || []).map((r: any) => ({
+        id: r.id, fecha: r.fecha, tipo_comprobante: r.tipo_comprobante || '', tipo_nombre: r.tipo_nombre || '',
+        letra: r.letra || '', sucursal: r.sucursal || 0, numero: r.numero || 0, nombre: r.nombre || '',
+        observaciones: r.observaciones || '', importe: Number(r.importe) || 0, signo: Number(r.signo) || 0,
+        ingreso: Number(r.signo) > 0 ? Number(r.importe) : 0,
+        egreso: Number(r.signo) < 0 ? Math.abs(Number(r.importe)) : 0,
+        usuario: r.usuario || '', fecha_alta: r.fecha_alta || '',
+      }));
+      setMovimientos(movs);
+      setTotales({
+        registros: movs.length,
+        ingresos: movs.reduce((s, m) => s + m.ingreso, 0),
+        egresos: movs.reduce((s, m) => s + m.egreso, 0),
+        diferencia: movs.reduce((s, m) => s + m.ingreso - m.egreso, 0),
+      });
+      setIsConnected(true);
     } catch (err) {
       console.error('Error obteniendo movimientos:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -178,32 +195,29 @@ export const useTesoreriaCaja = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, filtros]);
+  }, [filtros]);
 
   const fetchTiposComprobante = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/tesoreria/caja/tipos-comprobante`);
-      if (!response.ok) throw new Error('Error al obtener tipos de comprobante');
-      const data = await response.json();
-      if (data.success) {
-        setTiposComprobante(data.data);
-      }
+      const { data, error } = await supabase.rpc('tes_caja_tipos');
+      if (error) throw new Error(error.message);
+      const tipos: TipoComprobante[] = (data || []).map((t: any, i: number) => ({
+        id: i, sigla: t.sigla || '', nombre: t.nombre || '', signo: 0, cantidad: Number(t.cantidad) || 0,
+      }));
+      setTiposComprobante(tipos);
     } catch (err) {
       console.error('Error obteniendo tipos de comprobante:', err);
     }
-  }, [API_BASE]);
+  }, []);
 
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${API_BASE}/tesoreria/caja/dashboard`);
-      if (!response.ok) throw new Error('Error al obtener dashboard');
-      const data = await response.json();
-      if (data.success) {
-        setDashboard(data.data);
-        setIsConnected(true);
-      }
+      const { data, error } = await supabase.rpc('tes_caja_dashboard');
+      if (error) throw new Error(error.message);
+      setDashboard(data as DashboardCaja);
+      setIsConnected(true);
     } catch (err) {
       console.error('Error obteniendo dashboard:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -211,7 +225,7 @@ export const useTesoreriaCaja = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE]);
+  }, []);
 
   // ============================================
   // ACCIONES
