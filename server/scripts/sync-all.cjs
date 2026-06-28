@@ -31,6 +31,19 @@ const { sincronizarSeguimiento } = require('../services/seguimientoExtractor');
 const { sincronizarInformes } = require('../services/informesExtractor');
 const { sincronizarComparativa } = require('../services/analisisExtractor');
 const { sincronizarMovimientos } = require('../services/movimientosExtractor');
+const { sincronizarPeriodo: sincronizarIvaPeriodo } = require('../services/ivaExtractor');
+const { sincronizarTipoCambio } = require('../services/tipoCambioExtractor');
+
+// Período YYYY-MM del mes en curso y del anterior (para el ETL fiscal del IVA).
+function periodosIvaRecientes() {
+  const hoy = new Date();
+  const y = hoy.getFullYear();
+  const m = hoy.getMonth() + 1;
+  const mAnt = m === 1 ? 12 : m - 1;
+  const yAnt = m === 1 ? y - 1 : y;
+  const fmt = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}`;
+  return [fmt(yAnt, mAnt), fmt(y, m)];
+}
 
 // ------------------------------------------------------------
 // Registro de sincronizaciones (agregar más módulos acá)
@@ -50,6 +63,21 @@ const SYNCS = [
   // Movimientos crudos: solo el mes en curso (las atenciones viejas no cambian).
   // El histórico se carga una vez con cargar-movimientos-geclisa.cjs --write --historico
   { nombre: 'movimientos (GECLISA→Supabase)', fn: () => sincronizarMovimientos({ write: true }) },
+  // IVA fiscal: re-sincroniza el mes en curso + el anterior (cargas tardías). El
+  // histórico (2025-02..) se carga con cargar-iva.cjs. Antes era 100% manual.
+  {
+    nombre: 'iva fiscal (GECLISA→Supabase)',
+    fn: async () => {
+      let filas = 0;
+      for (const per of periodosIvaRecientes()) {
+        const r = await sincronizarIvaPeriodo(per);
+        filas += (r.v?.filas || 0) + (r.c?.filas || 0);
+      }
+      return { total: filas, insertados: filas };
+    },
+  },
+  // Tipo de cambio USD (DolarAPI/BCRA) -> tabla singleton; el frontend remoto lo lee.
+  { nombre: 'tipo de cambio (BNA→Supabase)', fn: () => sincronizarTipoCambio({ write: true }) },
   // Próximos: prestaciones-realizadas, tesoreria, etc.
 ];
 

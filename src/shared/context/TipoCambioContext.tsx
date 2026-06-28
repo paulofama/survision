@@ -6,12 +6,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-
-// ============================================
-// CONFIGURACIÓN API
-// ============================================
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { supabase } from '../lib/supabase';
 
 // ============================================
 // TIPOS
@@ -75,22 +70,23 @@ export const TipoCambioProvider: React.FC<TipoCambioProviderProps> = ({ children
     try {
       console.log('💱 [TipoCambioContext] Obteniendo tipo de cambio...');
 
-      const response = await fetch(`${API_BASE_URL}/api/nomenclador/tipocambio`);
-      const result = await response.json();
+      // Lee el TC de Supabase (lo refresca el daemon on-prem 2 veces/día desde
+      // DolarAPI/BCRA). Así funciona desde afuera de la clínica.
+      const { data, error: sbErr } = await supabase
+        .from('tipo_cambio')
+        .select('compra, venta, fecha, fuente')
+        .eq('id', 1)
+        .maybeSingle();
 
-      if (result.success && result.data) {
-        setTipoCambio(result.data);
+      if (sbErr) throw new Error(sbErr.message);
+      if (data) {
+        const tc: TipoCambio = { compra: Number(data.compra), venta: Number(data.venta), fecha: data.fecha || '', fuente: data.fuente || '' };
+        setTipoCambio(tc);
         setLastUpdate(new Date());
-        
-        // Guardar en sessionStorage para persistencia
-        sessionStorage.setItem('tipoCambio', JSON.stringify({
-          data: result.data,
-          timestamp: new Date().toISOString()
-        }));
-
-        console.log('✅ [TipoCambioContext] TC cargado:', result.data.compra);
+        sessionStorage.setItem('tipoCambio', JSON.stringify({ data: tc, timestamp: new Date().toISOString() }));
+        console.log('✅ [TipoCambioContext] TC cargado:', tc.compra);
       } else {
-        throw new Error(result.error || 'Error obteniendo tipo de cambio');
+        throw new Error('Tipo de cambio no disponible todavía (sync pendiente)');
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
