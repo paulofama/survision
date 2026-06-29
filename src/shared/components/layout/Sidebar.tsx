@@ -51,7 +51,8 @@ import {
   // Sueldos
   Coins,
   // Herramientas
-  Wrench
+  Wrench,
+  Ticket
 } from 'lucide-react';
 
 // ============================================
@@ -217,7 +218,8 @@ const navItems: NavItem[] = [
     label: 'Herramientas',
     requierePermiso: 'herramientas',
     subItems: [
-      { path: '/recetario', label: 'Recetario', icon: Stethoscope }
+      { path: '/recetario', label: 'Recetario', icon: Stethoscope },
+      { path: '/turnero', label: 'Turnero', icon: Ticket }
     ]
   },
 

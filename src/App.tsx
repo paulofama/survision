@@ -32,6 +32,7 @@ import PoolsConfigPage from '@modules/insumos/pages/PoolsConfigPage';
 import HonorariosPage from '@modules/liquidaciones/pages/HonorariosPage';
 import RecetasCostosPage from '@modules/insumos/pages/RecetasCostosPage';
 import RecetarioPage from '@modules/herramientas/pages/RecetarioPage';
+import TurneroPage from '@modules/herramientas/pages/TurneroPage';
 import CostosFijosPage from '@modules/insumos/pages/CostosFijosPage';
 
 // ============================================
@@ -241,6 +242,7 @@ const App: React.FC = () => {
 
                       {/* Herramientas */}
                       <Route path="/recetario" element={<ProtectedRoute modulo="herramientas"><RecetarioPage /></ProtectedRoute>} />
+                      <Route path="/turnero" element={<ProtectedRoute modulo="herramientas"><TurneroPage /></ProtectedRoute>} />
 
                       {/* ============================================ */}
                       {/* SUELDOS - MODULO NUEVO (Fase 1 + Fase 2)     */}

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turneros Instituto Dr. Mercado</title>
+    <!-- Auth gestionada por la app contenedora (embebido en iframe tras login).
+         Se removieron auth.js / auth-ui.js / page-protector.js del standalone. -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header-control {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-control h1 {
+            color: #2c5aa0;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .print-button {
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .print-button:hover, .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* GRID PRINCIPAL */
+        .turneros-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0;
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto;
+            padding: 0;
+            background: white;
+        }
+
+        /* CADA TURNERO */
+        .turnero {
+            border-top: 2px dashed #666;
+            border-bottom: 2px dashed #666;
+            border-left: 2px dashed #666;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            height: 99mm;
+            width: 105mm;
+        }
+
+        /* TURNERO DE LA DERECHA */
+        .turnero:nth-child(even) {
+            border-right: 2px dashed #666;
+        }
+
+        /* HEADER AZUL - Reducido */
+        .turnero-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2c5aa0 100%);
+            color: white;
+            padding: 3mm;
+            text-align: center;
+        }
+
+        .instituto-nombre {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-bottom: 0.5mm;
+        }
+
+        .instituto-subtitulo {
+            font-size: 7pt;
+            opacity: 0.9;
+        }
+
+        /* CUERPO CON CAMPOS - Reducido */
+        .turnero-body {
+            padding: 3mm;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2mm;
+        }
+
+        .campo {
+            border-left: 3px solid #2c5aa0;
+            padding-left: 2mm;
+            background: #f8fbff;
+            padding: 1.5mm 2mm;
+        }
+
+        .campo-titulo {
+            font-size: 7pt;
+            font-weight: bold;
+            color: #2c5aa0;
+            text-transform: uppercase;
+            margin-bottom: 1.5mm;
+        }
+
+        .fecha-lineas {
+            display: flex;
+            align-items: center;
+            gap: 1.5mm;
+            justify-content: center;
+        }
+
+        .linea-fecha {
+            border-bottom: 2px solid #2c5aa0;
+            width: 7mm;
+            height: 5mm;
+        }
+
+        .separador {
+            font-size: 9pt;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .hora-lineas {
+            display: flex;
+            align-items: center;
+            gap: 1.5mm;
+            justify-content: center;
+        }
+
+        .linea-hora {
+            border-bottom: 2px solid #2c5aa0;
+            width: 10mm;
+            height: 5mm;
+        }
+
+        .texto-hora {
+            font-size: 8pt;
+            color: #666;
+        }
+
+        .medico-lineas {
+            display: flex;
+            align-items: center;
+            gap: 1.5mm;
+        }
+
+        .linea-medico {
+            border-bottom: 2px solid #2c5aa0;
+            flex: 1;
+            height: 5mm;
+        }
+
+        .texto-medico {
+            font-size: 8pt;
+            color: #666;
+        }
+
+        /* NUEVA SECCIÓN PARA ADVERTENCIA */
+        .turnero-advertencia {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 2mm;
+            margin: 0mm 3mm 1.5mm 3mm;
+            border-radius: 2mm;
+        }
+
+        .advertencia-texto {
+            font-size: 6.5pt;
+            color: #856404;
+            text-align: center;
+            line-height: 1.2;
+            font-weight: 500;
+        }
+
+        /* FOOTER CON DATOS - Reducido */
+        .turnero-footer {
+            background: #e8f4fd;
+            border-top: 2px solid #2c5aa0;
+            padding: 2mm;
+            text-align: center;
+        }
+
+        .direccion-texto {
+            font-size: 6pt;
+            color: #2c5aa0;
+            font-weight: bold;
+            margin-bottom: 0.5mm;
+        }
+
+        .telefono-texto {
+            font-size: 7pt;
+            color: #1e3c72;
+            font-weight: bold;
+            background: rgba(44, 90, 160, 0.1);
+            padding: 0.5mm 1.5mm;
+            border-radius: 2px;
+            margin-bottom: 0.5mm;
+        }
+
+        .guardia-texto {
+            font-size: 6pt;
+            color: #2c5aa0;
+            font-weight: bold;
+        }
+
+        /* VISTA EN PANTALLA */
+        @media screen {
+            .turneros-grid {
+                transform: scale(0.7);
+                transform-origin: center top;
+                margin-bottom: -80mm;
+            }
+        }
+
+        /* CONFIGURACIÓN DE IMPRESIÓN */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .container {
+                background: white !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                max-width: none !important;
+            }
+
+            .header-control {
+                display: none !important;
+            }
+
+            .turneros-grid {
+                width: 210mm !important;
+                height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                transform: none !important;
+                gap: 0 !important;
+            }
+
+            .turnero {
+                border-top: 2px dashed #666 !important;
+                border-bottom: 2px dashed #666 !important;
+                border-left: 2px dashed #666 !important;
+                border-right: none !important;
+                height: 99mm !important;
+                width: 105mm !important;
+                background: white !important;
+                page-break-inside: avoid !important;
+            }
+
+            .turnero:nth-child(even) {
+                border-right: 2px dashed #666 !important;
+            }
+
+            .turnero-header {
+                background: linear-gradient(135deg, #1e3c72 0%, #2c5aa0 100%) !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .instituto-nombre {
+                color: white !important;
+                font-size: 10pt !important;
+                font-weight: bold !important;
+            }
+
+            .instituto-subtitulo {
+                color: white !important;
+                font-size: 7pt !important;
+            }
+
+            .campo {
+                border-left: 3px solid #2c5aa0 !important;
+                background: #f8fbff !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .campo-titulo {
+                color: #2c5aa0 !important;
+                font-size: 7pt !important;
+                font-weight: bold !important;
+            }
+
+            .linea-fecha,
+            .linea-hora,
+            .linea-medico {
+                border-bottom: 2px solid #2c5aa0 !important;
+            }
+
+            .turnero-advertencia {
+                background: #fff3cd !important;
+                border: 1px solid #ffeaa7 !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .advertencia-texto {
+                color: #856404 !important;
+                font-size: 6.5pt !important;
+            }
+
+            .turnero-footer {
+                background: #e8f4fd !important;
+                border-top: 2px solid #2c5aa0 !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .direccion-texto {
+                color: #2c5aa0 !important;
+                font-size: 10pt !important;
+                font-weight: bold !important;
+            }
+
+            .telefono-texto {
+                color: #1e3c72 !important;
+                font-size: 11pt !important;
+                font-weight: bold !important;
+                background: rgba(44, 90, 160, 0.1) !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .guardia-texto {
+                color: #2c5aa0 !important;
+                font-size: 10pt !important;
+                font-weight: bold !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-control">
+            <h1>Turneros Instituto Dr. Mercado</h1>
+            <p>6 turneros profesionales por hoja A4</p>
+            <div class="buttons-container">
+                <a href="index.html" class="back-button">
+                    ← Volver al Inicio
+                </a>
+                <button class="print-button" onclick="window.print()">Imprimir Turneros</button>
+            </div>
+        </div>
+        
+        <div class="turneros-grid">
+            <!-- Turnero 1 -->
+            <div class="turnero">
+                <div class="turnero-header">
+                    <div class="instituto-nombre">INSTITUTO Dr. MERCADO</div>
+                    <div class="instituto-subtitulo">SURVISION S.A.</div>
+                </div>
+                
+                <div class="turnero-body">
+                    <div class="campo">
+                        <div class="campo-titulo">Su turno es el día</div>
+                        <div class="fecha-lineas">
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Horario</div>
+                        <div class="hora-lineas">
+                            <span class="texto-hora">A las</span>
+                            <div class="linea-hora"></div>
+                            <span class="texto-hora">Hs.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Médico</div>
+                        <div class="medico-lineas">
+                            <span class="texto-medico">Dr.</span>
+                            <div class="linea-medico"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="turnero-advertencia">
+                    <div class="advertencia-texto">Durante la consulta puede realizarse un estudio de fondo de ojo. Este procedimiento puede generar visión borrosa y/o sensibilidad a la luz de forma temporal. <strong>Se recomienda asistir acompañado.</strong></div>
+                </div>
+                
+                <div class="turnero-footer">
+                    <div class="direccion-texto">3 de Febrero 448 - San Rafael, Mendoza</div>
+                    <div class="telefono-texto">Tel: 0260-4426757 / 4425776</div>
+                    <div class="guardia-texto">GUARDIA: 260-4669362</div>
+                </div>
+            </div>
+
+            <!-- Turnero 2 -->
+            <div class="turnero">
+                <div class="turnero-header">
+                    <div class="instituto-nombre">INSTITUTO Dr. MERCADO</div>
+                    <div class="instituto-subtitulo">SURVISION S.A.</div>
+                </div>
+                
+                <div class="turnero-body">
+                    <div class="campo">
+                        <div class="campo-titulo">Su turno es el día</div>
+                        <div class="fecha-lineas">
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Horario</div>
+                        <div class="hora-lineas">
+                            <span class="texto-hora">A las</span>
+                            <div class="linea-hora"></div>
+                            <span class="texto-hora">Hs.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Médico</div>
+                        <div class="medico-lineas">
+                            <span class="texto-medico">Dr.</span>
+                            <div class="linea-medico"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="turnero-advertencia">
+                    <div class="advertencia-texto">Durante la consulta puede realizarse un estudio de fondo de ojo. Este procedimiento puede generar visión borrosa y/o sensibilidad a la luz de forma temporal. Se recomienda asistir acompañado.</div>
+                </div>
+                
+                <div class="turnero-footer">
+                    <div class="direccion-texto">3 de Febrero 448 - San Rafael, Mendoza</div>
+                    <div class="telefono-texto">Tel: 0260-4426757 / 4425776</div>
+                    <div class="guardia-texto">GUARDIA: 260-4669362</div>
+                </div>
+            </div>
+
+            <!-- Turnero 3 -->
+            <div class="turnero">
+                <div class="turnero-header">
+                    <div class="instituto-nombre">INSTITUTO Dr. MERCADO</div>
+                    <div class="instituto-subtitulo">SURVISION S.A.</div>
+                </div>
+                
+                <div class="turnero-body">
+                    <div class="campo">
+                        <div class="campo-titulo">Su turno es el día</div>
+                        <div class="fecha-lineas">
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Horario</div>
+                        <div class="hora-lineas">
+                            <span class="texto-hora">A las</span>
+                            <div class="linea-hora"></div>
+                            <span class="texto-hora">Hs.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Médico</div>
+                        <div class="medico-lineas">
+                            <span class="texto-medico">Dr.</span>
+                            <div class="linea-medico"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="turnero-advertencia">
+                    <div class="advertencia-texto">Durante la consulta puede realizarse un estudio de fondo de ojo. Este procedimiento puede generar visión borrosa y/o sensibilidad a la luz de forma temporal. Se recomienda asistir acompañado.</div>
+                </div>
+                
+                <div class="turnero-footer">
+                    <div class="direccion-texto">3 de Febrero 448 - San Rafael, Mendoza</div>
+                    <div class="telefono-texto">Tel: 0260-4426757 / 4425776</div>
+                    <div class="guardia-texto">GUARDIA: 260-4669362</div>
+                </div>
+            </div>
+
+            <!-- Turnero 4 -->
+            <div class="turnero">
+                <div class="turnero-header">
+                    <div class="instituto-nombre">INSTITUTO Dr. MERCADO</div>
+                    <div class="instituto-subtitulo">SURVISION S.A.</div>
+                </div>
+                
+                <div class="turnero-body">
+                    <div class="campo">
+                        <div class="campo-titulo">Su turno es el día</div>
+                        <div class="fecha-lineas">
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Horario</div>
+                        <div class="hora-lineas">
+                            <span class="texto-hora">A las</span>
+                            <div class="linea-hora"></div>
+                            <span class="texto-hora">Hs.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Médico</div>
+                        <div class="medico-lineas">
+                            <span class="texto-medico">Dr.</span>
+                            <div class="linea-medico"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="turnero-advertencia">
+                    <div class="advertencia-texto">Durante la consulta puede realizarse un estudio de fondo de ojo. Este procedimiento puede generar visión borrosa y/o sensibilidad a la luz de forma temporal. Se recomienda asistir acompañado.</div>
+                </div>
+                
+                <div class="turnero-footer">
+                    <div class="direccion-texto">3 de Febrero 448 - San Rafael, Mendoza</div>
+                    <div class="telefono-texto">Tel: 0260-4426757 / 4425776</div>
+                    <div class="guardia-texto">GUARDIA: 260-4669362</div>
+                </div>
+            </div>
+
+            <!-- Turnero 5 -->
+            <div class="turnero">
+                <div class="turnero-header">
+                    <div class="instituto-nombre">INSTITUTO Dr. MERCADO</div>
+                    <div class="instituto-subtitulo">SURVISION S.A.</div>
+                </div>
+                
+                <div class="turnero-body">
+                    <div class="campo">
+                        <div class="campo-titulo">Su turno es el día</div>
+                        <div class="fecha-lineas">
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Horario</div>
+                        <div class="hora-lineas">
+                            <span class="texto-hora">A las</span>
+                            <div class="linea-hora"></div>
+                            <span class="texto-hora">Hs.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Médico</div>
+                        <div class="medico-lineas">
+                            <span class="texto-medico">Dr.</span>
+                            <div class="linea-medico"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="turnero-advertencia">
+                    <div class="advertencia-texto">Durante la consulta puede realizarse un estudio de fondo de ojo. Este procedimiento puede generar visión borrosa y/o sensibilidad a la luz de forma temporal. Se recomienda asistir acompañado.</div>
+                </div>
+                
+                <div class="turnero-footer">
+                    <div class="direccion-texto">3 de Febrero 448 - San Rafael, Mendoza</div>
+                    <div class="telefono-texto">Tel: 0260-4426757 / 4425776</div>
+                    <div class="guardia-texto">GUARDIA: 260-4669362</div>
+                </div>
+            </div>
+
+            <!-- Turnero 6 -->
+            <div class="turnero">
+                <div class="turnero-header">
+                    <div class="instituto-nombre">INSTITUTO Dr. MERCADO</div>
+                    <div class="instituto-subtitulo">SURVISION S.A.</div>
+                </div>
+                
+                <div class="turnero-body">
+                    <div class="campo">
+                        <div class="campo-titulo">Su turno es el día</div>
+                        <div class="fecha-lineas">
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                            <span class="separador">/</span>
+                            <div class="linea-fecha"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Horario</div>
+                        <div class="hora-lineas">
+                            <span class="texto-hora">A las</span>
+                            <div class="linea-hora"></div>
+                            <span class="texto-hora">Hs.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="campo">
+                        <div class="campo-titulo">Médico</div>
+                        <div class="medico-lineas">
+                            <span class="texto-medico">Dr.</span>
+                            <div class="linea-medico"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="turnero-advertencia">
+                    <div class="advertencia-texto">Durante la consulta puede realizarse un estudio de fondo de ojo. Este procedimiento puede generar visión borrosa y/o sensibilidad a la luz de forma temporal. Se recomienda asistir acompañado.</div>
+                </div>
+                
+                <div class="turnero-footer">
+                    <div class="direccion-texto">3 de Febrero 448 - San Rafael, Mendoza</div>
+                    <div class="telefono-texto">Tel: 0260-4426757 / 4425776</div>
+                    <div class="guardia-texto">GUARDIA: 260-4669362</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // PROTECCIÓN DE PÁGINA - ADMINISTRATIVAS Y ADMIN
+        // ===========================================
+        
+        // Inicializar protección INMEDIATAMENTE - Solo administrativas y admin
+        const protector = inicializarProteccionPagina('turnero');
+        
+        // Si llegamos aquí, el usuario está autenticado y tiene permisos
+        console.log('Turnero - Acceso autorizado');
+
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            const usuario = protector.obtenerUsuarioActual();
+            if (!usuario) {
+                console.error('Usuario no autenticado en DOMContentLoaded');
+                window.location.href = './index.html';
+                return;
+            }
+
+            console.log(`Turnero cargado para: ${usuario.datos.nombre}`);
+        });
+    </script>
+</body>
+</html>
