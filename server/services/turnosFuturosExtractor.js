@@ -95,7 +95,15 @@ async function extraerTurnosFuturos() {
   }));
 }
 
-/** Trae los turnos futuros y refresca (full refresh) la tabla turnos_futuros. */
+/**
+ * Trae los turnos futuros y refresca la tabla turnos_futuros.
+ * Estrategia upsert + borrado de obsoletos (NO delete-all): la tabla nunca
+ * queda vacía, así esta sync puede correr muy seguido (cada ~15 min) para que
+ * un turno recién cargado aparezca afuera casi en el momento y se le pueda
+ * mandar el recordatorio. Cada corrida estampa synced_at con un timestamp único;
+ * lo que no se refrescó en esta corrida (turnos ya atendidos/pasados/anulados)
+ * se borra al final.
+ */
 async function sincronizarTurnosFuturos({ write = false } = {}) {
   const filas = await extraerTurnosFuturos();
   const conTel = filas.filter((f) => f.telefono_norm).length;
@@ -104,24 +112,26 @@ async function sincronizarTurnosFuturos({ write = false } = {}) {
     return { total: filas.length, escrito: false, conTelefono: conTel };
   }
 
-  // Full refresh: borrar todo (turnos pasados/atendidos que ya no aplican) e insertar.
-  const { error: delErr } = await supabase
-    .from('turnos_futuros')
-    .delete()
-    .gte('turno_id', 0); // borra todo (turno_id siempre >= 0)
-  if (delErr) throw new Error('delete turnos_futuros: ' + delErr.message);
+  const runTs = new Date().toISOString();
+  const rows = filas.map((f) => ({ ...f, synced_at: runTs }));
 
-  const synced_at = new Date().toISOString();
-  const rows = filas.map((f) => ({ ...f, synced_at }));
-
-  // Insert por lotes (PostgREST limita el payload; lotes de 500 van sobrados).
+  // Upsert por lotes (onConflict turno_id): inserta nuevos, actualiza existentes.
   let insertados = 0;
   for (let i = 0; i < rows.length; i += 500) {
     const lote = rows.slice(i, i + 500);
-    const { error: insErr } = await supabase.from('turnos_futuros').insert(lote);
-    if (insErr) throw new Error('insert turnos_futuros: ' + insErr.message);
+    const { error: upErr } = await supabase
+      .from('turnos_futuros')
+      .upsert(lote, { onConflict: 'turno_id' });
+    if (upErr) throw new Error('upsert turnos_futuros: ' + upErr.message);
     insertados += lote.length;
   }
+
+  // Borrar los obsoletos: filas que esta corrida NO refrescó (synced_at viejo).
+  const { error: delErr } = await supabase
+    .from('turnos_futuros')
+    .delete()
+    .lt('synced_at', runTs);
+  if (delErr) throw new Error('delete obsoletos turnos_futuros: ' + delErr.message);
 
   return { total: filas.length, insertados, escrito: true, conTelefono: conTel };
 }
