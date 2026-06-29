@@ -313,7 +313,7 @@ const App: React.FC = () => {
                       {/* SEGUIMIENTO DE PACIENTES */}
                       {/* ============================================ */}
                       <Route path="/seguimiento-pacientes" element={
-                        <ProtectedRoute modulo="informes">
+                        <ProtectedRoute modulo="seguimiento_pacientes">
                           <SeguimientoPacientesPage />
                         </ProtectedRoute>
                       } />
