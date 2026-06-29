@@ -63,6 +63,7 @@ import {
 } from '@modules/analisis';
 import EvolucionTemporalPage from '@modules/analisis/pages/EvolucionTemporalPage';
 import AnalisisTurnosPage from '@modules/turnos/pages/AnalisisTurnosPage';
+import AgendaTurnosPage from '@modules/turnos/pages/AgendaTurnosPage';
 
 // Páginas de Administración - UNIFICADA
 import GestionAccesosPage from '@modules/accesos/pages/GestionAccesosPage';
@@ -338,8 +339,16 @@ const App: React.FC = () => {
                         } 
                       />
                       
+                      {/* ============================================ */}
+                      {/* TURNOS - Agenda + recordatorios WhatsApp     */}
+                      {/* ============================================ */}
+                      <Route path="/turnos" element={
+                        <ProtectedRoute modulo="turnos">
+                          <AgendaTurnosPage />
+                        </ProtectedRoute>
+                      } />
+
                       {/* Coming Soon */}
-                      <Route path="/turnos" element={<ComingSoonPage title="Gestión de Turnos" />} />
                       <Route path="/configuracion" element={<ComingSoonPage title="Configuración" />} />
                       
                       {/* Fallback — a la home del rol */}

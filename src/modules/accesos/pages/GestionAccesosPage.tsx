@@ -35,6 +35,7 @@ import {
   Lock,
   Activity,
   Wrench,
+  CalendarClock,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
@@ -158,6 +159,12 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     icono: Wrench,
     color: 'slate'
   },
+  turnos: {
+    nombre: 'Turnos',
+    descripcion: 'Agenda de turnos futuros y recordatorios por WhatsApp',
+    icono: CalendarClock,
+    color: 'blue'
+  },
 };
 
 const MODULOS_ORDENADOS: ModuloSistema[] = [
@@ -176,6 +183,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'sueldos',
   'sueldos:reportes',
   'herramientas',
+  'turnos',
 ];
 
 // ============================================

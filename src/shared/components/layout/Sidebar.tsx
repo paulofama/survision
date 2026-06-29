@@ -28,6 +28,7 @@ import {
   Building2,
   UserCheck,
   Clock,
+  CalendarClock,
   PieChart,
   Activity,
   LayoutDashboard,
@@ -256,6 +257,16 @@ const navItems: NavItem[] = [
     icon: HeartPulse,
     label: 'Seguimiento Pac.',
     requierePermiso: 'seguimiento_pacientes'
+  },
+
+  // ============================================
+  // TURNOS (Agenda + recordatorios WhatsApp)
+  // ============================================
+  {
+    path: '/turnos',
+    icon: CalendarClock,
+    label: 'Turnos',
+    requierePermiso: 'turnos'
   },
 
   // ============================================

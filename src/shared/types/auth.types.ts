@@ -29,6 +29,8 @@ export const MODULOS_SISTEMA = {
   'sueldos:reportes': { nombre: 'Sueldos - Reportes', descripcion: 'Reportes auditoría de sueldos (sólo Auditor)' },
   // Sección Herramientas (recetario médico, etc.).
   herramientas: { nombre: 'Herramientas', descripcion: 'Herramientas varias (recetario médico, etc.)' },
+  // Sección Turnos: agenda de turnos futuros + recordatorios por WhatsApp (secretarías).
+  turnos: { nombre: 'Turnos', descripcion: 'Agenda de turnos futuros y recordatorios por WhatsApp' },
 } as const;
 
 export type ModuloSistema = keyof typeof MODULOS_SISTEMA;
@@ -175,6 +177,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   sueldos: false,
   'sueldos:reportes': false,
   herramientas: false,
+  turnos: false,
 };
 
 // Permisos para admin (todos en true)
@@ -194,4 +197,5 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   sueldos: true,
   'sueldos:reportes': true,
   herramientas: true,
+  turnos: true,
 };

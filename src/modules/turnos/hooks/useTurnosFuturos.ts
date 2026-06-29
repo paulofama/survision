@@ -1,0 +1,84 @@
+// ============================================================
+// HOOK: useTurnosFuturos — lee la agenda de turnos futuros (espejo Supabase)
+// Sistema Integral de Gestión - Survisión S.A.
+// ============================================================
+//
+// Lee la tabla turnos_futuros (espejo que refresca el daemon on-prem desde
+// GECLISA, 2 veces/día). Solo turnos VIGENTES (tur_fecha>=hoy y no atendidos).
+// Pagina defensivamente con .range() por si superara las 1000 filas (hoy ~245).
+// ============================================================
+
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@shared/lib/supabase';
+
+export interface TurnoFuturo {
+  turno_id: number;
+  fecha: string;          // "YYYY-MM-DD"
+  hora: string;           // "HH:MM"
+  hs_ini: number | null;
+  paciente: string;       // "APELLIDO, Nombre"
+  telefono_norm: string | null; // "549XXXXXXXXXX" listo para wa.me, o null
+  prestador: string;
+  serv_id: number | null;
+  servicio: string;
+  obra_social: string;
+  confirmado: boolean;
+  synced_at: string;
+}
+
+interface UseTurnosFuturosResult {
+  turnos: TurnoFuturo[];
+  loading: boolean;
+  error: string | null;
+  ultimaActualizacion: Date | null;
+  refetch: () => void;
+}
+
+const PAGE_SIZE = 1000;
+
+export function useTurnosFuturos(): UseTurnosFuturosResult {
+  const [turnos, setTurnos] = useState<TurnoFuturo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const acumulado: TurnoFuturo[] = [];
+      let from = 0;
+      // Paginación defensiva (PostgREST corta en 1000 por request).
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error: sbErr } = await supabase
+          .from('turnos_futuros')
+          .select('*')
+          .order('fecha', { ascending: true })
+          .order('hs_ini', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (sbErr) throw new Error(sbErr.message);
+        const lote = (data || []) as TurnoFuturo[];
+        acumulado.push(...lote);
+        if (lote.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+
+      setTurnos(acumulado);
+      const sync = acumulado[0]?.synced_at;
+      setUltimaActualizacion(sync ? new Date(sync) : null);
+    } catch (err) {
+      console.error('Error cargando turnos futuros:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  return { turnos, loading, error, ultimaActualizacion, refetch: cargar };
+}
