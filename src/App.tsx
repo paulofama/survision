@@ -7,7 +7,7 @@
 // ============================================
 
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from '@shared/components/layout/Layout';
 
 // Context Providers
@@ -16,6 +16,8 @@ import { AuthProvider } from '@shared/context/AuthContext';
 
 // Componentes de autenticación
 import ProtectedRoute from '@shared/components/auth/ProtectedRoute';
+import { useAuth } from '@shared/context/AuthContext';
+import { rutaInicialPara } from '@shared/utils/rutaInicial';
 import LoginPage from '@modules/accesos/pages/LoginPage';
 
 // Páginas principales
@@ -198,6 +200,15 @@ const LoadingFallback = () => (
 // COMPONENTE PRINCIPAL
 // ============================================
 
+// Pantalla de inicio según el rol: admin / operativos -> dashboard ("/");
+// roles especializados (ej. Ester -> /sueldos) van a su módulo.
+const InicioRedirect: React.FC = () => {
+  const { usuario } = useAuth();
+  const ruta = rutaInicialPara(usuario);
+  if (ruta !== '/') return <Navigate to={ruta} replace />;
+  return <PrestacionesRealizadasPage />;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -214,8 +225,8 @@ const App: React.FC = () => {
                 <Layout>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
-                      {/* Principal */}
-                      <Route path="/" element={<PrestacionesRealizadasPage />} />
+                      {/* Principal — redirige según el rol (ej. Ester -> /sueldos) */}
+                      <Route path="/" element={<InicioRedirect />} />
                       <Route path="/prestaciones" element={<PrestacionesPage />} />
                       <Route path="/insumos-variables" element={<InsumosVariablesPage />} />
                       
@@ -329,8 +340,8 @@ const App: React.FC = () => {
                       <Route path="/turnos" element={<ComingSoonPage title="Gestión de Turnos" />} />
                       <Route path="/configuracion" element={<ComingSoonPage title="Configuración" />} />
                       
-                      {/* Fallback */}
-                      <Route path="*" element={<PrestacionesRealizadasPage />} />
+                      {/* Fallback — a la home del rol */}
+                      <Route path="*" element={<InicioRedirect />} />
                     </Routes>
                   </Suspense>
                 </Layout>
