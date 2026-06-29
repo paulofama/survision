@@ -250,21 +250,40 @@ export const useMovimientosPrestaciones = () => {
       const anioMesAnt = mesAct === 1 ? anioAct - 1 : anioAct;
       const hoyStr = hoy.toISOString().split('T')[0];
 
-      const [mesActualRows, mesAnteriorRows, hoyRows, totalRes] = await Promise.all([
-        supabase.from('movimientos_geclisa').select('total,es_principal').eq('anio', anioAct).eq('mes', mesAct).eq('es_principal', true),
-        supabase.from('movimientos_geclisa').select('total,es_principal').eq('anio', anioMesAnt).eq('mes', mesAnt).eq('es_principal', true),
-        supabase.from('movimientos_geclisa').select('total,es_principal').eq('fecha', hoyStr).eq('es_principal', true),
+      // Suma paginada (es_principal) — PostgREST devuelve máx. 1000 filas por
+      // request, así que hay que paginar o el conteo queda topado en 1000.
+      const sumarPrincipales = async (
+        aplicar: (q: any) => any,
+      ): Promise<{ practicas: number; ingreso: number }> => {
+        let practicas = 0;
+        let ingreso = 0;
+        let from = 0;
+        for (;;) {
+          const q = aplicar(supabase.from('movimientos_geclisa').select('total').eq('es_principal', true));
+          const { data, error } = await q.range(from, from + 999);
+          if (error) throw new Error(error.message);
+          practicas += (data || []).length;
+          ingreso += (data || []).reduce((s: number, r: any) => s + (Number(r.total) || 0), 0);
+          if (!data || data.length < 1000) break;
+          from += 1000;
+        }
+        return { practicas, ingreso };
+      };
+
+      const [mesActualD, mesAnteriorD, hoyD, totalRes] = await Promise.all([
+        sumarPrincipales((q) => q.eq('anio', anioAct).eq('mes', mesAct)),
+        sumarPrincipales((q) => q.eq('anio', anioMesAnt).eq('mes', mesAnt)),
+        sumarPrincipales((q) => q.eq('fecha', hoyStr)),
         supabase.from('movimientos_geclisa').select('*', { count: 'exact', head: true }).eq('es_principal', true),
       ]);
 
-      const sum = (rows: { total: number }[] | null) => (rows || []).reduce((s, r) => s + (Number(r.total) || 0), 0);
       setEstadisticas({
-        practicas_hoy: hoyRows.data?.length || 0,
-        ingreso_hoy: sum(hoyRows.data as { total: number }[]),
-        practicas_mes_actual: mesActualRows.data?.length || 0,
-        ingreso_mes_actual: sum(mesActualRows.data as { total: number }[]),
-        practicas_mes_anterior: mesAnteriorRows.data?.length || 0,
-        ingreso_mes_anterior: sum(mesAnteriorRows.data as { total: number }[]),
+        practicas_hoy: hoyD.practicas,
+        ingreso_hoy: hoyD.ingreso,
+        practicas_mes_actual: mesActualD.practicas,
+        ingreso_mes_actual: mesActualD.ingreso,
+        practicas_mes_anterior: mesAnteriorD.practicas,
+        ingreso_mes_anterior: mesAnteriorD.ingreso,
         total_historico: totalRes.count || 0,
         turnos_pendientes: 0,
       });
