@@ -36,7 +36,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/lib/supabase';
-import { fetchConAuth } from '@shared/lib/apiAuth';
+import { parsearF931Browser } from '../services/f931ParserBrowser';
 import type {
   EstadoF931,
   F931Adjunto,
@@ -156,7 +156,8 @@ async function fetchDeclaracionConAdjuntos(
 }
 
 // ---------------------------------------------------------------------------
-// LLAMAR AL ENDPOINT /api/f931/parse
+// PARSEAR EL PDF EN EL BROWSER (pdf.js) — antes era POST /api/f931/parse
+// Así el módulo Sueldos parsea el F.931 sin backend on-prem (funciona remoto).
 // ---------------------------------------------------------------------------
 
 async function llamarParseEndpoint(
@@ -165,28 +166,15 @@ async function llamarParseEndpoint(
   mes: number
 ): Promise<ResultadoOperacion<F931ParseResult>> {
   try {
-    const url = `/api/f931/parse?anio=${anio}&mes=${mes}`;
-    const resp = await fetchConAuth(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/pdf' },
-      body: file,
-    });
-
-    const body = await resp.json().catch(() => null);
-
-    if (!resp.ok) {
-      const msg = body?.error?.mensaje || body?.error || `Error HTTP ${resp.status}`;
-      return { ok: false, error: msg, codigo: body?.error?.codigo };
+    const data = await parsearF931Browser(file, { periodoEsperado: { anio, mes } });
+    if (!data.ok) {
+      return { ok: false, error: data.error?.mensaje || 'No se pudo parsear el PDF', codigo: data.error?.codigo };
     }
-    if (!body || typeof body !== 'object' || typeof body.ok !== 'boolean') {
-      return { ok: false, error: 'Respuesta inesperada del servidor' };
-    }
-
-    return { ok: true, data: body as F931ParseResult };
+    return { ok: true, data };
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : 'Error desconocido al conectar al backend',
+      error: e instanceof Error ? e.message : 'Error desconocido al parsear el PDF',
     };
   }
 }
