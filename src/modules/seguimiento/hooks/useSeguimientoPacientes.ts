@@ -153,7 +153,7 @@ export function useSeguimientoPacientes() {
       const { data, error: sbErr } = await supabase
         .from('dashboards_snapshot')
         .select('anio, mes, resumen')
-        .eq('modulo', 'seguimiento')
+        .eq('modulo', 'seguimiento_pacientes')
         .order('anio', { ascending: false })
         .order('mes', { ascending: false });
       if (sbErr) throw new Error(sbErr.message);
@@ -183,7 +183,7 @@ export function useSeguimientoPacientes() {
       const { data, error: sbErr } = await supabase
         .from('dashboards_snapshot')
         .select('payload')
-        .eq('modulo', 'seguimiento')
+        .eq('modulo', 'seguimiento_pacientes')
         .eq('anio', anio)
         .eq('mes', mes)
         .maybeSingle();

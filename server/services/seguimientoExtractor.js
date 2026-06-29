@@ -421,7 +421,7 @@ async function sincronizarSeguimiento({ write = false, soloRecientes = true } = 
     const resumen = { atenciones: payload.kpis.actual.totalAtenciones };
     const { error } = await supabase
       .from('dashboards_snapshot')
-      .upsert({ modulo: 'seguimiento', anio, mes, payload, resumen, synced_at: new Date().toISOString() }, { onConflict: 'modulo,anio,mes' });
+      .upsert({ modulo: 'seguimiento_pacientes', anio, mes, payload, resumen, synced_at: new Date().toISOString() }, { onConflict: 'modulo,anio,mes' });
     if (error) throw new Error(`upsert ${anio}-${mes}: ${error.message}`);
     insertados++;
   }
