@@ -21,8 +21,12 @@ import {
   BarChart3,
   MessageCircle,
   PhoneOff,
+  Bell,
+  Sun,
+  Phone,
 } from 'lucide-react';
 import { useTurnosFuturos, TurnoFuturo } from '../hooks/useTurnosFuturos';
+import { useRecordatorios } from '../hooks/useRecordatorios';
 
 // ============================================================
 // HELPERS (module scope)
@@ -57,6 +61,19 @@ function sumarDiasISO(iso: string, dias: number): string {
   const [a, m, d] = iso.split('-').map(Number);
   const dt = new Date(a, m - 1, d + dias, 12, 0, 0);
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
+/** "H:MM" / "HH:MM" -> minutos desde medianoche (NaN si no parsea). */
+function horaAMinutos(hora: string): number {
+  const [h, m] = (hora || '').split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return NaN;
+  return h * 60 + m;
+}
+
+/** Minutos desde medianoche de la hora local actual. */
+function ahoraEnMinutos(): number {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
 }
 
 function titleCase(s: string): string {
@@ -132,7 +149,11 @@ const TarjetaIndicador: React.FC<{
   );
 };
 
-const BotonWhatsApp: React.FC<{ turno: TurnoFuturo }> = ({ turno }) => {
+const BotonWhatsApp: React.FC<{
+  turno: TurnoFuturo;
+  avisado?: boolean;
+  onSent?: (turnoId: number) => void;
+}> = ({ turno, avisado, onSent }) => {
   const url = buildWhatsAppUrl(turno);
   if (!url) {
     return (
@@ -150,12 +171,113 @@ const BotonWhatsApp: React.FC<{ turno: TurnoFuturo }> = ({ turno }) => {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
-      title="Abrir WhatsApp con el recordatorio precargado"
+      onClick={() => onSent?.(turno.turno_id)}
+      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+        avisado
+          ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+          : 'bg-green-600 text-white hover:bg-green-700'
+      }`}
+      title={avisado ? 'Ya avisado — reenviar' : 'Abrir WhatsApp con el recordatorio precargado'}
     >
-      <MessageCircle className="h-3.5 w-3.5" />
-      WhatsApp
+      {avisado ? <CheckCircle className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
+      {avisado ? 'Reenviar' : 'WhatsApp'}
     </a>
+  );
+};
+
+// Grupo de recordatorios (una ventana: "mañana" o "próximas 3 h").
+const RecordatorioGrupo: React.FC<{
+  titulo: string;
+  subtitulo: string;
+  icono: React.ElementType;
+  color: 'blue' | 'orange';
+  turnos: TurnoFuturo[];
+  avisados: Set<number>;
+  onMarcar: (turnoId: number) => void;
+  onDesmarcar: (turnoId: number) => void;
+}> = ({ titulo, subtitulo, icono: Icon, color, turnos, avisados, onMarcar, onDesmarcar }) => {
+  const conTel = turnos.filter((t) => t.telefono_norm);
+  const sinTel = turnos.filter((t) => !t.telefono_norm);
+  const avisadosCount = conTel.filter((t) => avisados.has(t.turno_id)).length;
+  const pct = conTel.length ? Math.round((avisadosCount / conTel.length) * 100) : 0;
+
+  const cab = color === 'blue'
+    ? 'bg-blue-50 border-blue-200'
+    : 'bg-orange-50 border-orange-200';
+  const iconColor = color === 'blue' ? 'text-blue-600' : 'text-orange-600';
+  const barColor = color === 'blue' ? 'bg-blue-500' : 'bg-orange-500';
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+      <div className={`px-4 py-3 border-b ${cab}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon className={`h-5 w-5 ${iconColor}`} />
+            <span className="font-semibold text-gray-800">{titulo}</span>
+          </div>
+          <span className="text-sm font-bold text-gray-700">{turnos.length}</span>
+        </div>
+        <p className="text-xs text-gray-500 mt-0.5">{subtitulo}</p>
+        {conTel.length > 0 && (
+          <div className="mt-2">
+            <div className="flex justify-between text-xs text-gray-600 mb-1">
+              <span>Avisados</span>
+              <span>{avisadosCount} / {conTel.length}</span>
+            </div>
+            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className={`h-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="p-3 space-y-1.5 max-h-80 overflow-y-auto flex-1">
+        {turnos.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-6">No hay turnos en esta ventana.</p>
+        )}
+
+        {conTel.map((t) => {
+          const av = avisados.has(t.turno_id);
+          return (
+            <div
+              key={t.turno_id}
+              className={`flex items-center gap-2 rounded-lg px-2.5 py-2 border ${
+                av ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'
+              }`}
+            >
+              <button
+                onClick={() => (av ? onDesmarcar(t.turno_id) : onMarcar(t.turno_id))}
+                title={av ? 'Marcar como NO avisado' : 'Marcar como avisado'}
+                className={`flex-shrink-0 ${av ? 'text-green-600' : 'text-gray-300 hover:text-gray-400'}`}
+              >
+                <CheckCircle className="h-5 w-5" />
+              </button>
+              <span className="font-mono text-xs text-gray-700 w-12 flex-shrink-0">{t.hora}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-800 truncate">{t.paciente}</p>
+                <p className="text-xs text-gray-500 truncate">{t.prestador}</p>
+              </div>
+              <BotonWhatsApp turno={t} avisado={av} onSent={onMarcar} />
+            </div>
+          );
+        })}
+
+        {sinTel.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <p className="text-xs font-medium text-gray-500 flex items-center gap-1 mb-1">
+              <Phone className="h-3.5 w-3.5" /> Sin teléfono — llamar ({sinTel.length})
+            </p>
+            {sinTel.map((t) => (
+              <div key={t.turno_id} className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-gray-600">
+                <span className="font-mono text-xs w-12 flex-shrink-0">{t.hora}</span>
+                <span className="truncate flex-1">{t.paciente}</span>
+                <span className="text-xs text-gray-400 truncate">{t.prestador}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -165,6 +287,7 @@ const BotonWhatsApp: React.FC<{ turno: TurnoFuturo }> = ({ turno }) => {
 
 const AgendaTurnosPage: React.FC = () => {
   const { turnos, loading, error, ultimaActualizacion, refetch } = useTurnosFuturos();
+  const { avisados, marcar, desmarcar } = useRecordatorios();
 
   const [desde, setDesde] = useState<string>(hoyISO());
   const [hasta, setHasta] = useState<string>(sumarDiasISO(hoyISO(), 7));
@@ -193,6 +316,24 @@ const AgendaTurnosPage: React.FC = () => {
       return true;
     });
   }, [turnos, desde, hasta, prestador, servicio, soloSinConfirmar]);
+
+  // Ventanas de recordatorios (independientes de los filtros: son la cola de trabajo).
+  const turnosManana = useMemo(() => {
+    const manana = sumarDiasISO(hoyISO(), 1);
+    return turnos.filter((t) => t.fecha === manana);
+  }, [turnos]);
+
+  const turnos3h = useMemo(() => {
+    const hoy = hoyISO();
+    const ahora = ahoraEnMinutos();
+    return turnos.filter((t) => {
+      if (t.fecha !== hoy) return false;
+      const min = horaAMinutos(t.hora);
+      return !Number.isNaN(min) && min >= ahora && min <= ahora + 180;
+    });
+  }, [turnos]);
+
+  const subtMananaFecha = useMemo(() => formatFechaLarga(sumarDiasISO(hoyISO(), 1)), []);
 
   // Indicadores del set filtrado.
   const total = filtrados.length;
@@ -259,6 +400,36 @@ const AgendaTurnosPage: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </button>
+        </div>
+      </div>
+
+      {/* Panel de recordatorios (cola de trabajo: a quién avisar ahora) */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-3">
+          <Bell className="h-5 w-5 text-blue-600" />
+          Recordatorios para enviar
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RecordatorioGrupo
+            titulo="Para mañana"
+            subtitulo={subtMananaFecha}
+            icono={Sun}
+            color="blue"
+            turnos={turnosManana}
+            avisados={avisados}
+            onMarcar={marcar}
+            onDesmarcar={desmarcar}
+          />
+          <RecordatorioGrupo
+            titulo="Hoy, próximas 3 horas"
+            subtitulo="Turnos de hoy entre ahora y dentro de 3 h"
+            icono={Clock}
+            color="orange"
+            turnos={turnos3h}
+            avisados={avisados}
+            onMarcar={marcar}
+            onDesmarcar={desmarcar}
+          />
         </div>
       </div>
 
@@ -377,7 +548,7 @@ const AgendaTurnosPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-2 px-3 text-center">
-                    <BotonWhatsApp turno={t} />
+                    <BotonWhatsApp turno={t} avisado={avisados.has(t.turno_id)} onSent={marcar} />
                   </td>
                 </tr>
               ))}
