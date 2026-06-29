@@ -34,6 +34,7 @@ const { sincronizarMovimientos } = require('../services/movimientosExtractor');
 const { sincronizarPeriodo: sincronizarIvaPeriodo } = require('../services/ivaExtractor');
 const { sincronizarTipoCambio } = require('../services/tipoCambioExtractor');
 const { sincronizarTesoreria } = require('../services/tesoreriaExtractor');
+const { sincronizarErogaciones } = require('../services/erogacionesExtractor');
 
 // Período YYYY-MM del mes en curso y del anterior (para el ETL fiscal del IVA).
 function periodosIvaRecientes() {
@@ -82,6 +83,8 @@ const SYNCS = [
   // Tesorería: caja últimos 2 meses (saldo viejo fijo) + proveedores full. El
   // histórico de caja (2018+) se carga una vez con cargar-tesoreria-geclisa.cjs --historico
   { nombre: 'tesorería (GECLISA→Supabase)', fn: () => sincronizarTesoreria({ write: true }) },
+  // Erogaciones (costos fijos): full refresh 2024+ (~5.4k filas).
+  { nombre: 'erogaciones (GECLISA→Supabase)', fn: () => sincronizarErogaciones({ write: true }) },
   // Próximos: prestaciones-realizadas, etc.
 ];
 

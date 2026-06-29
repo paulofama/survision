@@ -8,7 +8,6 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { API_BASE_URL } from '../lib/apiConfig';
 
 // ============================================
 // TIPOS
@@ -367,14 +366,17 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
     try {
       console.log(`🔄 Cargando erogaciones ${mesCargar}/${anioCargar}...`);
 
-      // 1. Cargar desde GECLISA (backend Express)
-      const response = await fetch(`${API_BASE_URL}/erogaciones/${anioCargar}/${mesCargar}`);
-      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+      // 1. Cargar desde el espejo Supabase (erogaciones_geclisa, sync GECLISA)
+      const { data: rows, error: sbErr } = await supabase
+        .from('erogaciones_geclisa')
+        .select('fuente, id_geclisa, fecha, proveedor_nombre, descripcion, monto, categoria_sugerida, tipo_comprobante, numero_comprobante')
+        .eq('anio', anioCargar)
+        .eq('mes', mesCargar)
+        .order('fecha', { ascending: false })
+        .order('monto', { ascending: false });
+      if (sbErr) throw new Error(sbErr.message);
 
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error || 'Error del servidor');
-
-      const erogacionesGeclisa: Erogacion[] = (result.data || []).map((e: any) => ({
+      const erogacionesGeclisa: Erogacion[] = (rows || []).map((e: any) => ({
         fuente: e.fuente,
         id_geclisa: e.id_geclisa,
         fecha: e.fecha,
@@ -782,22 +784,28 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
     const anioCargar = anioParam || anio;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/erogaciones/resumen/${anioCargar}`);
-      if (!response.ok) throw new Error('Error al cargar resumen');
+      // Resumen anual desde el espejo Supabase (agrupado por mes + fuente).
+      const { data: rows, error: sbErr } = await supabase
+        .from('erogaciones_geclisa')
+        .select('mes, fuente, monto')
+        .eq('anio', anioCargar);
+      if (sbErr) throw new Error(sbErr.message);
 
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error);
+      const porMes = new Map<number, { mes: number; proveedores: number; egresos_caja: number; liquidaciones: number; total_mes: number; cantidad_total: number }>();
+      for (let m = 1; m <= 12; m++) porMes.set(m, { mes: m, proveedores: 0, egresos_caja: 0, liquidaciones: 0, total_mes: 0, cantidad_total: 0 });
+      for (const r of rows || []) {
+        const e = porMes.get((r as any).mes);
+        if (!e) continue;
+        const monto = Number((r as any).monto) || 0;
+        const fuente = (r as any).fuente;
+        if (fuente === 'MovProv') e.proveedores += monto;
+        else if (fuente === 'MovValoresEnca') e.egresos_caja += monto;
+        else if (fuente === 'LiqComp') e.liquidaciones += monto;
+        e.total_mes += monto;
+        e.cantidad_total += 1;
+      }
 
-      const resumen = result.data.map((r: any) => ({
-        mes: r.Mes,
-        proveedores: r.Proveedores || 0,
-        egresos_caja: r.EgresosCaja || 0,
-        liquidaciones: r.Liquidaciones || 0,
-        total_mes: r.TotalMes || 0,
-        cantidad_total: r.CantidadTotal || 0
-      }));
-
-      setResumenAnual(resumen);
+      setResumenAnual(Array.from(porMes.values()));
     } catch (err) {
       console.error('Error cargando resumen anual:', err);
     }
