@@ -82,8 +82,14 @@ export const semaforoDot: Record<SemaforoColor, string> = {
 // CONSTANTES
 // ============================================
 
-const NOMBRE_SUELDOS = 'Sueldos y Cargas';
+// Categoría de erogación (en Supabase) que representa sueldos: se excluye en los
+// meses cubiertos por el módulo y es el fallback en los meses sin módulo.
+const CAT_EROGACION_SUELDOS = 'Sueldos y Cargas';
+// Líneas separadas alimentadas por el módulo: bruto y cargas patronales.
+const NOMBRE_SUELDOS = 'Sueldos';
+const NOMBRE_CARGAS = 'Cargas Sociales';
 const COLOR_SUELDOS = '#0891B2'; // cyan-600
+const COLOR_CARGAS = '#0E7490'; // cyan-700
 
 const RESUMEN_VACIO: ResumenCostosFijos = {
   totalPromedio: 0,
@@ -133,19 +139,23 @@ export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<R
     const color = (r.categorias_costo_fijo as any)?.color || '#6B7280';
     const monto = Number(r.monto) || 0;
     // Switch por mes: si el módulo cubre este mes, NO contamos la erogación
-    // "Sueldos y Cargas" (la reemplaza el costo laboral del módulo, abajo).
-    if (nombre === NOMBRE_SUELDOS && costoLab.has(claveMes(r.anio, r.mes))) return;
+    // "Sueldos y Cargas" (la reemplazan las líneas del módulo, abajo).
+    if (nombre === CAT_EROGACION_SUELDOS && costoLab.has(claveMes(r.anio, r.mes))) return;
     const prev = porCatMap.get(nombre);
     if (prev) prev.total += monto;
     else porCatMap.set(nombre, { nombre, color, total: monto });
   });
 
+  // Módulo: "Sueldos" (bruto) y "Cargas Sociales" (contribuciones patronales) separados.
   meses.forEach(p => {
     const c = costoLab.get(claveMes(p.anio, p.mes));
     if (!c) return;
-    const prev = porCatMap.get(NOMBRE_SUELDOS);
-    if (prev) prev.total += c.costoLaboral;
-    else porCatMap.set(NOMBRE_SUELDOS, { nombre: NOMBRE_SUELDOS, color: COLOR_SUELDOS, total: c.costoLaboral });
+    const s = porCatMap.get(NOMBRE_SUELDOS);
+    if (s) s.total += c.bruto;
+    else porCatMap.set(NOMBRE_SUELDOS, { nombre: NOMBRE_SUELDOS, color: COLOR_SUELDOS, total: c.bruto });
+    const g = porCatMap.get(NOMBRE_CARGAS);
+    if (g) g.total += c.cargas;
+    else porCatMap.set(NOMBRE_CARGAS, { nombre: NOMBRE_CARGAS, color: COLOR_CARGAS, total: c.cargas });
   });
 
   const categorias = Array.from(porCatMap.values());
@@ -153,7 +163,10 @@ export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<R
 
   if (totalPeriodo === 0) return { ...RESUMEN_VACIO, mesesUsados: N };
 
-  const totalSueldos = porCatMap.get(NOMBRE_SUELDOS)?.total ?? 0;
+  // Total de la línea laboral (para el desglose): Sueldos + Cargas + fallback erogación.
+  const totalSueldos = (porCatMap.get(NOMBRE_SUELDOS)?.total ?? 0)
+    + (porCatMap.get(NOMBRE_CARGAS)?.total ?? 0)
+    + (porCatMap.get(CAT_EROGACION_SUELDOS)?.total ?? 0);
   const totalOtros = totalPeriodo - totalSueldos;
 
   const porCategoria: CostoFijoCategoria[] = categorias

@@ -54,8 +54,11 @@ const UMBRAL_COBERTURA_RECETA = 80; // %
 /** Cantidad máxima de prestaciones detalle por segmento (default). */
 const DEFAULT_TOP_PRESTACIONES = 10;
 
-/** Nombre de la categoría de costo fijo que representa sueldos. */
-const NOMBRE_SUELDOS = 'Sueldos y Cargas';
+/** Categoría de erogación (Supabase) de sueldos: se excluye en meses con módulo / fallback. */
+const CAT_EROGACION_SUELDOS = 'Sueldos y Cargas';
+/** Líneas separadas alimentadas por el módulo: bruto y cargas patronales. */
+const NOMBRE_SUELDOS = 'Sueldos';
+const NOMBRE_CARGAS = 'Cargas Sociales';
 
 // ============================================
 // TIPO ATENCIÓN (shape esperado del endpoint)
@@ -252,8 +255,8 @@ const useEvolucionMensual = (
       if (rawTipo === 'fijo') {
         const catNombre = (r.categorias_costo_fijo as any)?.nombre || 'Sin categoría';
         // Switch por mes: si el módulo cubre el mes, NO contamos la erogación
-        // "Sueldos y Cargas" (la reemplaza el costo laboral del módulo, abajo).
-        if (catNombre === NOMBRE_SUELDOS && costoLab.has(claveMes(r.anio, r.mes))) return;
+        // "Sueldos y Cargas" (la reemplazan las líneas del módulo, abajo).
+        if (catNombre === CAT_EROGACION_SUELDOS && costoLab.has(claveMes(r.anio, r.mes))) return;
         fijosPorMes[mesKey].porCategoria[catNombre] = (fijosPorMes[mesKey].porCategoria[catNombre] || 0) + monto;
         fijosPorMes[mesKey].total += monto;
       } else if (rawTipo === 'sin_clasificar') {
@@ -261,12 +264,13 @@ const useEvolucionMensual = (
       }
     });
 
-    // Sueldos del módulo → categoría "Sueldos y Cargas" en los meses cubiertos.
+    // Módulo: "Sueldos" (bruto) y "Cargas Sociales" (patronales) separados, por mes cubierto.
     meses.forEach(m => {
       const { anio, mes: mesN } = parseMesKey(m);
       const c = costoLab.get(claveMes(anio, mesN));
       if (!c) return;
-      fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] = (fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] || 0) + c.costoLaboral;
+      fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] = (fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] || 0) + c.bruto;
+      fijosPorMes[m].porCategoria[NOMBRE_CARGAS] = (fijosPorMes[m].porCategoria[NOMBRE_CARGAS] || 0) + c.cargas;
       fijosPorMes[m].total += c.costoLaboral;
     });
 
