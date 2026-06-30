@@ -80,5 +80,27 @@ export function useTurnosFuturos(): UseTurnosFuturosResult {
     cargar();
   }, [cargar]);
 
+  // Auto-refresh: re-lee cada 30 s para reflejar turnos recién cargados sin que
+  // el usuario apriete "Actualizar". Solo con la pestaña visible (no gasta de
+  // fondo) y dispara una recarga al volver a la pestaña. El daemon sincroniza
+  // GECLISA->Supabase cada 1 min; combinado, un turno nuevo aparece solo en ~1 min.
+  useEffect(() => {
+    const POLL_MS = 30_000;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        cargar();
+      }
+    };
+    const intervalo = setInterval(tick, POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') cargar();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [cargar]);
+
   return { turnos, loading, error, ultimaActualizacion, refetch: cargar };
 }

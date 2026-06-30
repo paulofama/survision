@@ -565,7 +565,7 @@ const AgendaTurnosPage: React.FC = () => {
       </div>
 
       <div className="text-center text-sm text-gray-400 py-2">
-        <p>Datos sincronizados desde GECLISA (2 veces/día: 12:00 y 17:00). Solo turnos vigentes (no atendidos ni pasados).</p>
+        <p>Se actualiza automáticamente (sync cada 1 min + refresco de pantalla cada 30 s). Solo turnos vigentes (no atendidos ni pasados).</p>
       </div>
     </div>
   );
