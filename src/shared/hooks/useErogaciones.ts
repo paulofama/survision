@@ -110,6 +110,10 @@ const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+// Normaliza el nombre de proveedor para matchear contra el histórico.
+const normalizarProveedor = (s: any): string =>
+  String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+
 // ============================================
 // HOOK PRINCIPAL
 // ============================================
@@ -489,6 +493,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         tipo_costo: nuevoTipo,
         es_costo_fijo: nuevoTipo === 'fijo',
         clasificado_por: 'manual',
+        auto_clasificado: false, // corrección manual → deja de ser sugerencia
         clasificado_at: new Date().toISOString()
         // NOTA: updated_at es trigger-managed en Supabase → NO incluir aquí
       };
@@ -696,6 +701,101 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
   }, [clasificarErogacion]);
 
   // ============================================
+  // SUGERIR SEGÚN HISTÓRICO
+  // ============================================
+  // Aprende de TODAS las clasificaciones ya hechas (erogaciones_clasificacion):
+  // por cada proveedor calcula su clasificación dominante (la más frecuente) y
+  // la aplica a las erogaciones SIN clasificar del mes, marcándolas
+  // auto_clasificado=true para que el usuario las revise/corrija.
+
+  const sugerirSegunHistorico = useCallback(async (): Promise<{ sugeridas: number; sinMatch: number }> => {
+    setLoadingClasificacion(true);
+    try {
+      // 1. Histórico completo de clasificaciones (todos los períodos).
+      const { data: hist, error: histErr } = await supabase
+        .from('erogaciones_clasificacion')
+        .select('proveedor_nombre, tipo_costo, categoria_costo_fijo_id, subcategoria_variable');
+      if (histErr) throw histErr;
+
+      // 2. Clasificación dominante por proveedor (combinación más frecuente).
+      const porProv = new Map<string, Map<string, number>>();
+      (hist || []).forEach((r: any) => {
+        const prov = normalizarProveedor(r.proveedor_nombre);
+        if (!prov) return;
+        const tipo = normalizeTipoCosto(r.tipo_costo);
+        if (tipo === 'sin_clasificar') return;
+        const combo = JSON.stringify({ tipo, cat: r.categoria_costo_fijo_id || null, sub: r.subcategoria_variable || null });
+        if (!porProv.has(prov)) porProv.set(prov, new Map());
+        const m = porProv.get(prov)!;
+        m.set(combo, (m.get(combo) || 0) + 1);
+      });
+      const dominante = new Map<string, { tipo: TipoCosto; cat: string | null; sub: 'honorarios' | 'insumos' | null }>();
+      for (const [prov, combos] of porProv) {
+        const top = [...combos.entries()].sort((a, b) => b[1] - a[1])[0][0];
+        dominante.set(prov, JSON.parse(top));
+      }
+
+      // 3. Construir sugerencias para las erogaciones SIN clasificar del mes.
+      const ahora = new Date().toISOString();
+      const filasUpsert: any[] = [];
+      let sinMatch = 0;
+      for (const e of erogaciones) {
+        const clave = getClaveErogacion(e.fuente, e.id_geclisa);
+        if (clasificaciones.has(clave)) continue; // ya tiene clasificación persistida
+        const d = dominante.get(normalizarProveedor(e.proveedor_nombre));
+        if (!d) { sinMatch++; continue; }
+        filasUpsert.push({
+          fuente: e.fuente,
+          id_geclisa: e.id_geclisa,
+          anio, mes,
+          fecha: e.fecha,
+          descripcion: e.descripcion,
+          proveedor_nombre: e.proveedor_nombre,
+          monto: e.monto,
+          categoria: e.categoria_sugerida,
+          tipo_costo: d.tipo,
+          es_costo_fijo: d.tipo === 'fijo',
+          categoria_costo_fijo_id: d.tipo === 'fijo' ? d.cat : null,
+          subcategoria_variable: d.tipo === 'variable' ? d.sub : null,
+          auto_clasificado: true,
+          clasificado_por: 'sugerencia',
+          clasificado_at: ahora,
+        });
+      }
+
+      if (filasUpsert.length === 0) {
+        mostrarMensaje('No hay erogaciones sin clasificar con proveedor en el histórico', 'success');
+        return { sugeridas: 0, sinMatch };
+      }
+
+      // 4. Upsert en lote.
+      const { data, error: upErr } = await supabase
+        .from('erogaciones_clasificacion')
+        .upsert(filasUpsert, { onConflict: 'fuente,id_geclisa' })
+        .select();
+      if (upErr) throw upErr;
+
+      // 5. Actualizar el mapa local.
+      setClasificaciones(prev => {
+        const nuevo = new Map(prev);
+        (data || []).forEach((c: any) => {
+          nuevo.set(getClaveErogacion(c.fuente, c.id_geclisa), { ...c, tipo_costo: normalizeTipoCosto(c.tipo_costo) });
+        });
+        return nuevo;
+      });
+
+      mostrarMensaje(`${filasUpsert.length} erogaciones sugeridas según histórico — revisá las marcadas "Auto"`, 'success');
+      return { sugeridas: filasUpsert.length, sinMatch };
+    } catch (err) {
+      console.error('Error en sugerencia según histórico:', err);
+      mostrarMensaje('Error al sugerir clasificación', 'error');
+      return { sugeridas: 0, sinMatch: 0 };
+    } finally {
+      setLoadingClasificacion(false);
+    }
+  }, [erogaciones, clasificaciones, anio, mes]);
+
+  // ============================================
   // ESTADÍSTICAS v2.2
   // ============================================
 
@@ -871,6 +971,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
     toggleTipoCosto,
     asignarCategoria,
     marcarMultiplesFijos,
+    sugerirSegunHistorico,
     cambiarPeriodo,
 
     // Helpers

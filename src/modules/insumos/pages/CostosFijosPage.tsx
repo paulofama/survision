@@ -89,6 +89,7 @@ export default function CostosFijosPage() {
     eliminarProveedorDefault,
     cargarErogaciones,
     clasificarErogacion,
+    sugerirSegunHistorico,
     cambiarPeriodo,
     MESES
   } = useErogaciones();
@@ -161,6 +162,27 @@ export default function CostosFijosPage() {
   const irAMesSiguiente = () => {
     if (mes === 12) cambiarPeriodo(anio + 1, 1);
     else cambiarPeriodo(anio, mes + 1);
+  };
+
+  // ============================================
+  // SUGERIR SEGÚN HISTÓRICO
+  // ============================================
+
+  const handleSugerir = async () => {
+    if (loadingClasificacion) return;
+    const sinClas = erogaciones.filter(e => e.tipo_costo === 'sin_clasificar').length;
+    if (sinClas === 0) {
+      window.alert('No hay erogaciones sin clasificar en este mes.');
+      return;
+    }
+    const ok = window.confirm(
+      `Sugerir clasificación para las ${sinClas} erogaciones sin clasificar de ${MESES[mes - 1]} ${anio}, ` +
+      `según cómo se clasificó históricamente a cada proveedor.\n\n` +
+      `Quedan marcadas como "Auto" (fondo violeta) para que las revises y corrijas las que haga falta. ` +
+      `Los proveedores nuevos (sin histórico) quedan sin clasificar.`
+    );
+    if (!ok) return;
+    await sugerirSegunHistorico();
   };
 
   // ============================================
@@ -440,9 +462,18 @@ export default function CostosFijosPage() {
             <ChevronRight className="w-5 h-5" />
           </button>
           <button
+            onClick={handleSugerir}
+            disabled={loading || loadingClasificacion}
+            className="flex items-center gap-2 px-3 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors ml-2 text-sm font-medium disabled:opacity-50"
+            title="Clasificar las erogaciones sin clasificar según el histórico de cada proveedor"
+          >
+            {loadingClasificacion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            Sugerir s/ histórico
+          </button>
+          <button
             onClick={() => cargarErogaciones()}
             disabled={loading}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors ml-2"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors ml-1"
             title="Refrescar"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
