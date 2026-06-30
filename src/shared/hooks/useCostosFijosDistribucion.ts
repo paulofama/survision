@@ -1,16 +1,24 @@
 // ============================================
 // HOOK: useCostosFijosDistribucion
 // Distribución de Costos Fijos para Análisis Marginal
-// Instituto Dr. Mercado - v2.0
+// Instituto Dr. Mercado - v3.0
 // ============================================
-// RUTA DESTINO: src/hooks/useCostosFijosDistribucion.ts
-// ============================================
-// v2.0: Integra sueldos_registros como categoría separada
-//       CF Total = Erogaciones Fijas + Sueldos y Cargas
+// v3.0 (multi-período + integración Sueldos):
+//   - Trabaja sobre un RANGO de meses (un mes o varios). SUMA REAL del período
+//     (Opción 1), no promedio móvil de 3 meses.
+//   - Sueldos = COSTO LABORAL del módulo (bruto + cargas) vía costoLaboral.ts
+//     cuando el mes tiene dato; si no, fallback a la erogación clasificada
+//     "Sueldos y Cargas" de ese mes (Decisión C, switch por mes).
+//   - Para los meses cubiertos por el módulo, se EXCLUYE la categoría de
+//     erogación "Sueldos y Cargas" (evita el doble conteo).
+//   - Se ELIMINA por completo el uso de sueldos_registros (corrige el doble
+//     conteo que existía: erogaciones "Sueldos y Cargas" + "Remuneraciones").
 // ============================================
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { cargarCostoLaboralRango, claveMes } from '@shared/services/costoLaboral';
+import { RangoPeriodo, mesesDelRango, rangoMesUnico } from '@modules/analisis-marginal/utils/periodo';
 
 // ============================================
 // TIPOS
@@ -19,19 +27,24 @@ import { supabase } from '../lib/supabase';
 export interface CostoFijoCategoria {
   categoria_nombre: string;
   categoria_color: string;
-  total: number;
+  total: number;           // total del PERÍODO (suma real, Opción 1)
+  promedioMensual: number; // total / N meses
   porcentaje: number;
 }
 
 export interface ResumenCostosFijos {
+  // Compat (lo leen Dashboard/Modal): ahora representa el TOTAL del período.
   totalPromedio: number;
-  mesesUsados: number;
+  // Nombres claros (multi-período):
+  totalPeriodo: number;
+  promedioMensual: number;
+  mesesUsados: number;     // cantidad de meses del rango
   periodos: string[];
   porCategoria: CostoFijoCategoria[];
   sinDatos: boolean;
-  // Desglose de fuentes
-  promedioErogaciones: number;
-  promedioSueldos: number;
+  // Desglose de fuentes (totales del período):
+  promedioErogaciones: number; // (compat) total de erogaciones NO sueldos
+  promedioSueldos: number;     // (compat) total de la línea Sueldos y Cargas
 }
 
 export interface DistribucionItem {
@@ -66,170 +79,134 @@ export const semaforoDot: Record<SemaforoColor, string> = {
 };
 
 // ============================================
-// HELPER: calcular 3 meses anteriores
+// CONSTANTES
 // ============================================
 
-const getUltimos3Meses = (anio: number, mes: number): { anio: number; mes: number }[] => {
-  const periodos: { anio: number; mes: number }[] = [];
-  let a = anio;
-  let m = mes;
+const NOMBRE_SUELDOS = 'Sueldos y Cargas';
+const COLOR_SUELDOS = '#0891B2'; // cyan-600
 
-  for (let i = 0; i < 3; i++) {
-    m--;
-    if (m < 1) { m = 12; a--; }
-    periodos.push({ anio: a, mes: m });
-  }
-
-  return periodos;
+const RESUMEN_VACIO: ResumenCostosFijos = {
+  totalPromedio: 0,
+  totalPeriodo: 0,
+  promedioMensual: 0,
+  mesesUsados: 0,
+  periodos: [],
+  porCategoria: [],
+  sinDatos: true,
+  promedioErogaciones: 0,
+  promedioSueldos: 0,
 };
+
+// ============================================
+// CÁLCULO (función pura compartida)
+// ============================================
+// Fuente ÚNICA del cálculo de costos fijos del período. La usan el hook (abajo)
+// y el modal del Informe (para el período actual y el período anterior), así no
+// divergen. Suma real mes a mes; switch sueldos por mes (módulo vs erogación).
+
+export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<ResumenCostosFijos> {
+  const meses = mesesDelRango(rango);
+  const N = meses.length;
+  if (N === 0) return { ...RESUMEN_VACIO };
+
+  // Filtro OR de los meses del rango.
+  const filtros = meses
+    .map(p => `and(anio.eq.${p.anio},mes.eq.${p.mes})`)
+    .join(',');
+
+  // Erogaciones clasificadas como fijo en el rango.
+  const { data: dataErog, error: errErog } = await supabase
+    .from('erogaciones_clasificacion')
+    .select(`anio, mes, monto, categoria_costo_fijo_id, categorias_costo_fijo ( nombre, color )`)
+    .eq('tipo_costo', 'fijo')
+    .or(filtros);
+  if (errErog) throw errErog;
+
+  // Costo laboral del módulo (bruto + cargas) por mes disponible.
+  const costoLab = await cargarCostoLaboralRango(rango.anioDesde, rango.mesDesde, rango.anioHasta, rango.mesHasta);
+
+  // Agregar por categoría (período total).
+  const porCatMap = new Map<string, { nombre: string; color: string; total: number }>();
+
+  (dataErog || []).forEach((r: any) => {
+    const nombre = (r.categorias_costo_fijo as any)?.nombre || 'Sin categoría';
+    const color = (r.categorias_costo_fijo as any)?.color || '#6B7280';
+    const monto = Number(r.monto) || 0;
+    // Switch por mes: si el módulo cubre este mes, NO contamos la erogación
+    // "Sueldos y Cargas" (la reemplaza el costo laboral del módulo, abajo).
+    if (nombre === NOMBRE_SUELDOS && costoLab.has(claveMes(r.anio, r.mes))) return;
+    const prev = porCatMap.get(nombre);
+    if (prev) prev.total += monto;
+    else porCatMap.set(nombre, { nombre, color, total: monto });
+  });
+
+  meses.forEach(p => {
+    const c = costoLab.get(claveMes(p.anio, p.mes));
+    if (!c) return;
+    const prev = porCatMap.get(NOMBRE_SUELDOS);
+    if (prev) prev.total += c.costoLaboral;
+    else porCatMap.set(NOMBRE_SUELDOS, { nombre: NOMBRE_SUELDOS, color: COLOR_SUELDOS, total: c.costoLaboral });
+  });
+
+  const categorias = Array.from(porCatMap.values());
+  const totalPeriodo = categorias.reduce((s, c) => s + c.total, 0);
+
+  if (totalPeriodo === 0) return { ...RESUMEN_VACIO, mesesUsados: N };
+
+  const totalSueldos = porCatMap.get(NOMBRE_SUELDOS)?.total ?? 0;
+  const totalOtros = totalPeriodo - totalSueldos;
+
+  const porCategoria: CostoFijoCategoria[] = categorias
+    .map(c => ({
+      categoria_nombre: c.nombre,
+      categoria_color: c.color,
+      total: c.total,
+      promedioMensual: N > 0 ? c.total / N : 0,
+      porcentaje: totalPeriodo > 0 ? (c.total / totalPeriodo) * 100 : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  return {
+    totalPromedio: totalPeriodo,
+    totalPeriodo,
+    promedioMensual: N > 0 ? totalPeriodo / N : 0,
+    mesesUsados: N,
+    periodos: meses.map(p => `${p.anio}-${String(p.mes).padStart(2, '0')}`),
+    porCategoria,
+    sinDatos: false,
+    promedioErogaciones: totalOtros,
+    promedioSueldos: totalSueldos,
+  };
+}
 
 // ============================================
 // HOOK PRINCIPAL
 // ============================================
+// Acepta un RangoPeriodo (multi-mes) o, por retrocompat, (anio, mes).
 
-const useCostosFijosDistribucion = (anio: number, mes: number) => {
-  const [resumen, setResumen] = useState<ResumenCostosFijos>({
-    totalPromedio: 0,
-    mesesUsados: 0,
-    periodos: [],
-    porCategoria: [],
-    sinDatos: true,
-    promedioErogaciones: 0,
-    promedioSueldos: 0,
-  });
+const useCostosFijosDistribucion = (rangoOAnio: RangoPeriodo | number, mesArg?: number) => {
+  const rango: RangoPeriodo = typeof rangoOAnio === 'number'
+    ? rangoMesUnico(rangoOAnio, mesArg ?? 1)
+    : rangoOAnio;
+  const { anioDesde, mesDesde, anioHasta, mesHasta } = rango;
+
+  const [resumen, setResumen] = useState<ResumenCostosFijos>(RESUMEN_VACIO);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // ============================================
-  // CARGAR COSTOS FIJOS + SUELDOS
+  // CARGAR COSTOS FIJOS + SUELDOS (suma real del período)
   // ============================================
 
   const cargarCostosFijos = useCallback(async () => {
-    if (!anio || !mes) return;
+    if (!anioDesde || !mesDesde) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const periodos = getUltimos3Meses(anio, mes);
-
-      // Construir filtro OR para los 3 meses
-      const filtros = periodos
-        .map(p => `and(anio.eq.${p.anio},mes.eq.${p.mes})`)
-        .join(',');
-
-      // ── CONSULTA 1: Erogaciones clasificadas como fijo ──
-      const { data: dataErog, error: errErog } = await supabase
-        .from('erogaciones_clasificacion')
-        .select(`anio, mes, monto, categoria_costo_fijo_id, categorias_costo_fijo ( nombre, color )`)
-        .eq('tipo_costo', 'fijo')
-        .or(filtros);
-
-      if (errErog) throw errErog;
-
-      // ── CONSULTA 2: Sueldos y cargas sociales ──
-      const { data: dataSueldos, error: errSueldos } = await supabase
-        .from('sueldos_registros')
-        .select('anio, mes, monto')
-        .or(filtros);
-
-      if (errSueldos) throw errSueldos;
-
-      const registrosErog = dataErog || [];
-      const registrosSueldos = dataSueldos || [];
-
-      // Si no hay datos de ninguna fuente
-      if (registrosErog.length === 0 && registrosSueldos.length === 0) {
-        setResumen({
-          totalPromedio: 0, mesesUsados: 0, periodos: [],
-          porCategoria: [], sinDatos: true,
-          promedioErogaciones: 0, promedioSueldos: 0,
-        });
-        return;
-      }
-
-      // ── CALCULAR TOTALES POR PERÍODO (ambas fuentes) ──
-      const totalPorPeriodo = new Map<string, { erog: number; sueldos: number }>();
-      periodos.forEach(p => {
-        const key = `${p.anio}-${String(p.mes).padStart(2, '0')}`;
-        totalPorPeriodo.set(key, { erog: 0, sueldos: 0 });
-      });
-
-      registrosErog.forEach((r: any) => {
-        const key = `${r.anio}-${String(r.mes).padStart(2, '0')}`;
-        const entry = totalPorPeriodo.get(key);
-        if (entry) entry.erog += (Number(r.monto) || 0);
-      });
-
-      registrosSueldos.forEach((r: any) => {
-        const key = `${r.anio}-${String(r.mes).padStart(2, '0')}`;
-        const entry = totalPorPeriodo.get(key);
-        if (entry) entry.sueldos += (Number(r.monto) || 0);
-      });
-
-      // Períodos con datos (de cualquier fuente)
-      const periodosConDatos = Array.from(totalPorPeriodo.entries())
-        .filter(([, v]) => (v.erog + v.sueldos) > 0);
-
-      const mesesUsados = periodosConDatos.length;
-      if (mesesUsados === 0) {
-        setResumen({
-          totalPromedio: 0, mesesUsados: 0, periodos: [],
-          porCategoria: [], sinDatos: true,
-          promedioErogaciones: 0, promedioSueldos: 0,
-        });
-        return;
-      }
-
-      const totalErog = periodosConDatos.reduce((s, [, v]) => s + v.erog, 0);
-      const totalSueldos = periodosConDatos.reduce((s, [, v]) => s + v.sueldos, 0);
-      const promedioErog = totalErog / mesesUsados;
-      const promedioSueldos = totalSueldos / mesesUsados;
-      const totalPromedio = promedioErog + promedioSueldos;
-
-      // ── DESGLOSE POR CATEGORÍA (erogaciones) ──
-      const porCatMap = new Map<string, { nombre: string; color: string; total: number }>();
-
-      registrosErog.forEach((r: any) => {
-        const catNombre = (r.categorias_costo_fijo as any)?.nombre || 'Sin categoría';
-        const catColor  = (r.categorias_costo_fijo as any)?.color  || '#6B7280';
-        const monto = Number(r.monto) || 0;
-
-        const prev = porCatMap.get(catNombre);
-        if (prev) { prev.total += monto; }
-        else { porCatMap.set(catNombre, { nombre: catNombre, color: catColor, total: monto }); }
-      });
-
-      // Agregar "Remuneraciones Personal" como categoría separada
-      if (totalSueldos > 0) {
-        porCatMap.set('Remuneraciones Personal', {
-          nombre: 'Remuneraciones Personal',
-          color: '#0891B2',  // cyan-600
-          total: totalSueldos,
-        });
-      }
-
-      const totalGlobal = totalErog + totalSueldos;
-
-      const porCategoria: CostoFijoCategoria[] = Array.from(porCatMap.values())
-        .map(c => ({
-          categoria_nombre: c.nombre,
-          categoria_color: c.color,
-          total: totalGlobal > 0 ? (c.total / mesesUsados) : 0,
-          porcentaje: totalGlobal > 0 ? (c.total / totalGlobal) * 100 : 0,
-        }))
-        .sort((a, b) => b.total - a.total);
-
-      setResumen({
-        totalPromedio,
-        mesesUsados,
-        periodos: periodosConDatos.map(([k]) => k),
-        porCategoria,
-        sinDatos: totalPromedio === 0,
-        promedioErogaciones: promedioErog,
-        promedioSueldos: promedioSueldos,
-      });
-
+      const r = await calcularCostosFijosPeriodo({ preset: 'personalizado', anioDesde, mesDesde, anioHasta, mesHasta });
+      setResumen(r);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al cargar costos fijos';
       console.error('❌ useCostosFijosDistribucion:', err);
@@ -237,7 +214,7 @@ const useCostosFijosDistribucion = (anio: number, mes: number) => {
     } finally {
       setLoading(false);
     }
-  }, [anio, mes]);
+  }, [anioDesde, mesDesde, anioHasta, mesHasta]);
 
   useEffect(() => {
     cargarCostosFijos();
@@ -251,9 +228,9 @@ const useCostosFijosDistribucion = (anio: number, mes: number) => {
     facturadoItem: number,
     facturadoTotal: number
   ): number => {
-    if (facturadoTotal <= 0 || resumen.totalPromedio <= 0) return 0;
-    return resumen.totalPromedio * (facturadoItem / facturadoTotal);
-  }, [resumen.totalPromedio]);
+    if (facturadoTotal <= 0 || resumen.totalPeriodo <= 0) return 0;
+    return resumen.totalPeriodo * (facturadoItem / facturadoTotal);
+  }, [resumen.totalPeriodo]);
 
   // ============================================
   // TEXTO DEL TOOLTIP
@@ -265,15 +242,15 @@ const useCostosFijosDistribucion = (anio: number, mes: number) => {
     costoAsignado: number
   ): string => {
     if (resumen.sinDatos) {
-      return 'Sin datos de costos fijos clasificados en los últimos 3 meses';
+      return 'Sin costos fijos clasificados en el período';
     }
     const ratio = facturadoTotal > 0 ? (facturadoItem / facturadoTotal) * 100 : 0;
     const mesesTexto = resumen.mesesUsados === 1 ? '1 mes' : `${resumen.mesesUsados} meses`;
     const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
     return [
-      `CF total (prom. ${mesesTexto}): ${fmt(resumen.totalPromedio)}`,
-      `  Erogaciones: ${fmt(resumen.promedioErogaciones)}`,
-      `  Remuneraciones: ${fmt(resumen.promedioSueldos)}`,
+      `CF del período (${mesesTexto}): ${fmt(resumen.totalPeriodo)}`,
+      `  Otras erogaciones: ${fmt(resumen.promedioErogaciones)}`,
+      `  Sueldos y Cargas: ${fmt(resumen.promedioSueldos)}`,
       `Ratio facturado: ${ratio.toFixed(2)}%`,
       `Asignado: ${fmt(costoAsignado)}`,
     ].join('\n');

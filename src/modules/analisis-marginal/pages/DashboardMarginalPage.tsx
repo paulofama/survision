@@ -25,6 +25,7 @@ import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout
 import useCostosFijosDistribucion, { getSemaforoColor, semaforoClasses, semaforoDot } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
 import InformeGestionModal from '../components/InformeGestionModal';
+import { formatearPeriodo } from '../utils/periodo';
 
 // ============================================
 // TIPOS
@@ -173,19 +174,17 @@ const TopItem: React.FC<TopItemProps> = ({ rank, name, value, percentage, type }
 // ============================================
 
 const DashboardMarginalContent: React.FC = () => {
-  const { 
-    prestaciones, 
-    recetasConPools, 
+  const {
+    prestaciones,
+    recetasConPools,
     configHonorarios,
     prestadoresHonorarios,
-    filtros,
-    loading 
+    rango,
+    loading
   } = useMarginalContext();
 
-  const anioActual = Number(filtros?.anio) || new Date().getFullYear();
-  const mesActual  = Number(filtros?.mes)  || (new Date().getMonth() + 1);
-
-  const { resumen: resumenCF } = useCostosFijosDistribucion(anioActual, mesActual);
+  // Costos fijos del PERÍODO (suma real mes a mes; switch sueldos por mes).
+  const { resumen: resumenCF } = useCostosFijosDistribucion(rango);
   const { agregarAliases } = useNombreMapping();
 
   const [mostrarInforme, setMostrarInforme] = useState(false);
@@ -443,8 +442,11 @@ const DashboardMarginalContent: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Botón Generar Informe */}
-      <div className="flex justify-end">
+      {/* Período + Botón Generar Informe */}
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-600">
+          Período: <span className="font-semibold text-gray-900">{formatearPeriodo(rango)}</span>
+        </p>
         <button
           onClick={() => setMostrarInforme(true)}
           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm"
@@ -491,7 +493,7 @@ const DashboardMarginalContent: React.FC = () => {
         />
         {/* ── NUEVO: Resultado Operativo ── */}
         {(() => {
-          const resultadoOperativo = analytics.margenBruto - resumenCF.totalPromedio;
+          const resultadoOperativo = analytics.margenBruto - resumenCF.totalPeriodo;
           const resultadoPct = analytics.totalFacturado > 0
             ? (resultadoOperativo / analytics.totalFacturado) * 100
             : 0;
@@ -523,7 +525,7 @@ const DashboardMarginalContent: React.FC = () => {
                 <p className="text-xs text-gray-400 mt-1">
                   {resumenCF.sinDatos
                     ? 'CF: clasificá erogaciones'
-                    : `CF: ${formatCurrency(resumenCF.totalPromedio)}/mes`
+                    : `CF período: ${formatCurrency(resumenCF.totalPeriodo)}`
                   }
                 </p>
               </div>

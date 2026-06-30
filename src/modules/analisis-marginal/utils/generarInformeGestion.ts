@@ -10,6 +10,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { RangoPeriodo, formatearPeriodo, slugPeriodo, cantidadMeses } from './periodo';
 
 // ============================================
 // TIPOS
@@ -49,8 +50,9 @@ export interface DatosMes {
     sigla: string; nombre: string; cantidad: number; facturado: number;
     mc: number; mcPct: number;
   }[];
-  // Acepta ambos formatos de campo (nombre O categoria_nombre)
-  costosFijosDetalle: { nombre?: string; categoria_nombre?: string; color?: string; categoria_color?: string; total: number; porcentaje: number }[];
+  // Acepta ambos formatos de campo (nombre O categoria_nombre). total = total del
+  // período; promedioMensual = total / N meses (Decisión 2, Opción 1).
+  costosFijosDetalle: { nombre?: string; categoria_nombre?: string; color?: string; categoria_color?: string; total: number; promedioMensual?: number; porcentaje: number }[];
 }
 
 export interface DatosInforme {
@@ -58,6 +60,10 @@ export interface DatosInforme {
   mes: number;
   actual: DatosMes;
   anterior: DatosMes | null;
+  // Período del informe (un mes o varios). Si está, manda sobre anio/mes para
+  // el título dinámico y la cantidad de meses. rangoAnterior = comparativo.
+  rango?: RangoPeriodo;
+  rangoAnterior?: RangoPeriodo;
 }
 
 // ============================================
@@ -121,24 +127,24 @@ const alinear = (d: any, aligns: Record<number, HAlign>) => {
 
 function narResumen(d: DatosInforme): string {
   const { actual: a, anterior: ant } = d;
-  const mes = MESES[d.mes - 1];
+  const periodo = d.rango ? formatearPeriodo(d.rango) : `${MESES[d.mes - 1]} ${d.anio}`;
   let t = '';
 
   if (!ant) {
-    t += `En ${mes} ${d.anio}, el Instituto Dr. Mercado registró una facturación total de ${fmt(a.facturado)} `;
+    t += `En ${periodo}, el Instituto Dr. Mercado registró una facturación total de ${fmt(a.facturado)} `;
     t += `con ${fmtNum(a.cantidad)} prestaciones realizadas, generando un ticket promedio de ${fmt(a.ticketPromedio)}. `;
     t += `El margen de contribución alcanzó el ${fmtPct(a.margenContribPct)}, y tras distribuir los costos fijos `;
-    t += `(${fmt(a.costosFijos)}/mes), el resultado operativo se ubicó en ${fmtPct(a.resultadoOpPct)}.`;
+    t += `del período (${fmt(a.costosFijos)}), el resultado operativo se ubicó en ${fmtPct(a.resultadoOpPct)}.`;
     return t;
   }
 
   const vF = vari(a.facturado, ant.facturado);
   const vC = vari(a.cantidad, ant.cantidad);
 
-  t += `En ${mes} ${d.anio}, el Instituto Dr. Mercado facturó ${fmt(a.facturado)}, `;
+  t += `En ${periodo}, el Instituto Dr. Mercado facturó ${fmt(a.facturado)}, `;
   t += vF.pos
-    ? `lo que representa un crecimiento del ${vF.texto} respecto al mes anterior. `
-    : `registrando una contracción del ${vF.texto} respecto al mes anterior. `;
+    ? `lo que representa un crecimiento del ${vF.texto} respecto al período anterior. `
+    : `registrando una contracción del ${vF.texto} respecto al período anterior. `;
   t += `Se realizaron ${fmtNum(a.cantidad)} prestaciones (${vC.texto}), con un ticket promedio de ${fmt(a.ticketPromedio)}. `;
 
   const dMC = a.margenContribPct - ant.margenContribPct;
@@ -150,7 +156,7 @@ function narResumen(d: DatosInforme): string {
     t += `El margen de contribución se mantuvo estable en ${fmtPct(a.margenContribPct)}. `;
   }
 
-  t += `El resultado operativo, tras distribuir costos fijos por ${fmt(a.costosFijos)}/mes, `;
+  t += `El resultado operativo, tras distribuir costos fijos por ${fmt(a.costosFijos)} en el período, `;
   t += a.resultadoOpPct > 20
     ? `se ubicó en un saludable ${fmtPct(a.resultadoOpPct)}.`
     : a.resultadoOpPct > 0
@@ -200,7 +206,7 @@ function generarConclusiones(d: DatosInforme): string[] {
   if (ant) {
     const vCF = vari(a.costosFijos, ant.costosFijos);
     if (!vCF.pos || Math.abs(vCF.valor) > 10) {
-      cc.push(`Los costos fijos ${vCF.pos ? 'aumentaron' : 'disminuyeron'} un ${Math.abs(vCF.valor).toFixed(1)}% respecto al mes anterior. ${vCF.pos ? 'Se recomienda analizar las categorías de mayor incremento para evaluar si se trata de un ajuste estructural o un gasto extraordinario.' : 'La reducción refleja una mejora en la eficiencia operativa.'}`);
+      cc.push(`Los costos fijos ${vCF.pos ? 'aumentaron' : 'disminuyeron'} un ${Math.abs(vCF.valor).toFixed(1)}% respecto al período anterior. ${vCF.pos ? 'Se recomienda analizar las categorías de mayor incremento para evaluar si se trata de un ajuste estructural o un gasto extraordinario.' : 'La reducción refleja una mejora en la eficiencia operativa.'}`);
     }
   }
 
@@ -213,7 +219,7 @@ function generarConclusiones(d: DatosInforme): string[] {
   // 5. Facturación
   if (ant) {
     const vF = vari(a.facturado, ant.facturado);
-    if (!vF.pos && Math.abs(vF.valor) > 10) cc.push(`La caída del ${Math.abs(vF.valor).toFixed(0)}% en facturación respecto al mes anterior requiere análisis de causas: estacionalidad, pérdida de convenios, o reducción de demanda.`);
+    if (!vF.pos && Math.abs(vF.valor) > 10) cc.push(`La caída del ${Math.abs(vF.valor).toFixed(0)}% en facturación respecto al período anterior requiere análisis de causas: estacionalidad, pérdida de convenios, o reducción de demanda.`);
     if (vF.pos && vF.valor > 10) cc.push(`El crecimiento del ${vF.valor.toFixed(1)}% en facturación es un indicador positivo. Se recomienda verificar si es sostenible o responde a factores puntuales.`);
   }
 
@@ -240,6 +246,10 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   const doc = new jsPDF('p', 'mm', 'a4');
   const { actual: a, anterior: ant } = datos;
   const mesNombre = MESES[datos.mes - 1];
+  // Etiqueta del período (un mes o varios) y cantidad de meses.
+  const periodoLabel = datos.rango ? formatearPeriodo(datos.rango) : `${mesNombre} ${datos.anio}`;
+  const anteriorLabel = datos.rangoAnterior ? formatearPeriodo(datos.rangoAnterior) : MESES[(datos.mes - 2 + 12) % 12];
+  const NMESES = datos.rango ? cantidadMeses(datos.rango) : 1;
   let pageNum = 0;
 
   // ── HELPERS LAYOUT ──
@@ -252,7 +262,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.text('Instituto Dr. Mercado', M, 9);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(`Informe de Gestión — ${mesNombre} ${datos.anio}`, M, 15);
+    doc.text(`Informe de Gestión — ${periodoLabel}`, M, 15);
     doc.text(titulo, PW - M, 12, { align: 'right' });
   };
 
@@ -263,6 +273,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.setFontSize(7);
     doc.setTextColor(...C.medium);
     doc.text('Documento confidencial — Instituto Dr. Mercado / Survisión S.A.', M, PH - 9);
+    doc.text('Desarrollo: P. Famá', PW / 2, PH - 9, { align: 'center' });
     doc.text(`Página ${pageNum}`, PW - M, PH - 9, { align: 'right' });
   };
 
@@ -342,7 +353,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setTextColor(...C.primary);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${mesNombre} ${datos.anio}`, PW / 2, 128, { align: 'center' });
+  doc.text(periodoLabel, PW / 2, 128, { align: 'center' });
 
   // Recuadro de KPIs en la portada
   const boxY = 150;
@@ -426,11 +437,10 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
 
   // Comparativo
   if (ant) {
-    y = addSection(y, '2. Comparativo Mensual');
-    const mesAntNombre = MESES[(datos.mes - 2 + 12) % 12];
+    y = addSection(y, '2. Comparativo de Períodos');
     autoTable(doc, {
       startY: y, margin: { left: M, right: M },
-      head: [['Indicador', mesAntNombre, mesNombre, 'Variación']],
+      head: [['Indicador', anteriorLabel, periodoLabel, 'Variación']],
       body: [
         ['Facturado', fmt(ant.facturado), fmt(a.facturado), vari(a.facturado, ant.facturado).texto],
         ['Prestaciones', fmtNum(ant.cantidad), fmtNum(a.cantidad), vari(a.cantidad, ant.cantidad).texto],
@@ -541,16 +551,19 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   y = 32;
   y = addSection(y, '7. Estructura de Costos Fijos');
 
-  const cfRows = a.costosFijosDetalle.sort((x, z) => z.total - x.total).map(cf => [getCFName(cf), fmt(cf.total), fmtPct(cf.porcentaje)]);
-  cfRows.push(['TOTAL COSTOS FIJOS', fmt(a.costosFijos), '100%']);
+  const cfRows = a.costosFijosDetalle.sort((x, z) => z.total - x.total).map(cf => {
+    const prom = (cf as any).promedioMensual ?? (NMESES > 0 ? cf.total / NMESES : cf.total);
+    return [getCFName(cf), fmt(cf.total), fmt(prom), fmtPct(cf.porcentaje)];
+  });
+  cfRows.push(['TOTAL COSTOS FIJOS', fmt(a.costosFijos), fmt(NMESES > 0 ? a.costosFijos / NMESES : a.costosFijos), '100%']);
 
   autoTable(doc, { startY: y, margin: { left: M, right: M },
-    head: [['Categoría', 'Promedio Mensual', '% del Total']],
+    head: [['Categoría', 'Total Período', 'Prom. Mensual', '% del Total']],
     body: cfRows,
     headStyles: { fillColor: C.primary, fontSize: 8, fontStyle: 'bold' }, bodyStyles: { fontSize: 8, textColor: C.dark },
-    columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 45, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' } },
+    columnStyles: { 0: { cellWidth: 62 }, 1: { cellWidth: 36, halign: 'right' }, 2: { cellWidth: 32, halign: 'right' }, 3: { cellWidth: 22, halign: 'right' } },
     alternateRowStyles: { fillColor: C.tableAlt },
-    didParseCell: (d: any) => { alinear(d, { 0: 'left', 1: 'right', 2: 'right' }); if (d.row.index === cfRows.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = C.primaryLight; } },
+    didParseCell: (d: any) => { alinear(d, { 0: 'left', 1: 'right', 2: 'right', 3: 'right' }); if (d.row.index === cfRows.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = C.primaryLight; } },
   });
 
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -823,7 +836,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
 
   // ── TABLA PE ──
   const peRows = [
-    ['Costos Fijos Mensuales', fmt(a.costosFijos)],
+    ['Costos Fijos del Período', fmt(a.costosFijos)],
     ['Margen de Contribución %', fmtPct(a.margenContribPct)],
     ['Punto de Equilibrio (facturación)', fmt(puntoEquilibrio)],
     ['Punto de Equilibrio (prestaciones)', fmtNum(pePrestaciones)],
@@ -843,7 +856,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
 
   y = (doc as any).lastAutoTable.finalY + 4;
   const peNarrativa = margenSeguridad > 0
-    ? `La clínica opera ${fmtPct(margenSeguridadPct)} por encima de su punto de equilibrio. Esto significa que la facturación podría caer hasta ${fmt(margenSeguridad)} antes de generar pérdidas operativas. Se necesitan al menos ${fmtNum(pePrestaciones)} prestaciones mensuales al ticket promedio actual para cubrir los costos fijos.`
+    ? `La clínica opera ${fmtPct(margenSeguridadPct)} por encima de su punto de equilibrio. Esto significa que la facturación podría caer hasta ${fmt(margenSeguridad)} antes de generar pérdidas operativas. Se necesitan al menos ${fmtNum(pePrestaciones)} prestaciones en el período al ticket promedio actual para cubrir los costos fijos.`
     : `La facturación actual se encuentra por debajo del punto de equilibrio en ${fmt(Math.abs(margenSeguridad))}. Esto indica que el instituto no está cubriendo la totalidad de sus costos fijos con la operación corriente. Se requiere incrementar la facturación en al menos ${fmt(Math.abs(margenSeguridad))} o reducir costos fijos para alcanzar el equilibrio.`;
   y = addNarrativa(y, peNarrativa);
 
@@ -874,7 +887,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.line(M, y, M + 60, y);
   doc.setFontSize(8); doc.setTextColor(...C.medium);
   doc.text('Dirección Médica', M, y + 5);
-  doc.text(`${mesNombre} ${datos.anio}`, M, y + 10);
+  doc.text(periodoLabel, M, y + 10);
 
   // ── DISCLAIMER ──
   y += 25;
@@ -908,5 +921,6 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   // GUARDAR
   // ══════════════════════════════════════════
 
-  doc.save(`Informe_Gestion_${datos.anio}_${String(datos.mes).padStart(2, '0')}_${mesNombre}.pdf`);
+  const slug = datos.rango ? slugPeriodo(datos.rango) : `${datos.anio}_${String(datos.mes).padStart(2, '0')}_${mesNombre}`;
+  doc.save(`Informe_Gestion_${slug}.pdf`);
 }

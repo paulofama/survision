@@ -14,8 +14,9 @@
 //   - useHonorariosConfig  → configuración de honorarios + prestadores
 //
 // FUENTES DE DATOS:
-//   - Atenciones del mes  → backend Express (GECLISA) vía API_BASE_URL
-//   - Costos fijos        → Supabase (erogaciones_clasificacion + sueldos_registros)
+//   - Atenciones del mes  → espejo Supabase (movimientos_geclisa)
+//   - Costos fijos        → Supabase (erogaciones_clasificacion) + costo laboral
+//     del módulo Sueldos (RPC app_costo_laboral_meses) con switch por mes.
 //
 // HIPÓTESIS v1 (a revisar si algo cambia):
 //   1. Campo de fecha en atención = 'fecha' (formato 'YYYY-MM-DD' o ISO)
@@ -41,6 +42,7 @@ import type {
   AdvertenciaMensual,
 } from '../types/evolucionTemporal';
 import { toMesKey, generarRangoMeses, parseMesKey } from '../types/evolucionTemporal';
+import { cargarCostoLaboralRango, claveMes } from '@shared/services/costoLaboral';
 
 // ============================================
 // CONFIGURACIÓN
@@ -51,6 +53,9 @@ const UMBRAL_COBERTURA_RECETA = 80; // %
 
 /** Cantidad máxima de prestaciones detalle por segmento (default). */
 const DEFAULT_TOP_PRESTACIONES = 10;
+
+/** Nombre de la categoría de costo fijo que representa sueldos. */
+const NOMBRE_SUELDOS = 'Sueldos y Cargas';
 
 // ============================================
 // TIPO ATENCIÓN (shape esperado del endpoint)
@@ -190,15 +195,17 @@ const useEvolucionMensual = (
 
   /**
    * Devuelve, por mes:
-   *   - totalFijosClasificados: suma por categoría + sueldos
-   *   - porCategoria: Record<nombreCategoria, monto>
-   *   - sinClasificar: suma de erogaciones con tipo_costo='sin_clasificar'
+   *   - fijosPorMes: { porCategoria: Record<nombreCategoria, monto>, total }
+   *       La categoría "Sueldos y Cargas" sale del COSTO LABORAL del módulo
+   *       (bruto + cargas) en los meses con dato; en los meses sin dato, de la
+   *       erogación clasificada "Sueldos y Cargas" (switch por mes, Decisión C).
+   *       NO se usa sueldos_registros.
+   *   - sinClasificarPorMes: erogaciones con tipo_costo='sin_clasificar'
    */
   const fetchCostosFijosMes = useCallback(async (meses: Mes[]) => {
     if (meses.length === 0) {
       return {
         fijosPorMes: {} as Record<Mes, { porCategoria: Record<string, number>; total: number }>,
-        sueldosPorMes: {} as Record<Mes, number>,
         sinClasificarPorMes: {} as Record<Mes, number>,
       };
     }
@@ -211,28 +218,26 @@ const useEvolucionMensual = (
       })
       .join(',');
 
-    // 1. Erogaciones clasificadas como fijo
+    // 1. Erogaciones clasificadas
     const { data: dataFijos, error: errFijos } = await supabase
       .from('erogaciones_clasificacion')
       .select('anio, mes, monto, tipo_costo, categorias_costo_fijo(nombre)')
       .or(filtroOR);
     if (errFijos) throw errFijos;
 
-    // 2. Sueldos
-    const { data: dataSueldos, error: errSueldos } = await supabase
-      .from('sueldos_registros')
-      .select('anio, mes, monto')
-      .or(filtroOR);
-    if (errSueldos) throw errSueldos;
+    // 2. Costo laboral del módulo (bruto + cargas) por mes disponible.
+    const idxs = meses.map(m => { const p = parseMesKey(m); return p.anio * 12 + p.mes; });
+    const minI = Math.min(...idxs), maxI = Math.max(...idxs);
+    const desde = parseMesKey(meses[idxs.indexOf(minI)]);
+    const hasta = parseMesKey(meses[idxs.indexOf(maxI)]);
+    const costoLab = await cargarCostoLaboralRango(desde.anio, desde.mes, hasta.anio, hasta.mes);
 
     // Agregación
     const fijosPorMes: Record<Mes, { porCategoria: Record<string, number>; total: number }> = {};
-    const sueldosPorMes: Record<Mes, number> = {};
     const sinClasificarPorMes: Record<Mes, number> = {};
 
     meses.forEach(m => {
       fijosPorMes[m] = { porCategoria: {}, total: 0 };
-      sueldosPorMes[m] = 0;
       sinClasificarPorMes[m] = 0;
     });
 
@@ -246,6 +251,9 @@ const useEvolucionMensual = (
 
       if (rawTipo === 'fijo') {
         const catNombre = (r.categorias_costo_fijo as any)?.nombre || 'Sin categoría';
+        // Switch por mes: si el módulo cubre el mes, NO contamos la erogación
+        // "Sueldos y Cargas" (la reemplaza el costo laboral del módulo, abajo).
+        if (catNombre === NOMBRE_SUELDOS && costoLab.has(claveMes(r.anio, r.mes))) return;
         fijosPorMes[mesKey].porCategoria[catNombre] = (fijosPorMes[mesKey].porCategoria[catNombre] || 0) + monto;
         fijosPorMes[mesKey].total += monto;
       } else if (rawTipo === 'sin_clasificar') {
@@ -253,14 +261,16 @@ const useEvolucionMensual = (
       }
     });
 
-    (dataSueldos || []).forEach((r: any) => {
-      const mesKey = toMesKey(r.anio, r.mes);
-      if (sueldosPorMes[mesKey] !== undefined) {
-        sueldosPorMes[mesKey] += Number(r.monto) || 0;
-      }
+    // Sueldos del módulo → categoría "Sueldos y Cargas" en los meses cubiertos.
+    meses.forEach(m => {
+      const { anio, mes: mesN } = parseMesKey(m);
+      const c = costoLab.get(claveMes(anio, mesN));
+      if (!c) return;
+      fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] = (fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] || 0) + c.costoLaboral;
+      fijosPorMes[m].total += c.costoLaboral;
     });
 
-    return { fijosPorMes, sueldosPorMes, sinClasificarPorMes };
+    return { fijosPorMes, sinClasificarPorMes };
   }, []);
 
   // ============================================
@@ -319,7 +329,7 @@ const useEvolucionMensual = (
 
       // Costos fijos
       let fijosData: Awaited<ReturnType<typeof fetchCostosFijosMes>> = {
-        fijosPorMes: {}, sueldosPorMes: {}, sinClasificarPorMes: {},
+        fijosPorMes: {}, sinClasificarPorMes: {},
       };
       try {
         fijosData = await fetchCostosFijosMes(meses);
@@ -471,19 +481,13 @@ const useEvolucionMensual = (
       const cfPorCategoriaMes: Record<string, Record<Mes, number>> = {};
       meses.forEach(m => {
         const bloque = fijosData.fijosPorMes[m] || { porCategoria: {}, total: 0 };
-        const sueldos = fijosData.sueldosPorMes[m] || 0;
-        costosFijosPorMes[m] = bloque.total + sueldos;
+        // El bloque ya incluye "Sueldos y Cargas" (módulo o erogación, según el mes).
+        costosFijosPorMes[m] = bloque.total;
 
         Object.entries(bloque.porCategoria).forEach(([cat, monto]) => {
           if (!cfPorCategoriaMes[cat]) cfPorCategoriaMes[cat] = makeEmpty();
           cfPorCategoriaMes[cat][m] = (cfPorCategoriaMes[cat][m] || 0) + monto;
         });
-
-        if (sueldos > 0) {
-          const cat = 'Remuneraciones Personal';
-          if (!cfPorCategoriaMes[cat]) cfPorCategoriaMes[cat] = makeEmpty();
-          cfPorCategoriaMes[cat][m] = (cfPorCategoriaMes[cat][m] || 0) + sueldos;
-        }
       });
 
       const noIdentificadosVariables = facturadoSinRecetaPorMes; // exposición: facturación sin receta

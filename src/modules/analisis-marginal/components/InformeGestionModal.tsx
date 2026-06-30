@@ -4,8 +4,10 @@
 // ============================================
 // RUTA DESTINO: src/components/analisis-marginal/InformeGestionModal.tsx
 // ============================================
-// Componente que se importa en DashboardMarginalPage.
-// Carga datos de 2 meses y genera el PDF.
+// Se importa en DashboardMarginalPage. Arma el snapshot del informe para el
+// PERÍODO activo (del contexto) y el período inmediato anterior de igual
+// longitud (comparativo), y genera el PDF. Patrón datosGuardados: construye un
+// objeto inmutable y lo pasa por valor al generador.
 // ============================================
 
 import React, { useState, useCallback } from 'react';
@@ -15,13 +17,12 @@ import { supabase } from '@shared/lib/supabase';
 import { mapearListado, type MovGecRow } from '@shared/utils/movimientosAgg';
 import type { FiltrosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { generarInformeGestionPDF, DatosInforme, DatosMes } from '../utils/generarInformeGestion';
-import useCostosFijosDistribucion from '@shared/hooks/useCostosFijosDistribucion';
+import useCostosFijosDistribucion, { calcularCostosFijosPeriodo } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
-
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+import { RangoPeriodo, rangoAnterior, mesesDelRango, formatearPeriodo } from '../utils/periodo';
 
 const normalizarNombre = (s: string): string =>
-  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
 
 const detectarSegmento = (nombre: string): 'Consultas' | 'Estudios' | 'Cirugias' => {
   const n = nombre.toUpperCase();
@@ -36,6 +37,28 @@ const detectarSegmento = (nombre: string): 'Consultas' | 'Estudios' | 'Cirugias'
   return 'Estudios';
 };
 
+// Facturación (listado por atención) de un rango de meses, desde el espejo.
+async function cargarFacturacionRango(r: RangoPeriodo): Promise<ReturnType<typeof mapearListado>> {
+  const meses = mesesDelRango(r);
+  const orMeses = meses.map(p => `and(anio.eq.${p.anio},mes.eq.${p.mes})`).join(',');
+  const filas: MovGecRow[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from('movimientos_geclisa')
+      .select('*')
+      .or(orMeses)
+      .eq('es_principal', true)
+      .range(from, from + 999);
+    if (error) break;
+    filas.push(...((data as unknown as MovGecRow[]) || []));
+    if (!data || data.length < 1000) break;
+    from += 1000;
+  }
+  const fVacio = { anio: '', mes: '', dia: '', obraSocialId: '', prestadorId: '', grupoPracticas: '', agenteFacturadorId: '', busqueda: '', prestacion: '', paciente: '', derivadorId: '' } as FiltrosPrestaciones;
+  return mapearListado(filas, fVacio);
+}
+
 // ============================================
 // PROCESADOR DE DATOS (reutiliza lógica del Dashboard)
 // ============================================
@@ -47,7 +70,7 @@ function procesarDatosMes(
   prestadoresHonorarios: any[],
   agregarAliases: (map: Map<string, any>) => void,
   costosFijos: number,
-  costosFijosDetalle: { nombre?: string; categoria_nombre?: string; color?: string; categoria_color?: string; total: number; porcentaje: number }[],
+  costosFijosDetalle: { nombre?: string; categoria_nombre?: string; color?: string; categoria_color?: string; total: number; promedioMensual?: number; porcentaje: number }[],
 ): DatosMes {
   const recetasMap = new Map(recetasConPools.map(r => [normalizarNombre(r.nombre_practica), r]));
   agregarAliases(recetasMap);
@@ -158,84 +181,53 @@ interface InformeGestionModalProps {
 }
 
 const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClose }) => {
-  const { prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, filtros } = useMarginalContext();
+  const { prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, rango } = useMarginalContext();
   const { agregarAliases } = useNombreMapping();
 
-  const [anio, setAnio] = useState<number>(Number(filtros?.anio) || new Date().getFullYear());
-  const [mes, setMes] = useState<number>(Number(filtros?.mes) || new Date().getMonth() + 1);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState('');
 
-  const { resumen: resumenCF } = useCostosFijosDistribucion(anio, mes);
+  // CF del período actual (mismo cálculo que el Dashboard).
+  const { resumen: resumenCF } = useCostosFijosDistribucion(rango);
+
+  const rangoAnt = rangoAnterior(rango);
 
   const generar = useCallback(async () => {
     setGenerando(true);
     setError('');
 
     try {
-      // Procesar mes actual con datos del contexto
+      // Período actual: datos del contexto (ya abarca todo el rango).
       const datosActual = procesarDatosMes(
         prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios,
-        agregarAliases, resumenCF.totalPromedio, resumenCF.porCategoria
+        agregarAliases, resumenCF.totalPeriodo, resumenCF.porCategoria,
       );
 
-      // Intentar cargar mes anterior (API call)
+      // Período anterior de igual longitud (comparativo, Opción A).
       let datosAnterior: DatosMes | null = null;
       try {
-        const mesAnt = mes === 1 ? 12 : mes - 1;
-        const anioAnt = mes === 1 ? anio - 1 : anio;
-
-        // Atenciones del mes anterior desde el espejo Supabase (1 fila por
-        // atención = es_principal), mapeadas a la forma del listado. Antes pegaba
-        // a /api/movimientos; ahora funciona desde afuera de la clínica.
-        const filasAnt: MovGecRow[] = [];
-        let fromAnt = 0;
-        for (;;) {
-          const { data, error } = await supabase
-            .from('movimientos_geclisa')
-            .select('*')
-            .eq('anio', anioAnt)
-            .eq('mes', mesAnt)
-            .eq('es_principal', true)
-            .range(fromAnt, fromAnt + 999);
-          if (error) break;
-          filasAnt.push(...((data as unknown as MovGecRow[]) || []));
-          if (!data || data.length < 1000) break;
-          fromAnt += 1000;
-        }
-        {
-          const fVacio = { anio: '', mes: '', dia: '', obraSocialId: '', prestadorId: '', grupoPracticas: '', agenteFacturadorId: '', busqueda: '', prestacion: '', paciente: '', derivadorId: '' } as FiltrosPrestaciones;
-          const prestAnt = mapearListado(filasAnt, fVacio);
-          if (prestAnt && prestAnt.length > 0) {
-            // CF for previous month
-            const periodosCF = [];
-            let a2 = anioAnt, m2 = mesAnt;
-            for (let i = 0; i < 3; i++) { m2--; if (m2 < 1) { m2 = 12; a2--; } periodosCF.push({ anio: a2, mes: m2 }); }
-            const filtrosCF = periodosCF.map(p => `and(anio.eq.${p.anio},mes.eq.${p.mes})`).join(',');
-
-            const { data: erogAnt } = await supabase.from('erogaciones_clasificacion').select('anio, mes, monto').eq('tipo_costo', 'fijo').or(filtrosCF);
-            const { data: sueldosAnt } = await supabase.from('sueldos_registros').select('anio, mes, monto').or(filtrosCF);
-
-            const totalErogAnt = (erogAnt || []).reduce((s: number, r: any) => s + (Number(r.monto) || 0), 0);
-            const totalSueldosAnt = (sueldosAnt || []).reduce((s: number, r: any) => s + (Number(r.monto) || 0), 0);
-            const mesesConDatos = new Set([...(erogAnt || []).map((r: any) => `${r.anio}-${r.mes}`), ...(sueldosAnt || []).map((r: any) => `${r.anio}-${r.mes}`)]).size;
-            const cfAnt = mesesConDatos > 0 ? (totalErogAnt + totalSueldosAnt) / mesesConDatos : 0;
-
-            datosAnterior = procesarDatosMes(
-              prestAnt, recetasConPools, configHonorarios, prestadoresHonorarios,
-              agregarAliases, cfAnt, []
-            );
-          }
+        const prestAnt = await cargarFacturacionRango(rangoAnt);
+        if (prestAnt.length > 0) {
+          const cfAnt = await calcularCostosFijosPeriodo(rangoAnt);
+          datosAnterior = procesarDatosMes(
+            prestAnt, recetasConPools, configHonorarios, prestadoresHonorarios,
+            agregarAliases, cfAnt.totalPeriodo, cfAnt.porCategoria,
+          );
         }
       } catch (e) {
-        console.warn('No se pudo cargar mes anterior:', e);
+        console.warn('No se pudo cargar el período anterior:', e);
       }
 
       const datosInforme: DatosInforme = {
-        anio, mes,
+        // Compat: el generador todavía usa anio/mes para el título hasta que lea `rango`.
+        anio: rango.anioHasta,
+        mes: rango.mesHasta,
         actual: datosActual,
         anterior: datosAnterior,
       };
+      // Período (rango) para el título dinámico del PDF (lo lee el archivo 9).
+      (datosInforme as any).rango = rango;
+      (datosInforme as any).rangoAnterior = rangoAnt;
 
       generarInformeGestionPDF(datosInforme);
       onClose();
@@ -244,7 +236,7 @@ const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClo
     } finally {
       setGenerando(false);
     }
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases, resumenCF, anio, mes, onClose]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases, resumenCF, rango, rangoAnt, onClose]);
 
   if (!isOpen) return null;
 
@@ -260,30 +252,18 @@ const InformeGestionModal: React.FC<InformeGestionModalProps> = ({ isOpen, onClo
         </div>
 
         <p className="text-sm text-gray-500 mb-4">
-          Genera un informe PDF profesional con análisis de rentabilidad, comparativo mensual y recomendaciones.
+          Informe PDF con análisis de rentabilidad, comparativo y recomendaciones, para el período seleccionado.
         </p>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Año</label>
-            <select value={anio} onChange={e => setAnio(Number(e.target.value))}
-              className="w-full px-3 py-2 border rounded-lg text-sm">
-              {[2025, 2026].map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Mes</label>
-            <select value={mes} onChange={e => setMes(Number(e.target.value))}
-              className="w-full px-3 py-2 border rounded-lg text-sm">
-              {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
-          </div>
+        <div className="rounded-lg border border-gray-200 p-3 mb-4">
+          <p className="text-xs text-gray-500">Período</p>
+          <p className="text-base font-semibold text-gray-900">{formatearPeriodo(rango)}</p>
         </div>
 
         <div className="bg-blue-50 rounded-lg p-3 mb-6">
           <div className="flex items-center gap-2 text-blue-700 text-xs">
             <Calendar className="w-4 h-4" />
-            <span>El informe incluirá comparación con {MESES[(mes - 2 + 12) % 12]} {mes === 1 ? anio - 1 : anio}</span>
+            <span>Comparado con {formatearPeriodo(rangoAnt)}</span>
           </div>
         </div>
 

@@ -116,6 +116,12 @@ export interface FiltrosPrestaciones {
   prestacion: string;
   paciente: string;
   derivadorId: string;
+  // Rango multi-mes (Análisis Marginal). Si están los 4, se usa el rango de meses
+  // en lugar de anio/mes (que siguen para el explorador de un mes único).
+  anioDesde?: string;
+  mesDesde?: string;
+  anioHasta?: string;
+  mesHasta?: string;
 }
 
 export interface Estadisticas {
@@ -168,15 +174,36 @@ const ANIO_MIN = 2024; // el espejo arranca en 2024-01
 const COLS =
   'atencion_id,mp_id,pre_id,fecha,anio,mes,dia,hora,paciente,edad,diagnostico,estado,usuario_alta,os_id,os_sigla,os_nombre,practica_codigo,practica_nombre,grupo_id,grupo_nombre,prestador_nombre,derivador_id,derivador,coseguro,cobertura,total,cant_prestadores,es_principal';
 
-// Trae TODAS las filas de un período (paginado de a 1000) aplicando solo
-// anio/mes/dia en la query; los demás filtros se resuelven en el cliente.
+// Lista de meses entre dos (anio,mes) inclusive.
+function mesesEntre(aD: number, mD: number, aH: number, mH: number): { anio: number; mes: number }[] {
+  const out: { anio: number; mes: number }[] = [];
+  const fin = aH * 12 + (mH - 1);
+  for (let i = aD * 12 + (mD - 1); i <= fin; i++) out.push({ anio: Math.floor(i / 12), mes: (i % 12) + 1 });
+  return out;
+}
+
+// Trae TODAS las filas de un período (paginado de a 1000). Si vienen los 4
+// campos de rango (anioDesde/mesDesde/anioHasta/mesHasta) filtra por ese RANGO
+// de meses (OR sobre anio/mes); si no, por anio/mes único. Los demás filtros se
+// resuelven en el cliente.
 async function fetchFilasPeriodo(f: FiltrosPrestaciones): Promise<MovGecRow[]> {
+  const usarRango = !!(f.anioDesde && f.mesDesde && f.anioHasta && f.mesHasta);
+  const orMeses = usarRango
+    ? mesesEntre(parseInt(f.anioDesde!, 10), parseInt(f.mesDesde!, 10), parseInt(f.anioHasta!, 10), parseInt(f.mesHasta!, 10))
+        .map((p) => `and(anio.eq.${p.anio},mes.eq.${p.mes})`)
+        .join(',')
+    : '';
+
   const filas: MovGecRow[] = [];
   let from = 0;
   for (;;) {
     let q = supabase.from('movimientos_geclisa').select(COLS);
-    if (f.anio) q = q.eq('anio', parseInt(f.anio, 10));
-    if (f.mes) q = q.eq('mes', parseInt(f.mes, 10));
+    if (usarRango) {
+      q = q.or(orMeses);
+    } else {
+      if (f.anio) q = q.eq('anio', parseInt(f.anio, 10));
+      if (f.mes) q = q.eq('mes', parseInt(f.mes, 10));
+    }
     if (f.dia) q = q.eq('dia', parseInt(f.dia, 10));
     const { data, error } = await q.range(from, from + 999);
     if (error) throw new Error(error.message);
@@ -236,7 +263,7 @@ export const useMovimientosPrestaciones = () => {
       setLoadingStats(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros.anio, filtros.mes, filtros.dia]);
+  }, [filtros.anio, filtros.mes, filtros.dia, filtros.anioDesde, filtros.mesDesde, filtros.anioHasta, filtros.mesHasta]);
 
   // ------------------------------------------------------------
   // Estadísticas generales (hoy / mes actual / mes anterior / total)
