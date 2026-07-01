@@ -1864,9 +1864,15 @@ export default function Presupuestador() {
                     )}
 
                     {selectedPrestacion && (
-                      <p className="text-xs text-blue-600 mt-1.5 font-medium">
-                        💰 Precio: {fmtUSD(parseFloat(String(selectedPrestacion.precio)))}
-                      </p>
+                      parseFloat(String(selectedPrestacion.precio)) > 0 ? (
+                        <p className="text-xs text-blue-600 mt-1.5 font-medium">
+                          💰 Precio: {fmtUSD(parseFloat(String(selectedPrestacion.precio)))}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-600 mt-1.5 font-medium">
+                          ⚠️ Esta práctica no tiene precio cargado — ingresá el monto en "Monto USD"
+                        </p>
+                      )
                     )}
                   </div>
                   <FormSelect
@@ -1955,7 +1961,11 @@ export default function Presupuestador() {
                       step="0.01"
                       value={form.montoUSD || ""}
                       onChange={(e) => updateField("montoUSD", parseFloat(e.target.value) || 0)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full border rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        selectedPrestacion && !(parseFloat(String(selectedPrestacion.precio)) > 0) && !form.montoUSD
+                          ? "border-amber-400 bg-amber-50"
+                          : "border-gray-300"
+                      }`}
                     />
                   </div>
                   <div>
@@ -2869,9 +2879,15 @@ function TratamientoExtraCard({ item, index, prestacionesByGroup, preciosMap, on
             </div>
           )}
           {selectedPrest && (
-            <p className="text-xs text-blue-600 mt-1.5 font-medium">
-              💰 Precio: USD {fmtARS(parseFloat(String(selectedPrest.precio)))}
-            </p>
+            parseFloat(String(selectedPrest.precio)) > 0 ? (
+              <p className="text-xs text-blue-600 mt-1.5 font-medium">
+                💰 Precio: USD {fmtARS(parseFloat(String(selectedPrest.precio)))}
+              </p>
+            ) : (
+              <p className="text-xs text-amber-600 mt-1.5 font-medium">
+                ⚠️ Sin precio cargado — ingresá el monto en "Monto USD"
+              </p>
+            )
           )}
         </div>
 
@@ -2908,7 +2924,11 @@ function TratamientoExtraCard({ item, index, prestacionesByGroup, preciosMap, on
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Monto USD</label>
           <input type="number" step="0.01" value={item.montoUSD || ""}
             onChange={(e) => onUpdate(item.id, "montoUSD", parseFloat(e.target.value) || 0)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={`w-full border rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              selectedPrest && !(parseFloat(String(selectedPrest.precio)) > 0) && !item.montoUSD
+                ? "border-amber-400 bg-amber-50"
+                : "border-gray-300"
+            }`}
           />
         </div>
 
