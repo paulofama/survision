@@ -582,6 +582,8 @@ export default function Presupuestador() {
   const [newInsumoDesc, setNewInsumoDesc] = useState("");
   const [newInsumoMonto, setNewInsumoMonto] = useState("");
   const [newInsumoMoneda, setNewInsumoMoneda] = useState<"ARS" | "USD">("ARS");
+  // Catálogo de insumos (espejo GECLISA `insumos_variables`, precio en ARS).
+  const [insumosCatalogo, setInsumosCatalogo] = useState<{ codigo: string; descripcion: string; precio_unitario: number; unidad: string }[]>([]);
 
   const [showPreview, setShowPreview] = useState(false);
 
@@ -624,6 +626,15 @@ export default function Presupuestador() {
     if (!usuario || editMode) return;
     setForm((prev) => (prev.administrativa ? prev : { ...prev, administrativa: usuarioAdminValue }));
   }, [usuario, usuarioAdminValue, editMode, form.administrativa]);
+
+  // Mapa de precios del catálogo por descripción normalizada (para autocompletar el monto).
+  const insumoCatalogoMap = useMemo(() => {
+    const m: Record<string, { precio: number; unidad: string; codigo: string }> = {};
+    insumosCatalogo.forEach((i) => {
+      m[i.descripcion.trim().toUpperCase()] = { precio: i.precio_unitario, unidad: i.unidad, codigo: i.codigo };
+    });
+    return m;
+  }, [insumosCatalogo]);
 
   // ── Tipo de Cambio sync ──
   // Regla de negocio:
@@ -828,6 +839,7 @@ export default function Presupuestador() {
           { data: prest, error: prestError },
           { data: agrup, error: agrupError },
           { data: usuarios, error: usuariosError },
+          { data: insumosCat },
         ] = await Promise.all([
           supabase
             .from("prestaciones")
@@ -843,6 +855,11 @@ export default function Presupuestador() {
             .from("usuarios_sistema")
             .select("username,nombre_completo,telefono")
             .eq("activo", true),
+          supabase
+            .from("insumos_variables")
+            .select("codigo,descripcion,precio_unitario,unidad")
+            .eq("activo", true)
+            .order("descripcion"),
         ]);
 
         if (prestError) throw new Error(prestError.message);
@@ -850,6 +867,14 @@ export default function Presupuestador() {
 
         setPrestaciones((prest as Prestacion[]) || []);
         setAgrupaciones((agrup as Agrupacion[]) || []);
+        setInsumosCatalogo(
+          ((insumosCat as any[]) || []).map((i) => ({
+            codigo: i.codigo,
+            descripcion: i.descripcion || "",
+            precio_unitario: Number(i.precio_unitario) || 0,
+            unidad: i.unidad || "",
+          }))
+        );
         const map: Record<string, number> = {};
         ((prest as Prestacion[]) || []).forEach((p) => {
           map[p.codigo] = parseFloat(String(p.precio));
@@ -2032,11 +2057,28 @@ export default function Presupuestador() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Descripción del insumo"
+                    list="insumos-catalogo"
+                    placeholder="Buscar insumo (GECLISA) o escribir…"
                     value={newInsumoDesc}
-                    onChange={(e) => setNewInsumoDesc(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewInsumoDesc(v);
+                      // Si coincide con un insumo del catálogo, autocompleta el precio (ARS).
+                      const hit = insumoCatalogoMap[v.trim().toUpperCase()];
+                      if (hit && hit.precio > 0) {
+                        setNewInsumoMoneda("ARS");
+                        setNewInsumoMonto(String(hit.precio));
+                      }
+                    }}
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                  <datalist id="insumos-catalogo">
+                    {insumosCatalogo.map((i) => (
+                      <option key={i.codigo} value={i.descripcion}>
+                        {fmtPesos(i.precio_unitario)}{i.unidad ? ` · ${i.unidad}` : ""}
+                      </option>
+                    ))}
+                  </datalist>
                   <input
                     type="number"
                     placeholder={`Monto ${newInsumoMoneda}`}
