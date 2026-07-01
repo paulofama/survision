@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTipoCambio } from "@shared/context/TipoCambioContext";
+import { useAuth } from "@shared/context/AuthContext";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 
 // ═══════════════════════════════════════════════════════════════
@@ -592,6 +593,37 @@ export default function Presupuestador() {
   // ── Tipo de Cambio (from context) ──
   const { tipoCambio: tcData, loading: tcLoading, refresh: tcRefresh, lastUpdate: tcLastUpdate } = useTipoCambio();
   const forceTcSync = useRef(false);
+
+  // ── Administrativa desde el login ──
+  // El nombre de la administrativa que atiende se toma del usuario logueado.
+  const { usuario } = useAuth();
+
+  // Valor de administrativa que corresponde al usuario logueado: matchea por
+  // username o por nombre normalizado contra la lista; si no está, usa el username.
+  const usuarioAdminValue = useMemo(() => {
+    if (!usuario) return "";
+    const uname = (usuario.username || "").toLowerCase();
+    const nomNorm = (usuario.nombre_completo || "")
+      .toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "_");
+    const match = ADMINISTRATIVAS.find((a) => a.value.toLowerCase() === uname || a.value.toLowerCase() === nomNorm);
+    return match ? match.value : (usuario.username || "");
+  }, [usuario]);
+
+  // Opciones del selector: si el usuario logueado no está en la lista fija, se
+  // agrega para poder autocompletarlo igual.
+  const administrativasOptions = useMemo(() => {
+    if (usuario && usuarioAdminValue && !ADMINISTRATIVAS.some((a) => a.value === usuarioAdminValue)) {
+      return [...ADMINISTRATIVAS, { value: usuarioAdminValue, label: usuario.nombre_completo || usuario.username }];
+    }
+    return ADMINISTRATIVAS;
+  }, [usuario, usuarioAdminValue]);
+
+  // Autocompleta la administrativa con el usuario logueado (solo presupuesto
+  // nuevo y si el campo está vacío; no pisa uno editado ni uno cargado).
+  useEffect(() => {
+    if (!usuario || editMode) return;
+    setForm((prev) => (prev.administrativa ? prev : { ...prev, administrativa: usuarioAdminValue }));
+  }, [usuario, usuarioAdminValue, editMode, form.administrativa]);
 
   // ── Tipo de Cambio sync ──
   // Regla de negocio:
@@ -1839,7 +1871,7 @@ export default function Presupuestador() {
                     label="Administrativa *"
                     value={form.administrativa}
                     onChange={(v) => updateField("administrativa", v)}
-                    options={[{ value: "", label: "Seleccionar..." }, ...ADMINISTRATIVAS]}
+                    options={[{ value: "", label: "Seleccionar..." }, ...administrativasOptions]}
                   />
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
