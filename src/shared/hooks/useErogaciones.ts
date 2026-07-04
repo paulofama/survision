@@ -703,10 +703,10 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
   // ============================================
   // SUGERIR SEGÚN HISTÓRICO
   // ============================================
-  // Aprende de TODAS las clasificaciones ya hechas (erogaciones_clasificacion):
-  // por cada proveedor calcula su clasificación dominante (la más frecuente) y
-  // la aplica a las erogaciones SIN clasificar del mes, marcándolas
-  // auto_clasificado=true para que el usuario las revise/corrija.
+  // Aprende de TODAS las clasificaciones ya hechas (erogaciones_clasificacion) y
+  // las aplica a las erogaciones SIN clasificar del mes (marcadas auto_clasificado).
+  // Matching de dos niveles: primero por proveedor+monto (más específico, resuelve
+  // el alquiler de proveedores mezclados) y, si no, por proveedor (dominante).
 
   const sugerirSegunHistorico = useCallback(async (): Promise<{ sugeridas: number; sinMatch: number }> => {
     setLoadingClasificacion(true);
@@ -714,7 +714,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       // 1. Histórico completo de clasificaciones (todos los períodos).
       const { data: hist, error: histErr } = await supabase
         .from('erogaciones_clasificacion')
-        .select('proveedor_nombre, tipo_costo, categoria_costo_fijo_id, subcategoria_variable');
+        .select('proveedor_nombre, monto, tipo_costo, categoria_costo_fijo_id, subcategoria_variable');
       if (histErr) throw histErr;
 
       // 2. Clasificación dominante por proveedor (combinación más frecuente).
@@ -735,6 +735,28 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         dominante.set(prov, JSON.parse(top));
       }
 
+      // 2b. Índice MÁS ESPECÍFICO: proveedor + monto redondeado. Distingue casos
+      // de proveedores "mezclados" (ej. el dueño que cobra alquiler ~$3,2M Y
+      // honorarios de otros montos): el alquiler recurrente se auto-clasifica
+      // bien por su monto, en vez de heredar la clasificación dominante.
+      const porProvMonto = new Map<string, Map<string, number>>();
+      (hist || []).forEach((r: any) => {
+        const prov = normalizarProveedor(r.proveedor_nombre);
+        if (!prov) return;
+        const tipo = normalizeTipoCosto(r.tipo_costo);
+        if (tipo === 'sin_clasificar') return;
+        const key = `${prov}|${Math.round(Number(r.monto) || 0)}`;
+        const combo = JSON.stringify({ tipo, cat: r.categoria_costo_fijo_id || null, sub: r.subcategoria_variable || null });
+        if (!porProvMonto.has(key)) porProvMonto.set(key, new Map());
+        const m = porProvMonto.get(key)!;
+        m.set(combo, (m.get(combo) || 0) + 1);
+      });
+      const dominanteProvMonto = new Map<string, { tipo: TipoCosto; cat: string | null; sub: 'honorarios' | 'insumos' | null }>();
+      for (const [key, combos] of porProvMonto) {
+        const top = [...combos.entries()].sort((a, b) => b[1] - a[1])[0][0];
+        dominanteProvMonto.set(key, JSON.parse(top));
+      }
+
       // 3. Construir sugerencias para las erogaciones SIN clasificar del mes.
       const ahora = new Date().toISOString();
       const filasUpsert: any[] = [];
@@ -742,7 +764,9 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       for (const e of erogaciones) {
         const clave = getClaveErogacion(e.fuente, e.id_geclisa);
         if (clasificaciones.has(clave)) continue; // ya tiene clasificación persistida
-        const d = dominante.get(normalizarProveedor(e.proveedor_nombre));
+        const prov = normalizarProveedor(e.proveedor_nombre);
+        // Primero por proveedor+monto (más específico); si no, por proveedor.
+        const d = dominanteProvMonto.get(`${prov}|${Math.round(Number(e.monto) || 0)}`) || dominante.get(prov);
         if (!d) { sinMatch++; continue; }
         filasUpsert.push({
           fuente: e.fuente,
