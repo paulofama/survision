@@ -85,11 +85,15 @@ export const semaforoDot: Record<SemaforoColor, string> = {
 // Categoría de erogación (en Supabase) que representa sueldos: se excluye en los
 // meses cubiertos por el módulo y es el fallback en los meses sin módulo.
 const CAT_EROGACION_SUELDOS = 'Sueldos y Cargas';
-// Líneas separadas alimentadas por el módulo: bruto y cargas patronales.
+// Líneas separadas alimentadas por el módulo: bruto, cargas patronales y HC.
 const NOMBRE_SUELDOS = 'Sueldos';
 const NOMBRE_CARGAS = 'Cargas Sociales';
+// HC de empleados de recibo (los facturado-only ya están en "Honorarios" de
+// las erogaciones, no se cuentan acá para no duplicar).
+const NOMBRE_HC = 'HC empleados';
 const COLOR_SUELDOS = '#0891B2'; // cyan-600
 const COLOR_CARGAS = '#0E7490'; // cyan-700
+const COLOR_HC = '#155E75'; // cyan-800
 
 const RESUMEN_VACIO: ResumenCostosFijos = {
   totalPromedio: 0,
@@ -156,6 +160,12 @@ export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<R
     const g = porCatMap.get(NOMBRE_CARGAS);
     if (g) g.total += c.cargas;
     else porCatMap.set(NOMBRE_CARGAS, { nombre: NOMBRE_CARGAS, color: COLOR_CARGAS, total: c.cargas });
+    // HC de empleados de recibo (grupo 1). Solo si hay monto.
+    if (c.hcEmpleados > 0) {
+      const h = porCatMap.get(NOMBRE_HC);
+      if (h) h.total += c.hcEmpleados;
+      else porCatMap.set(NOMBRE_HC, { nombre: NOMBRE_HC, color: COLOR_HC, total: c.hcEmpleados });
+    }
   });
 
   const categorias = Array.from(porCatMap.values());
@@ -163,9 +173,10 @@ export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<R
 
   if (totalPeriodo === 0) return { ...RESUMEN_VACIO, mesesUsados: N };
 
-  // Total de la línea laboral (para el desglose): Sueldos + Cargas + fallback erogación.
+  // Total de la línea laboral (para el desglose): Sueldos + Cargas + HC + fallback erogación.
   const totalSueldos = (porCatMap.get(NOMBRE_SUELDOS)?.total ?? 0)
     + (porCatMap.get(NOMBRE_CARGAS)?.total ?? 0)
+    + (porCatMap.get(NOMBRE_HC)?.total ?? 0)
     + (porCatMap.get(CAT_EROGACION_SUELDOS)?.total ?? 0);
   const totalOtros = totalPeriodo - totalSueldos;
 

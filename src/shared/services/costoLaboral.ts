@@ -24,7 +24,8 @@ export interface CostoLaboralMes {
   mes: number;
   bruto: number;          // sueldos brutos (asientos_sueldos.bruto_total)
   cargas: number;         // cargas patronales (contrib_ss_351 + contrib_os_352 + art + scvo)
-  costoLaboral: number;   // bruto + cargas = costo real para la clínica
+  hcEmpleados: number;    // HC de empleados de recibo (sin los facturado-only, que ya están en Honorarios)
+  costoLaboral: number;   // bruto + cargas = costo real para la clínica (NO incluye hcEmpleados)
 }
 
 /** Clave estable de un mes en el Map. */
@@ -53,12 +54,13 @@ export async function cargarCostoLaboralRango(
       console.warn('costoLaboral: RPC app_costo_laboral_meses falló:', error.message);
       return mapa;
     }
-    (data || []).forEach((r: { anio: number; mes: number; bruto: number; cargas: number; costo_laboral: number }) => {
+    (data || []).forEach((r: { anio: number; mes: number; bruto: number; cargas: number; hc_empleados?: number; costo_laboral: number }) => {
       mapa.set(claveMes(r.anio, r.mes), {
         anio: r.anio,
         mes: r.mes,
         bruto: Number(r.bruto || 0),
         cargas: Number(r.cargas || 0),
+        hcEmpleados: Number(r.hc_empleados || 0),
         costoLaboral: Number(r.costo_laboral || 0),
       });
     });

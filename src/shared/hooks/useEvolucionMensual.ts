@@ -56,9 +56,11 @@ const DEFAULT_TOP_PRESTACIONES = 10;
 
 /** Categoría de erogación (Supabase) de sueldos: se excluye en meses con módulo / fallback. */
 const CAT_EROGACION_SUELDOS = 'Sueldos y Cargas';
-/** Líneas separadas alimentadas por el módulo: bruto y cargas patronales. */
+/** Líneas separadas alimentadas por el módulo: bruto, cargas patronales y HC. */
 const NOMBRE_SUELDOS = 'Sueldos';
 const NOMBRE_CARGAS = 'Cargas Sociales';
+/** HC de empleados de recibo (los facturado-only ya están en "Honorarios"). */
+const NOMBRE_HC = 'HC empleados';
 
 // ============================================
 // TIPO ATENCIÓN (shape esperado del endpoint)
@@ -272,6 +274,11 @@ const useEvolucionMensual = (
       fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] = (fijosPorMes[m].porCategoria[NOMBRE_SUELDOS] || 0) + c.bruto;
       fijosPorMes[m].porCategoria[NOMBRE_CARGAS] = (fijosPorMes[m].porCategoria[NOMBRE_CARGAS] || 0) + c.cargas;
       fijosPorMes[m].total += c.costoLaboral;
+      // HC de empleados de recibo (grupo 1). Solo si hay monto.
+      if (c.hcEmpleados > 0) {
+        fijosPorMes[m].porCategoria[NOMBRE_HC] = (fijosPorMes[m].porCategoria[NOMBRE_HC] || 0) + c.hcEmpleados;
+        fijosPorMes[m].total += c.hcEmpleados;
+      }
     });
 
     return { fijosPorMes, sinClasificarPorMes };
