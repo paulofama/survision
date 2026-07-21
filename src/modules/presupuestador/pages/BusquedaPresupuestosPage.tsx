@@ -10,6 +10,9 @@ import {
   estaVencido,
   cutoffVencidos,
 } from "../utils/resultado";
+import { Convenio, Lio, sbGet } from "../utils/circuito";
+import AceptacionModal from "../components/AceptacionModal";
+import CircuitoPanel from "../components/CircuitoPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -267,6 +270,7 @@ function CeldaResultado({
   onRechazar,
   onSinRespuesta,
   onRevertir,
+  onCircuito,
 }: {
   p: Presupuesto;
   plazoDias: number;
@@ -274,6 +278,7 @@ function CeldaResultado({
   onRechazar: () => void;
   onSinRespuesta: () => void;
   onRevertir: () => void;
+  onCircuito: () => void;
 }) {
   // Fuera del circuito comercial.
   if (!esEmitido(p.estado)) {
@@ -296,9 +301,16 @@ function CeldaResultado({
           <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
           {meta.label}
         </span>
-        <button onClick={onRevertir} className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
-          Cambiar
-        </button>
+        <div className="flex items-center gap-2">
+          {p.resultado === "ACEPTADO" && (
+            <button onClick={onCircuito} className="text-[11px] text-blue-600 hover:underline font-medium">
+              Circuito
+            </button>
+          )}
+          <button onClick={onRevertir} className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
+            Cambiar
+          </button>
+        </div>
       </div>
     );
   }
@@ -359,9 +371,13 @@ export default function BusquedaPresupuestosPage() {
   // Catálogos / config del circuito
   const [motivos, setMotivos]   = useState<MotivoResultado[]>([]);
   const [plazoDias, setPlazoDias] = useState<number>(45);
+  const [convenios, setConvenios] = useState<Convenio[]>([]);
+  const [lios, setLios] = useState<Lio[]>([]);
 
   // Modales
   const [modal, setModal] = useState<{ modo: "aceptar" | "rechazar"; p: Presupuesto } | null>(null);
+  const [aceptModal, setAceptModal] = useState<Presupuesto | null>(null);
+  const [circuito, setCircuito] = useState<Presupuesto | null>(null);
   const [revert, setRevert] = useState<Presupuesto | null>(null);
   const [bulk, setBulk] = useState<{ count: number } | null>(null);
 
@@ -387,6 +403,13 @@ export default function BusquedaPresupuestosPage() {
         const n = parseInt(c?.[0]?.valor, 10);
         if (Number.isFinite(n) && n > 0) setPlazoDias(n);
       }
+      // Catálogos del circuito de aceptación (convenios + LIOs).
+      const [cv, li] = await Promise.all([
+        sbGet<Convenio>("presupuestos_convenios?activo=eq.true&order=orden&select=*"),
+        sbGet<Lio>("presupuestos_lios?activo=eq.true&order=orden&select=*"),
+      ]);
+      setConvenios(cv);
+      setLios(li);
     } catch {
       // Silencioso: si falla, se usa el default (45) y sin motivos (se avisa al rechazar).
     }
@@ -482,26 +505,17 @@ export default function BusquedaPresupuestosPage() {
     }
   };
 
+  // El modal 'aceptar' quedó reemplazado por AceptacionModal (captura la rama);
+  // este confirmarModal maneja solo el RECHAZO.
   const confirmarModal = (payload: ResultadoPayload) => {
     if (!modal) return;
-    const ahora = new Date().toISOString();
-    if (modal.modo === "aceptar") {
-      patchResultado(modal.p.id, {
-        resultado: "ACEPTADO",
-        resultado_motivo_id: null,
-        resultado_observaciones: null,
-        fecha_resultado: ahora,
-        resultado_por: username,
-      }, "Presupuesto registrado como ACEPTADO");
-    } else {
-      patchResultado(modal.p.id, {
-        resultado: "RECHAZADO",
-        resultado_motivo_id: payload.motivoId ?? null,
-        resultado_observaciones: payload.observaciones ?? null,
-        fecha_resultado: ahora,
-        resultado_por: username,
-      }, "Presupuesto registrado como RECHAZADO");
-    }
+    patchResultado(modal.p.id, {
+      resultado: "RECHAZADO",
+      resultado_motivo_id: payload.motivoId ?? null,
+      resultado_observaciones: payload.observaciones ?? null,
+      fecha_resultado: new Date().toISOString(),
+      resultado_por: username,
+    }, "Presupuesto registrado como RECHAZADO");
     setModal(null);
   };
 
@@ -820,10 +834,11 @@ export default function BusquedaPresupuestosPage() {
                           <CeldaResultado
                             p={p}
                             plazoDias={plazoDias}
-                            onAceptar={() => setModal({ modo: "aceptar", p })}
+                            onAceptar={() => setAceptModal(p)}
                             onRechazar={() => setModal({ modo: "rechazar", p })}
                             onSinRespuesta={() => marcarSinRespuesta(p)}
                             onRevertir={() => setRevert(p)}
+                            onCircuito={() => setCircuito(p)}
                           />
                         </td>
 
@@ -935,6 +950,31 @@ export default function BusquedaPresupuestosPage() {
           motivos={motivos}
           onClose={() => setModal(null)}
           onConfirm={confirmarModal}
+        />
+      )}
+      {aceptModal && (
+        <AceptacionModal
+          presupuesto={aceptModal}
+          convenios={convenios}
+          lios={lios}
+          username={username}
+          onClose={() => setAceptModal(null)}
+          onDone={() => {
+            const abrir = aceptModal;
+            setAceptModal(null);
+            notify("Presupuesto ACEPTADO — circuito iniciado", "success");
+            setCircuito(abrir);        // abre el panel Circuito recién aceptado
+            setTimeout(() => loadData(page), 250);
+          }}
+        />
+      )}
+      {circuito && (
+        <CircuitoPanel
+          presupuesto={circuito}
+          convenios={convenios}
+          lios={lios}
+          username={username}
+          onClose={() => setCircuito(null)}
         />
       )}
       {revert && (
