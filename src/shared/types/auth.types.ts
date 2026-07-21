@@ -18,6 +18,9 @@ export const MODULOS_SISTEMA = {
   tesoreria: { nombre: 'Tesorería', descripcion: 'Caja, bancos y movimientos financieros' },
   liquidaciones: { nombre: 'Liquidaciones', descripcion: 'Derivaciones y honorarios' },
   presupuestador: { nombre: 'Presupuestador', descripcion: 'Generación y búsqueda de presupuestos' },
+  // Permiso granular del Presupuestador: edición de los catálogos del circuito
+  // post-aceptación (motivos, LIOs, convenios, texto del consentimiento, parámetros).
+  'presupuestador:config': { nombre: 'Presupuestador - Configuración', descripcion: 'Editar catálogos del circuito post-aceptación (motivos, LIOs, convenios, consentimiento)' },
   informes: { nombre: 'Informes', descripcion: 'Informes de gestión mensual' },
   seguimiento_pacientes: { nombre: 'Seguimiento Pacientes', descripcion: 'Seguimiento clínico de pacientes' },
   usuarios: { nombre: 'Usuarios', descripcion: 'Gestión de usuarios del sistema' },
@@ -170,6 +173,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   tesoreria: false,
   liquidaciones: false,
   presupuestador: false,
+  'presupuestador:config': false,
   informes: false,
   seguimiento_pacientes: false,
   usuarios: false,
@@ -190,6 +194,7 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   tesoreria: true,
   liquidaciones: true,
   presupuestador: true,
+  'presupuestador:config': true,
   informes: true,
   seguimiento_pacientes: true,
   usuarios: true,

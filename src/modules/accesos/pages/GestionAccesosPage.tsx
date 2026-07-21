@@ -117,7 +117,13 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     icono: FileText,
     color: 'cyan'
   },
-  informes: { 
+  'presupuestador:config': {
+    nombre: 'Presup. - Configuración',
+    descripcion: 'Editar catálogos del circuito post-aceptación',
+    icono: FileText,
+    color: 'amber'
+  },
+  informes: {
     nombre: 'Informes', 
     descripcion: 'Informes de gestión mensual',
     icono: FileText,
@@ -176,6 +182,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'tesoreria',
   'liquidaciones',
   'presupuestador',
+  'presupuestador:config',
   'informes',
   'seguimiento_pacientes',
   'usuarios',

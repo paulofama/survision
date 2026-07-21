@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
+import { useAuth } from "@shared/context/AuthContext";
+import {
+  ResultadoComercial,
+  MotivoResultado,
+  RESULTADO_META,
+  esEmitido,
+  estaVencido,
+  cutoffVencidos,
+} from "../utils/resultado";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -23,6 +32,12 @@ interface Presupuesto {
   estado: EstadoPresupuesto;
   fecha_entrega: string | null;
   fecha_practica: string | null;
+  // Resultado comercial (circuito post-aceptación)
+  resultado: ResultadoComercial | null;
+  resultado_motivo_id: string | null;
+  resultado_observaciones: string | null;
+  fecha_resultado: string | null;
+  resultado_por: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   datos_completos: any;
 }
@@ -33,6 +48,12 @@ interface ToastData {
   message: string;
   type: ToastType;
   key: number;
+}
+
+// Payload que devuelve el modal según el modo.
+interface ResultadoPayload {
+  motivoId?: string | null;
+  observaciones?: string | null;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -101,10 +122,227 @@ function Toast({ data, onDismiss }: { data: ToastData; onDismiss: () => void }) 
   );
 }
 
+// ─── Modal de resultado (Aceptar / Rechazar) ──────────────────────────────────
+
+function ResultadoModal({
+  modo,
+  presupuesto,
+  motivos,
+  onClose,
+  onConfirm,
+}: {
+  modo: "aceptar" | "rechazar";
+  presupuesto: Presupuesto;
+  motivos: MotivoResultado[];
+  onClose: () => void;
+  onConfirm: (payload: ResultadoPayload) => void;
+}) {
+  const [motivoId, setMotivoId] = useState<string>("");
+  const [obs, setObs] = useState<string>("");
+
+  const motivoSel = motivos.find((m) => m.id === motivoId) || null;
+  const exigeObs = !!motivoSel?.exige_observacion;
+  const puedeConfirmar =
+    modo === "aceptar" || (!!motivoId && (!exigeObs || obs.trim().length > 0));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`px-5 py-4 border-b ${modo === "aceptar" ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"}`}>
+          <h3 className="font-bold text-gray-900">
+            {modo === "aceptar" ? "Registrar ACEPTADO" : "Registrar RECHAZADO"}
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {presupuesto.numero_presupuesto} — {presupuesto.paciente_apellido}, {presupuesto.paciente_nombre}
+          </p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {modo === "aceptar" ? (
+            <p className="text-sm text-gray-600">
+              Vas a registrar este presupuesto como <b>ACEPTADO</b>. El circuito de aceptación
+              (cobertura, LIO, fecha y ojo) se completa en la ficha del presupuesto (próxima fase).
+            </p>
+          ) : (
+            <>
+              <label className="block text-sm">
+                <span className="block text-gray-600 mb-1 font-medium">Motivo del rechazo *</span>
+                <select
+                  value={motivoId}
+                  onChange={(e) => setMotivoId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                >
+                  <option value="">Seleccioná un motivo…</option>
+                  {motivos.map((m) => (
+                    <option key={m.id} value={m.id}>{m.nombre}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="block text-gray-600 mb-1 font-medium">
+                  Observaciones {exigeObs ? "*" : "(opcional)"}
+                </span>
+                <textarea
+                  value={obs}
+                  onChange={(e) => setObs(e.target.value)}
+                  rows={3}
+                  placeholder={exigeObs ? "Requerido para este motivo…" : "Detalle opcional…"}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+                />
+              </label>
+            </>
+          )}
+        </div>
+
+        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            Cancelar
+          </button>
+          <button
+            disabled={!puedeConfirmar}
+            onClick={() => onConfirm(modo === "aceptar" ? {} : { motivoId, observaciones: obs.trim() || null })}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-40 ${
+              modo === "aceptar" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+            }`}
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal de confirmación genérico (revertir / vencidos masivos) ─────────────
+
+function ConfirmModal({
+  titulo,
+  mensaje,
+  confirmLabel = "Confirmar",
+  danger = false,
+  onClose,
+  onConfirm,
+}: {
+  titulo: string;
+  mensaje: string;
+  confirmLabel?: string;
+  danger?: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="p-5">
+          <h3 className="font-bold text-gray-900">{titulo}</h3>
+          <p className="text-sm text-gray-600 mt-2">{mensaje}</p>
+        </div>
+        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+              danger ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Celda de Resultado (badge + acciones por fila) ───────────────────────────
+
+function CeldaResultado({
+  p,
+  plazoDias,
+  onAceptar,
+  onRechazar,
+  onSinRespuesta,
+  onRevertir,
+}: {
+  p: Presupuesto;
+  plazoDias: number;
+  onAceptar: () => void;
+  onRechazar: () => void;
+  onSinRespuesta: () => void;
+  onRevertir: () => void;
+}) {
+  // Fuera del circuito comercial.
+  if (!esEmitido(p.estado)) {
+    return <span className="text-xs text-gray-300">—</span>;
+  }
+
+  // Resultado ya registrado.
+  if (p.resultado) {
+    const meta = RESULTADO_META[p.resultado];
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <span
+          className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${meta.bg} ${meta.text}`}
+          title={[
+            p.resultado_observaciones ? `Obs.: ${p.resultado_observaciones}` : "",
+            p.fecha_resultado ? `Registrado: ${fmtFecha(p.fecha_resultado)}` : "",
+            p.resultado_por ? `Por: ${p.resultado_por}` : "",
+          ].filter(Boolean).join("\n")}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+          {meta.label}
+        </span>
+        <button onClick={onRevertir} className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
+          Cambiar
+        </button>
+      </div>
+    );
+  }
+
+  // 'practicado' sin resultado => ACEPTADO implícito (ya se operó).
+  if (p.estado === "practicado") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-green-600" title="Ya se operó: aceptado implícito">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+        Aceptado (practicado)
+      </span>
+    );
+  }
+
+  // 'entregado' sin resultado => pendiente (o vencido).
+  const vencido = estaVencido(p.estado, p.resultado, p.fecha_creacion, plazoDias);
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <span className={`text-[11px] font-medium ${vencido ? "text-amber-600" : "text-gray-400"}`}>
+        {vencido ? "Sin respuesta (vencido)" : "Pendiente"}
+      </span>
+      <div className="flex items-center gap-1">
+        <button onClick={onAceptar} className="bg-green-600 hover:bg-green-700 text-white text-[11px] px-2 py-1 rounded-md font-medium transition-colors">
+          Aceptar
+        </button>
+        <button onClick={onRechazar} className="bg-red-600 hover:bg-red-700 text-white text-[11px] px-2 py-1 rounded-md font-medium transition-colors">
+          Rechazar
+        </button>
+        {vencido && (
+          <button onClick={onSinRespuesta} className="border border-gray-300 text-gray-500 hover:bg-gray-100 text-[11px] px-2 py-1 rounded-md font-medium transition-colors" title="Marcar como Sin respuesta">
+            Sin resp.
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function BusquedaPresupuestosPage() {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
+  const username = usuario?.username ?? null;
 
   // ── State ──
   const [data, setData]         = useState<Presupuesto[]>([]);
@@ -113,9 +351,19 @@ export default function BusquedaPresupuestosPage() {
   const [loading, setLoading]   = useState(false);
   const [searchTerm, setSearchTerm]       = useState("");
   const [filterEstado, setFilterEstado]   = useState<EstadoPresupuesto | "">("");
+  const [filterResultado, setFilterResultado] = useState<string>(""); // "" | pendiente | ACEPTADO | RECHAZADO | SIN_RESPUESTA | vencido
   const [toast, setToast]       = useState<ToastData | null>(null);
   const searchRef               = useRef<HTMLInputElement>(null);
   const debounceRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Catálogos / config del circuito
+  const [motivos, setMotivos]   = useState<MotivoResultado[]>([]);
+  const [plazoDias, setPlazoDias] = useState<number>(45);
+
+  // Modales
+  const [modal, setModal] = useState<{ modo: "aceptar" | "rechazar"; p: Presupuesto } | null>(null);
+  const [revert, setRevert] = useState<Presupuesto | null>(null);
+  const [bulk, setBulk] = useState<{ count: number } | null>(null);
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
@@ -125,11 +373,31 @@ export default function BusquedaPresupuestosPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // ── Cargar catálogos (motivos de rechazo + plazo) ──
+  const loadCatalogos = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const [rM, rC] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/presupuestos_motivos_resultado?tipo=eq.RECHAZADO&activo=eq.true&order=orden&select=*`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/presupuestos_config?clave=eq.plazo_sin_respuesta_dias&select=valor`, { headers }),
+      ]);
+      if (rM.ok) setMotivos(await rM.json());
+      if (rC.ok) {
+        const c = await rC.json();
+        const n = parseInt(c?.[0]?.valor, 10);
+        if (Number.isFinite(n) && n > 0) setPlazoDias(n);
+      }
+    } catch {
+      // Silencioso: si falla, se usa el default (45) y sin motivos (se avisa al rechazar).
+    }
+  };
+
   // ── Load data ──
   const loadData = async (
     pg   = 1,
     term = searchTerm,
     est  = filterEstado,
+    res  = filterResultado,
   ) => {
     setLoading(true);
     try {
@@ -141,6 +409,15 @@ export default function BusquedaPresupuestosPage() {
         );
       }
       if (est) parts.push(`estado=eq.${est}`);
+
+      // Filtro por resultado comercial.
+      if (res === "pendiente") {
+        parts.push("resultado=is.null", "estado=in.(entregado,practicado)");
+      } else if (res === "vencido") {
+        parts.push("resultado=is.null", "estado=eq.entregado", `fecha_creacion=lt.${cutoffVencidos(plazoDias)}`);
+      } else if (res) {
+        parts.push(`resultado=eq.${res}`);
+      }
 
       const query   = parts.join("&");
       const from    = (pg - 1) * ITEMS_PER_PAGE;
@@ -166,7 +443,7 @@ export default function BusquedaPresupuestosPage() {
     }
   };
 
-  // ── Cambiar estado ──
+  // ── Cambiar estado operativo ──
   const cambiarEstado = async (id: string, nuevoEstado: EstadoPresupuesto) => {
     try {
       const updates: Record<string, unknown> = { estado: nuevoEstado };
@@ -188,34 +465,136 @@ export default function BusquedaPresupuestosPage() {
     }
   };
 
+  // ── Registrar resultado comercial ──
+  const patchResultado = async (id: string, body: Record<string, unknown>, msg: string) => {
+    try {
+      const headers = await getAuthHeaders();
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/presupuestos?id=eq.${id}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error(r.statusText);
+      notify(msg, "success");
+      setTimeout(() => loadData(page), 250);
+    } catch (e) {
+      notify("Error: " + (e as Error).message, "error");
+    }
+  };
+
+  const confirmarModal = (payload: ResultadoPayload) => {
+    if (!modal) return;
+    const ahora = new Date().toISOString();
+    if (modal.modo === "aceptar") {
+      patchResultado(modal.p.id, {
+        resultado: "ACEPTADO",
+        resultado_motivo_id: null,
+        resultado_observaciones: null,
+        fecha_resultado: ahora,
+        resultado_por: username,
+      }, "Presupuesto registrado como ACEPTADO");
+    } else {
+      patchResultado(modal.p.id, {
+        resultado: "RECHAZADO",
+        resultado_motivo_id: payload.motivoId ?? null,
+        resultado_observaciones: payload.observaciones ?? null,
+        fecha_resultado: ahora,
+        resultado_por: username,
+      }, "Presupuesto registrado como RECHAZADO");
+    }
+    setModal(null);
+  };
+
+  const marcarSinRespuesta = (p: Presupuesto) => {
+    patchResultado(p.id, {
+      resultado: "SIN_RESPUESTA",
+      resultado_motivo_id: null,
+      resultado_observaciones: null,
+      fecha_resultado: new Date().toISOString(),
+      resultado_por: username,
+    }, "Presupuesto marcado como Sin respuesta");
+  };
+
+  const confirmarRevertir = () => {
+    if (!revert) return;
+    patchResultado(revert.id, {
+      resultado: null,
+      resultado_motivo_id: null,
+      resultado_observaciones: null,
+      fecha_resultado: null,
+      resultado_por: null,
+    }, "Resultado revertido a Pendiente");
+    setRevert(null);
+  };
+
+  // ── Confirmación masiva de vencidos ──
+  const abrirBulk = async () => {
+    try {
+      const headers = await getAuthHeaders("count=exact");
+      const filtro = `estado=eq.entregado&resultado=is.null&fecha_creacion=lt.${cutoffVencidos(plazoDias)}`;
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/presupuestos?${filtro}&select=id`, {
+        headers: { ...headers, Range: "0-0" },
+      });
+      const contentRange = r.headers.get("content-range");
+      const count = contentRange ? parseInt(contentRange.split("/")[1]) || 0 : 0;
+      if (count === 0) { notify("No hay presupuestos vencidos sin respuesta.", "warning"); return; }
+      setBulk({ count });
+    } catch (e) {
+      notify("Error: " + (e as Error).message, "error");
+    }
+  };
+
+  const confirmarBulk = async () => {
+    try {
+      const headers = await getAuthHeaders("return=minimal");
+      const filtro = `estado=eq.entregado&resultado=is.null&fecha_creacion=lt.${cutoffVencidos(plazoDias)}`;
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/presupuestos?${filtro}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          resultado: "SIN_RESPUESTA",
+          fecha_resultado: new Date().toISOString(),
+          resultado_por: username,
+        }),
+      });
+      if (!r.ok) throw new Error(r.statusText);
+      notify(`${bulk?.count ?? 0} presupuesto(s) marcados como Sin respuesta`, "success");
+      setBulk(null);
+      setTimeout(() => loadData(page), 300);
+    } catch (e) {
+      notify("Error: " + (e as Error).message, "error");
+      setBulk(null);
+    }
+  };
+
   // ── Abrir para editar ──
-  // Navega a /presupuestos pasando el objeto completo en location.state.
-  // El Presupuestador.tsx lee location.state?.presupuesto al montar y lo carga.
   const abrirPresupuesto = (p: Presupuesto) => {
     navigate("/presupuestos", { state: { presupuesto: p } });
   };
 
   // ── Cargar al montar ──
   useEffect(() => {
+    loadCatalogos();
     loadData(1);
     searchRef.current?.focus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Debounce en búsqueda y filtro ──
+  // ── Debounce en búsqueda y filtros ──
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => loadData(1, searchTerm, filterEstado), 350);
+    debounceRef.current = setTimeout(() => loadData(1, searchTerm, filterEstado, filterResultado), 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [searchTerm, filterEstado]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchTerm, filterEstado, filterResultado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Clear ──
   const limpiarFiltros = () => {
     setSearchTerm("");
     setFilterEstado("");
-    loadData(1, "", "");
+    setFilterResultado("");
+    loadData(1, "", "", "");
   };
 
-  const hayFiltros = searchTerm !== "" || filterEstado !== "";
+  const hayFiltros = searchTerm !== "" || filterEstado !== "" || filterResultado !== "";
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -233,7 +612,7 @@ export default function BusquedaPresupuestosPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Búsqueda de Presupuestos</h1>
-              <p className="text-sm text-gray-500">Consultá, editá y gestioná el estado de cada presupuesto</p>
+              <p className="text-sm text-gray-500">Consultá, editá y registrá el resultado de cada presupuesto</p>
             </div>
           </div>
           <button
@@ -277,7 +656,7 @@ export default function BusquedaPresupuestosPage() {
 
             {/* Filtro estado */}
             <select
-              className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[170px]"
+              className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
               value={filterEstado}
               onChange={(e) => setFilterEstado(e.target.value as EstadoPresupuesto | "")}
             >
@@ -286,6 +665,20 @@ export default function BusquedaPresupuestosPage() {
               <option value="entregado">📤 Entregado</option>
               <option value="practicado">✅ Practicado</option>
               <option value="cancelado">❌ Cancelado</option>
+            </select>
+
+            {/* Filtro resultado comercial */}
+            <select
+              className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
+              value={filterResultado}
+              onChange={(e) => setFilterResultado(e.target.value)}
+            >
+              <option value="">Todos los resultados</option>
+              <option value="pendiente">⏳ Pendiente</option>
+              <option value="vencido">⚠️ Sin respuesta (vencido)</option>
+              <option value="ACEPTADO">✅ Aceptado</option>
+              <option value="RECHAZADO">✖️ Rechazado</option>
+              <option value="SIN_RESPUESTA">➖ Sin respuesta</option>
             </select>
 
             {/* Limpiar */}
@@ -297,6 +690,19 @@ export default function BusquedaPresupuestosPage() {
                 Limpiar filtros
               </button>
             )}
+          </div>
+
+          {/* Acción masiva: confirmar vencidos */}
+          <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
+            <p className="text-xs text-gray-400">
+              Vencido = entregado sin respuesta hace más de {plazoDias} días.
+            </p>
+            <button
+              onClick={abrirBulk}
+              className="text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Confirmar vencidos como “Sin respuesta”
+            </button>
           </div>
         </div>
 
@@ -350,9 +756,9 @@ export default function BusquedaPresupuestosPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paciente</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">DNI</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Prestación</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cirujano</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Resultado</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
@@ -388,15 +794,10 @@ export default function BusquedaPresupuestosPage() {
 
                         {/* Prestación */}
                         <td
-                          className="px-4 py-3 text-gray-600 text-xs max-w-[220px] truncate"
+                          className="px-4 py-3 text-gray-600 text-xs max-w-[200px] truncate"
                           title={p.prestacion_descripcion}
                         >
                           {p.prestacion_descripcion || p.prestacion_codigo || "—"}
-                        </td>
-
-                        {/* Cirujano */}
-                        <td className="px-4 py-3 text-gray-600 text-xs">
-                          {p.cirujano || "—"}
                         </td>
 
                         {/* Total */}
@@ -414,14 +815,24 @@ export default function BusquedaPresupuestosPage() {
                           </span>
                         </td>
 
-                        {/* Acciones */}
+                        {/* Resultado comercial */}
+                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <CeldaResultado
+                            p={p}
+                            plazoDias={plazoDias}
+                            onAceptar={() => setModal({ modo: "aceptar", p })}
+                            onRechazar={() => setModal({ modo: "rechazar", p })}
+                            onSinRespuesta={() => marcarSinRespuesta(p)}
+                            onRevertir={() => setRevert(p)}
+                          />
+                        </td>
+
+                        {/* Acciones (operativas) */}
                         <td
                           className="px-4 py-3 text-center"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-center gap-1">
-
-                            {/* Abrir / Editar */}
                             <button
                               onClick={() => abrirPresupuesto(p)}
                               className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shadow-sm"
@@ -430,7 +841,6 @@ export default function BusquedaPresupuestosPage() {
                               Abrir
                             </button>
 
-                            {/* Cambios de estado rápidos */}
                             {p.estado === "borrador" && (
                               <button
                                 onClick={() => cambiarEstado(p.id, "entregado")}
@@ -516,6 +926,36 @@ export default function BusquedaPresupuestosPage() {
           )}
         </div>
       </div>
+
+      {/* Modales */}
+      {modal && (
+        <ResultadoModal
+          modo={modal.modo}
+          presupuesto={modal.p}
+          motivos={motivos}
+          onClose={() => setModal(null)}
+          onConfirm={confirmarModal}
+        />
+      )}
+      {revert && (
+        <ConfirmModal
+          titulo="Revertir resultado"
+          mensaje={`El presupuesto ${revert.numero_presupuesto} volverá a estado Pendiente (se borra el resultado registrado). ¿Confirmás?`}
+          confirmLabel="Revertir"
+          danger
+          onClose={() => setRevert(null)}
+          onConfirm={confirmarRevertir}
+        />
+      )}
+      {bulk && (
+        <ConfirmModal
+          titulo="Confirmar vencidos"
+          mensaje={`Vas a marcar ${bulk.count} presupuesto(s) entregados sin respuesta hace más de ${plazoDias} días como “Sin respuesta”. ¿Confirmás?`}
+          confirmLabel={`Marcar ${bulk.count}`}
+          onClose={() => setBulk(null)}
+          onConfirm={confirmarBulk}
+        />
+      )}
 
       {/* Toast */}
       {toast && <Toast data={toast} onDismiss={() => setToast(null)} />}
