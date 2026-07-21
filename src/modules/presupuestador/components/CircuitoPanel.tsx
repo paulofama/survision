@@ -14,12 +14,17 @@ import {
   listoParaCirugia, progresoChecklist,
   sbGet, sbPatch,
 } from "../utils/circuito";
+import { DOCS, armarContexto, cargarConsentimiento, generarDocumento, generarSobreCompleto } from "../utils/sobre";
 
 interface PresupuestoMin {
   id: string;
   numero_presupuesto: string;
   paciente_apellido: string;
   paciente_nombre: string;
+  paciente_documento?: string;
+  total_final?: number | string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  datos_completos?: any;
 }
 
 const fmtFecha = (d: string | null | undefined): string => {
@@ -45,6 +50,7 @@ export default function CircuitoPanel({
 }) {
   const [aceptacion, setAceptacion] = useState<Aceptacion | null>(null);
   const [rows, setRows] = useState<ChecklistRow[]>([]);
+  const [consentimiento, setConsentimiento] = useState<{ titulo: string; cuerpo: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
 
@@ -52,11 +58,13 @@ export default function CircuitoPanel({
     setLoading(true);
     setError("");
     try {
-      const [a, ch] = await Promise.all([
+      const [a, ch, cons] = await Promise.all([
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&select=*`),
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
+        cargarConsentimiento(),
       ]);
       setAceptacion(a[0] || null);
+      setConsentimiento(cons);
       // ordenar por el orden fijo de CHECKLIST_ITEMS
       const orden = new Map(CHECKLIST_ITEMS.map((it, i) => [it.clave, i]));
       setRows((ch || []).slice().sort((x, y) => (orden.get(x.item_clave) ?? 99) - (orden.get(y.item_clave) ?? 99)));
@@ -93,6 +101,18 @@ export default function CircuitoPanel({
     const no_aplica = !row.no_aplica;
     // si pasa a "no aplica", limpiamos el completado
     patchRow(row, no_aplica ? { no_aplica, completado: false, fecha_completado: null, completado_por: null } : { no_aplica });
+  };
+
+  // ── Generación del Sobre Quirúrgico ──
+  const generarUno = (clave: string) => {
+    if (!aceptacion) return;
+    const ctx = armarContexto({ presupuesto, aceptacion, convenios, lios, consentimiento });
+    generarDocumento(clave, ctx);
+  };
+  const generarTodo = () => {
+    if (!aceptacion) return;
+    const ctx = armarContexto({ presupuesto, aceptacion, convenios, lios, consentimiento });
+    generarSobreCompleto(ctx);
   };
 
   const labelDe = (clave: string) => CHECKLIST_ITEMS.find((i) => i.clave === clave)?.label || clave;
@@ -200,6 +220,30 @@ export default function CircuitoPanel({
                   ))}
                 </div>
               </div>
+
+              {/* Sobre Quirúrgico */}
+              {aceptacion && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Sobre Quirúrgico</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {DOCS.filter((d) => !d.condicional || aceptacion.requiere_analisis_ecg).map((d) => (
+                      <button
+                        key={d.clave}
+                        onClick={() => generarUno(d.clave)}
+                        className="text-xs border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={generarTodo}
+                    className="mt-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
+                  >
+                    Descargar todo el Sobre
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
