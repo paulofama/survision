@@ -4,9 +4,11 @@
 // ============================================================
 //
 // Sección operativa (distinta del dashboard analítico AnalisisTurnosPage):
-// lista los turnos futuros vigentes con sus datos y un botón de WhatsApp por
-// paciente (click-to-chat con el recordatorio precargado; la secretaria aprieta
-// enviar). Lee el espejo turnos_futuros de Supabase (lo refresca el daemon).
+// lista los turnos futuros vigentes y ofrece, en 3 momentos del ciclo del turno,
+// el recordatorio por WhatsApp con el mensaje correcto precargado (click-to-chat;
+// la secretaria aprieta enviar). Cada mensaje se manda UNA sola vez por turno.
+// Los turnos cancelados desaparecen del espejo (GECLISA los borra) -> no se les
+// ofrece recordatorio. Lee el espejo turnos_futuros de Supabase.
 // ============================================================
 
 import React, { useMemo, useState } from 'react';
@@ -24,79 +26,25 @@ import {
   Bell,
   Sun,
   Phone,
+  CalendarPlus,
 } from 'lucide-react';
 import { useTurnosFuturos, TurnoFuturo } from '../hooks/useTurnosFuturos';
-import { useRecordatorios } from '../hooks/useRecordatorios';
+import { useRecordatorios, AvisadosPorTipo } from '../hooks/useRecordatorios';
+import {
+  TipoRecordatorio,
+  RECORDATORIO_META,
+  buildWhatsAppUrl,
+  formatFechaISO,
+  formatFechaLarga,
+  hoyISO,
+  sumarDiasISO,
+  horaAMinutos,
+  ahoraEnMinutos,
+} from '../utils/recordatorios';
 
 // ============================================================
 // HELPERS (module scope)
 // ============================================================
-
-const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-
-/** "YYYY-MM-DD" -> "dd/mm/aaaa" sin usar Date (evita corrimiento por timezone). */
-function formatFechaISO(iso: string): string {
-  if (!iso) return '';
-  const [a, m, d] = iso.split('-');
-  return `${d}/${m}/${a}`;
-}
-
-/** "YYYY-MM-DD" -> "martes 30/06" para el mensaje y la tabla. */
-function formatFechaLarga(iso: string): string {
-  if (!iso) return '';
-  const [a, m, d] = iso.split('-').map(Number);
-  // Mediodía local: evita que el cómputo del día de semana se corra por TZ.
-  const dt = new Date(a, m - 1, d, 12, 0, 0);
-  const dia = DIAS_SEMANA[dt.getDay()];
-  return `${dia} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
-}
-
-/** Today as "YYYY-MM-DD" en hora local. */
-function hoyISO(): string {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-}
-
-function sumarDiasISO(iso: string, dias: number): string {
-  const [a, m, d] = iso.split('-').map(Number);
-  const dt = new Date(a, m - 1, d + dias, 12, 0, 0);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-}
-
-/** "H:MM" / "HH:MM" -> minutos desde medianoche (NaN si no parsea). */
-function horaAMinutos(hora: string): number {
-  const [h, m] = (hora || '').split(':').map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return NaN;
-  return h * 60 + m;
-}
-
-/** Minutos desde medianoche de la hora local actual. */
-function ahoraEnMinutos(): number {
-  const n = new Date();
-  return n.getHours() * 60 + n.getMinutes();
-}
-
-function titleCase(s: string): string {
-  return s.toLowerCase().replace(/(^|\s)\p{L}/gu, (c) => c.toUpperCase());
-}
-
-/** "APELLIDO, Nombre Segundo" -> "Nombre" (primer nombre de pila, capitalizado). */
-function nombrePila(paciente: string): string {
-  const partes = paciente.split(',');
-  const pila = (partes[1] || partes[0] || '').trim();
-  const primero = pila.split(/\s+/)[0] || '';
-  return primero ? titleCase(primero) : 'paciente';
-}
-
-/** Arma el link wa.me con el recordatorio precargado, o null si no hay teléfono. */
-function buildWhatsAppUrl(t: TurnoFuturo): string | null {
-  if (!t.telefono_norm) return null;
-  const msg =
-    `Hola ${nombrePila(t.paciente)}, le recordamos su turno en el Instituto Dr. Mercado ` +
-    `el ${formatFechaLarga(t.fecha)} a las ${t.hora} hs con ${t.prestador}. ` +
-    `Ante cualquier cambio, comuníquese con nosotros. ¡Gracias!`;
-  return `https://wa.me/${t.telefono_norm}?text=${encodeURIComponent(msg)}`;
-}
 
 function rankearTop(turnos: TurnoFuturo[], key: 'prestador' | 'servicio', top = 5): Array<{ nombre: string; total: number }> {
   const conteo = new Map<string, number>();
@@ -149,12 +97,40 @@ const TarjetaIndicador: React.FC<{
   );
 };
 
+// Chips que muestran, por paciente, cuáles de los 3 avisos ya se enviaron.
+const PASOS_AVISO: Array<{ tipo: TipoRecordatorio; label: string }> = [
+  { tipo: 'inicial', label: 'Conf.' },
+  { tipo: 'previo', label: 'Día antes' },
+  { tipo: 'final', label: '3 h' },
+];
+
+const EstadoAvisos: React.FC<{ turnoId: number; avisados: AvisadosPorTipo }> = ({ turnoId, avisados }) => (
+  <div className="flex items-center justify-center gap-1">
+    {PASOS_AVISO.map(({ tipo, label }) => {
+      const done = avisados[tipo].has(turnoId);
+      return (
+        <span
+          key={tipo}
+          title={`${RECORDATORIO_META[tipo].titulo}: ${done ? 'ya avisado' : 'pendiente'}`}
+          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+            done ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-50 text-gray-400 border-gray-200'
+          }`}
+        >
+          {done && <CheckCircle className="h-2.5 w-2.5" />}
+          {label}
+        </span>
+      );
+    })}
+  </div>
+);
+
 const BotonWhatsApp: React.FC<{
   turno: TurnoFuturo;
+  tipo: TipoRecordatorio;
   avisado?: boolean;
-  onSent?: (turnoId: number) => void;
-}> = ({ turno, avisado, onSent }) => {
-  const url = buildWhatsAppUrl(turno);
+  onSent?: () => void;
+}> = ({ turno, tipo, avisado, onSent }) => {
+  const url = buildWhatsAppUrl(turno, tipo);
   if (!url) {
     return (
       <span
@@ -171,13 +147,13 @@ const BotonWhatsApp: React.FC<{
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => onSent?.(turno.turno_id)}
+      onClick={() => onSent?.()}
       className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
         avisado
           ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
           : 'bg-green-600 text-white hover:bg-green-700'
       }`}
-      title={avisado ? 'Ya avisado — reenviar' : 'Abrir WhatsApp con el recordatorio precargado'}
+      title={avisado ? 'Ya enviado — reenviar' : 'Abrir WhatsApp con el mensaje precargado'}
     >
       {avisado ? <CheckCircle className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
       {avisado ? 'Reenviar' : 'WhatsApp'}
@@ -185,27 +161,28 @@ const BotonWhatsApp: React.FC<{
   );
 };
 
-// Grupo de recordatorios (una ventana: "mañana" o "próximas 3 h").
+// Grupo de recordatorios (una ventana / un tipo de mensaje).
+// esCola=true (tipo "inicial"): la lista es una cola de PENDIENTES (el padre ya
+// filtró los ya enviados) -> no se muestra la barra de progreso.
 const RecordatorioGrupo: React.FC<{
-  titulo: string;
-  subtitulo: string;
+  tipo: TipoRecordatorio;
   icono: React.ElementType;
-  color: 'blue' | 'orange';
+  color: 'green' | 'blue' | 'orange';
   turnos: TurnoFuturo[];
   avisados: Set<number>;
   onMarcar: (turnoId: number) => void;
   onDesmarcar: (turnoId: number) => void;
-}> = ({ titulo, subtitulo, icono: Icon, color, turnos, avisados, onMarcar, onDesmarcar }) => {
+  esCola?: boolean;
+}> = ({ tipo, icono: Icon, color, turnos, avisados, onMarcar, onDesmarcar, esCola }) => {
+  const meta = RECORDATORIO_META[tipo];
   const conTel = turnos.filter((t) => t.telefono_norm);
   const sinTel = turnos.filter((t) => !t.telefono_norm);
   const avisadosCount = conTel.filter((t) => avisados.has(t.turno_id)).length;
   const pct = conTel.length ? Math.round((avisadosCount / conTel.length) * 100) : 0;
 
-  const cab = color === 'blue'
-    ? 'bg-blue-50 border-blue-200'
-    : 'bg-orange-50 border-orange-200';
-  const iconColor = color === 'blue' ? 'text-blue-600' : 'text-orange-600';
-  const barColor = color === 'blue' ? 'bg-blue-500' : 'bg-orange-500';
+  const cab = { green: 'bg-green-50 border-green-200', blue: 'bg-blue-50 border-blue-200', orange: 'bg-orange-50 border-orange-200' }[color];
+  const iconColor = { green: 'text-green-600', blue: 'text-blue-600', orange: 'text-orange-600' }[color];
+  const barColor = { green: 'bg-green-500', blue: 'bg-blue-500', orange: 'bg-orange-500' }[color];
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
@@ -213,15 +190,15 @@ const RecordatorioGrupo: React.FC<{
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Icon className={`h-5 w-5 ${iconColor}`} />
-            <span className="font-semibold text-gray-800">{titulo}</span>
+            <span className="font-semibold text-gray-800">{meta.titulo}</span>
           </div>
           <span className="text-sm font-bold text-gray-700">{turnos.length}</span>
         </div>
-        <p className="text-xs text-gray-500 mt-0.5">{subtitulo}</p>
-        {conTel.length > 0 && (
+        <p className="text-xs text-gray-500 mt-0.5">{meta.descripcion}</p>
+        {!esCola && conTel.length > 0 && (
           <div className="mt-2">
             <div className="flex justify-between text-xs text-gray-600 mb-1">
-              <span>Avisados</span>
+              <span>Enviados</span>
               <span>{avisadosCount} / {conTel.length}</span>
             </div>
             <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
@@ -229,11 +206,16 @@ const RecordatorioGrupo: React.FC<{
             </div>
           </div>
         )}
+        {esCola && conTel.length > 0 && (
+          <p className="text-xs text-gray-500 mt-1">{conTel.length} pendiente(s) de confirmación</p>
+        )}
       </div>
 
       <div className="p-3 space-y-1.5 max-h-80 overflow-y-auto flex-1">
         {turnos.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-6">No hay turnos en esta ventana.</p>
+          <p className="text-sm text-gray-400 text-center py-6">
+            {esCola ? 'No hay turnos pendientes de confirmación.' : 'No hay turnos en esta ventana.'}
+          </p>
         )}
 
         {conTel.map((t) => {
@@ -247,17 +229,24 @@ const RecordatorioGrupo: React.FC<{
             >
               <button
                 onClick={() => (av ? onDesmarcar(t.turno_id) : onMarcar(t.turno_id))}
-                title={av ? 'Marcar como NO avisado' : 'Marcar como avisado'}
+                title={av ? 'Marcar como NO enviado' : 'Marcar como enviado (sin abrir WhatsApp)'}
                 className={`flex-shrink-0 ${av ? 'text-green-600' : 'text-gray-300 hover:text-gray-400'}`}
               >
                 <CheckCircle className="h-5 w-5" />
               </button>
-              <span className="font-mono text-xs text-gray-700 w-12 flex-shrink-0">{t.hora}</span>
+              <span className="font-mono text-xs text-gray-700 w-20 flex-shrink-0">
+                {esCola ? formatFechaISO(t.fecha).slice(0, 5) : ''} {t.hora}
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-800 truncate">{t.paciente}</p>
                 <p className="text-xs text-gray-500 truncate">{t.prestador}</p>
               </div>
-              <BotonWhatsApp turno={t} avisado={av} onSent={onMarcar} />
+              {av && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-green-700 bg-green-100 border border-green-300 flex-shrink-0">
+                  <CheckCircle className="h-2.5 w-2.5" /> Avisado
+                </span>
+              )}
+              <BotonWhatsApp turno={t} tipo={tipo} avisado={av} onSent={() => onMarcar(t.turno_id)} />
             </div>
           );
         })}
@@ -317,13 +306,22 @@ const AgendaTurnosPage: React.FC = () => {
     });
   }, [turnos, desde, hasta, prestador, servicio, soloSinConfirmar]);
 
-  // Ventanas de recordatorios (independientes de los filtros: son la cola de trabajo).
-  const turnosManana = useMemo(() => {
+  // --- Ventanas de recordatorios (independientes de los filtros: cola de trabajo) ---
+
+  // 1) Al sacar el turno: cola de PENDIENTES de confirmación (sin aviso inicial).
+  const turnosInicial = useMemo(
+    () => turnos.filter((t) => !avisados.inicial.has(t.turno_id)),
+    [turnos, avisados.inicial],
+  );
+
+  // 2) Un día antes: turnos de mañana.
+  const turnosPrevio = useMemo(() => {
     const manana = sumarDiasISO(hoyISO(), 1);
     return turnos.filter((t) => t.fecha === manana);
   }, [turnos]);
 
-  const turnos3h = useMemo(() => {
+  // 3) Tres horas antes: turnos de hoy entre ahora y ahora+180 min.
+  const turnosFinal = useMemo(() => {
     const hoy = hoyISO();
     const ahora = ahoraEnMinutos();
     return turnos.filter((t) => {
@@ -332,8 +330,6 @@ const AgendaTurnosPage: React.FC = () => {
       return !Number.isNaN(min) && min >= ahora && min <= ahora + 180;
     });
   }, [turnos]);
-
-  const subtMananaFecha = useMemo(() => formatFechaLarga(sumarDiasISO(hoyISO(), 1)), []);
 
   // Indicadores del set filtrado.
   const total = filtrados.length;
@@ -383,7 +379,7 @@ const AgendaTurnosPage: React.FC = () => {
             Turnos — Agenda y recordatorios
           </h1>
           <p className="text-gray-500 mt-1">
-            Turnos futuros vigentes. Enviá el recordatorio por WhatsApp con un clic.
+            Turnos futuros vigentes. Enviá cada recordatorio por WhatsApp con un clic.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -403,32 +399,40 @@ const AgendaTurnosPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Panel de recordatorios (cola de trabajo: a quién avisar ahora) */}
+      {/* Panel de recordatorios: 3 momentos del ciclo del turno */}
       <div>
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-3">
           <Bell className="h-5 w-5 text-blue-600" />
           Recordatorios para enviar
         </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <RecordatorioGrupo
-            titulo="Para mañana"
-            subtitulo={subtMananaFecha}
-            icono={Sun}
-            color="blue"
-            turnos={turnosManana}
-            avisados={avisados}
-            onMarcar={marcar}
-            onDesmarcar={desmarcar}
+            tipo="inicial"
+            icono={CalendarPlus}
+            color="green"
+            turnos={turnosInicial}
+            avisados={avisados.inicial}
+            onMarcar={(id) => marcar(id, 'inicial')}
+            onDesmarcar={(id) => desmarcar(id, 'inicial')}
+            esCola
           />
           <RecordatorioGrupo
-            titulo="Hoy, próximas 3 horas"
-            subtitulo="Turnos de hoy entre ahora y dentro de 3 h"
+            tipo="previo"
+            icono={Sun}
+            color="blue"
+            turnos={turnosPrevio}
+            avisados={avisados.previo}
+            onMarcar={(id) => marcar(id, 'previo')}
+            onDesmarcar={(id) => desmarcar(id, 'previo')}
+          />
+          <RecordatorioGrupo
+            tipo="final"
             icono={Clock}
             color="orange"
-            turnos={turnos3h}
-            avisados={avisados}
-            onMarcar={marcar}
-            onDesmarcar={desmarcar}
+            turnos={turnosFinal}
+            avisados={avisados.final}
+            onMarcar={(id) => marcar(id, 'final')}
+            onDesmarcar={(id) => desmarcar(id, 'final')}
           />
         </div>
       </div>
@@ -527,7 +531,8 @@ const AgendaTurnosPage: React.FC = () => {
                 <th className="text-left py-2.5 px-3 font-medium text-gray-600">Servicio</th>
                 <th className="text-left py-2.5 px-3 font-medium text-gray-600">O. Social</th>
                 <th className="text-center py-2.5 px-3 font-medium text-gray-600">Estado</th>
-                <th className="text-center py-2.5 px-3 font-medium text-gray-600">Recordatorio</th>
+                <th className="text-center py-2.5 px-3 font-medium text-gray-600">Recordatorios</th>
+                <th className="text-center py-2.5 px-3 font-medium text-gray-600">Enviar</th>
               </tr>
             </thead>
             <tbody>
@@ -547,14 +552,23 @@ const AgendaTurnosPage: React.FC = () => {
                       {t.confirmado ? 'Confirmado' : 'Sin confirmar'}
                     </span>
                   </td>
+                  <td className="py-2 px-3">
+                    <EstadoAvisos turnoId={t.turno_id} avisados={avisados} />
+                  </td>
                   <td className="py-2 px-3 text-center">
-                    <BotonWhatsApp turno={t} avisado={avisados.has(t.turno_id)} onSent={marcar} />
+                    {/* Botón general = mensaje de confirmación (al sacar el turno). */}
+                    <BotonWhatsApp
+                      turno={t}
+                      tipo="inicial"
+                      avisado={avisados.inicial.has(t.turno_id)}
+                      onSent={() => marcar(t.turno_id, 'inicial')}
+                    />
                   </td>
                 </tr>
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-gray-400">
+                  <td colSpan={9} className="py-10 text-center text-gray-400">
                     No hay turnos en el rango y filtros seleccionados.
                   </td>
                 </tr>
@@ -565,7 +579,7 @@ const AgendaTurnosPage: React.FC = () => {
       </div>
 
       <div className="text-center text-sm text-gray-400 py-2">
-        <p>Se actualiza automáticamente (sync cada 1 min + refresco de pantalla cada 30 s). Solo turnos vigentes (no atendidos ni pasados).</p>
+        <p>Se actualiza automáticamente (sync + refresco de pantalla cada 30 s). Solo turnos vigentes (los cancelados se quitan solos).</p>
       </div>
     </div>
   );
