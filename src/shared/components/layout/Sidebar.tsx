@@ -386,8 +386,10 @@ const Sidebar: React.FC = () => {
   };
 
   const handleLogout = () => {
+    // logout() limpia el estado y el token de forma síncrona; navegamos con
+    // replace para que "atrás" no vuelva a una vista autenticada.
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   // Filtrar items según permisos

@@ -223,16 +223,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ============================================
 
   const logout = useCallback(async () => {
+    // 1. Limpiar el estado local PRIMERO y de forma síncrona: la UI reacciona
+    //    (isAuthenticated=false) aunque la red falle o cuelgue.
+    setUsuario(null);
+
+    // 2. Borrar a mano el token de Supabase del storage. Es la GARANTÍA de que
+    //    la sesión NO se restaure al refrescar aunque signOut() cuelgue (bug
+    //    conocido del lock interno de supabase-js con scope global).
     try {
-      await supabase.auth.signOut();
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch (err) {
+      console.error('Error limpiando el token de sesión:', err);
+    }
+
+    // 3. Limpieza de claves legacy de la sesión custom anterior.
+    localStorage.removeItem(STORAGE_KEYS.SESSION);
+    localStorage.removeItem(STORAGE_KEYS.USUARIOS_CACHE);
+    localStorage.removeItem(STORAGE_KEYS.ROLES_CACHE);
+
+    // 4. Best-effort: cerrar en Supabase con scope 'local' (sin round-trip de
+    //    red que pueda colgar). Si falla, ya limpiamos todo arriba.
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (err) {
       console.error('Error en signOut:', err);
-    } finally {
-      setUsuario(null);
-      // Limpieza de claves legacy de la sesión custom anterior
-      localStorage.removeItem(STORAGE_KEYS.SESSION);
-      localStorage.removeItem(STORAGE_KEYS.USUARIOS_CACHE);
-      localStorage.removeItem(STORAGE_KEYS.ROLES_CACHE);
     }
   }, []);
 
