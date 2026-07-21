@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTipoCambio } from "@shared/context/TipoCambioContext";
 import { useAuth } from "@shared/context/AuthContext";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
+import AnalisisResultados from "../components/AnalisisResultados";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -2372,6 +2373,9 @@ export default function Presupuestador() {
                 </div>
               ))}
             </div>
+
+            {/* ── Analítica de resultado comercial (circuito post-aceptación) ── */}
+            <AnalisisResultados />
 
             {/* ── FILTERS ── */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
