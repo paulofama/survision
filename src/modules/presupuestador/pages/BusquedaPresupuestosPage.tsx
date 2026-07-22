@@ -349,9 +349,11 @@ function CeldaResultado({
   const vencido = estaVencido(p.estado, p.resultado, p.fecha_creacion, plazoDias);
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <span className={`text-[11px] font-medium ${vencido ? "text-amber-600" : "text-gray-400"}`}>
-        {vencido ? "Sin respuesta (vencido)" : "Pendiente"}
-      </span>
+      {vencido && (
+        <span className="text-[11px] font-medium text-amber-600">
+          Sin respuesta (vencido)
+        </span>
+      )}
       <div className="inline-flex items-center gap-1.5">
         <button onClick={onAceptar} className="px-2.5 py-1 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors">
           Aceptar
