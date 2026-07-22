@@ -15,6 +15,8 @@ import { Convenio, Lio, sbGet } from "../utils/circuito";
 import AceptacionModal from "../components/AceptacionModal";
 import CircuitoPanel from "../components/CircuitoPanel";
 import MatchesRevisionModal from "../components/MatchesRevisionModal";
+import HistorialSeguimientoModal from "../components/HistorialSeguimientoModal";
+import { derivarSeguimiento, ESTADO_CONTACTO_META, Seguimiento } from "../utils/seguimiento";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -45,6 +47,8 @@ interface Presupuesto {
   resultado_por: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   datos_completos: any;
+  // Embed 1:1 del seguimiento (o null si no hay fila).
+  seg?: Seguimiento | Seguimiento[] | null;
 }
 
 type ToastType = "success" | "error" | "warning";
@@ -283,6 +287,24 @@ function TransicionBtn({ onClick, title, color, Icon }: { onClick: () => void; t
   );
 }
 
+// Badge de estado de contacto (seguimiento). Solo aplica a entregados; abre el historial al clic.
+function CeldaContacto({ p, onHistorial }: { p: Presupuesto; onHistorial: () => void }) {
+  if (p.estado !== "entregado") return <span className="text-gray-300 text-xs">—</span>;
+  const seg = Array.isArray(p.seg) ? (p.seg[0] ?? null) : (p.seg ?? null);
+  const { estado } = derivarSeguimiento(p, seg);
+  const meta = ESTADO_CONTACTO_META[estado];
+  return (
+    <button
+      onClick={onHistorial}
+      title="Ver historial de seguimiento"
+      className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium hover:ring-2 hover:ring-offset-1 hover:ring-gray-200 transition ${meta.bg} ${meta.text}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </button>
+  );
+}
+
 function CeldaResultado({
   p,
   plazoDias,
@@ -404,6 +426,8 @@ export default function BusquedaPresupuestosPage() {
   const [bulk, setBulk] = useState<{ count: number } | null>(null);
   const [matchesCount, setMatchesCount] = useState(0);
   const [showMatches, setShowMatches] = useState(false);
+  const [filterContacto, setFilterContacto] = useState<string>(""); // "" | pendiente | en_seguimiento | contactado | contactado_whatsapp | sin_respuesta
+  const [historial, setHistorial] = useState<Presupuesto | null>(null);
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
@@ -445,10 +469,14 @@ export default function BusquedaPresupuestosPage() {
     term = searchTerm,
     est  = filterEstado,
     res  = filterResultado,
+    con  = filterContacto,
   ) => {
     setLoading(true);
     try {
-      const parts: string[] = ["order=fecha_creacion.desc"];
+      // Embed 1:1 del seguimiento; inner cuando se filtra por un estado persistido.
+      const embedInner = !!con && con !== "pendiente";
+      const embed = `seg:presupuestos_seguimiento${embedInner ? "!inner" : ""}(estado_contacto,ronda,intentos_ronda,whatsapp_enviado_at,rellamada_at,cerrado_at)`;
+      const parts: string[] = ["order=fecha_creacion.desc", `select=*,${embed}`];
       const t = term.trim();
       if (t.length >= 2) {
         parts.push(
@@ -465,6 +493,10 @@ export default function BusquedaPresupuestosPage() {
       } else if (res) {
         parts.push(`resultado=eq.${res}`);
       }
+
+      // Filtro por estado de contacto (seguimiento).
+      if (con === "pendiente") { parts.push("estado=eq.entregado", "seg=is.null"); }
+      else if (con) { parts.push(`seg.estado_contacto=eq.${con}`); }
 
       const query   = parts.join("&");
       const from    = (pg - 1) * ITEMS_PER_PAGE;
@@ -629,19 +661,20 @@ export default function BusquedaPresupuestosPage() {
   // ── Debounce en búsqueda y filtros ──
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => loadData(1, searchTerm, filterEstado, filterResultado), 350);
+    debounceRef.current = setTimeout(() => loadData(1, searchTerm, filterEstado, filterResultado, filterContacto), 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [searchTerm, filterEstado, filterResultado]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchTerm, filterEstado, filterResultado, filterContacto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Clear ──
   const limpiarFiltros = () => {
     setSearchTerm("");
     setFilterEstado("");
     setFilterResultado("");
-    loadData(1, "", "", "");
+    setFilterContacto("");
+    loadData(1, "", "", "", "");
   };
 
-  const hayFiltros = searchTerm !== "" || filterEstado !== "" || filterResultado !== "";
+  const hayFiltros = searchTerm !== "" || filterEstado !== "" || filterResultado !== "" || filterContacto !== "";
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -726,6 +759,20 @@ export default function BusquedaPresupuestosPage() {
               <option value="ACEPTADO">✅ Aceptado</option>
               <option value="RECHAZADO">✖️ Rechazado</option>
               <option value="SIN_RESPUESTA">➖ Sin respuesta</option>
+            </select>
+
+            {/* Filtro estado de contacto (seguimiento) */}
+            <select
+              className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[190px]"
+              value={filterContacto}
+              onChange={(e) => setFilterContacto(e.target.value)}
+            >
+              <option value="">Todos (contacto)</option>
+              <option value="pendiente">🟡 Pendiente de contacto</option>
+              <option value="en_seguimiento">🔵 En seguimiento</option>
+              <option value="contactado_whatsapp">🟢 Contactado por WhatsApp</option>
+              <option value="contactado">✅ Contactado</option>
+              <option value="sin_respuesta">➖ Sin respuesta</option>
             </select>
 
             {/* Limpiar */}
@@ -816,6 +863,7 @@ export default function BusquedaPresupuestosPage() {
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Resultado</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contacto</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
@@ -883,6 +931,11 @@ export default function BusquedaPresupuestosPage() {
                             onRevertir={() => setRevert(p)}
                             onCircuito={() => setCircuito(p)}
                           />
+                        </td>
+
+                        {/* Estado de contacto (seguimiento) */}
+                        <td className="px-4 py-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
+                          <CeldaContacto p={p} onHistorial={() => setHistorial(p)} />
                         </td>
 
                         {/* Acciones (operativas) */}
@@ -1026,6 +1079,14 @@ export default function BusquedaPresupuestosPage() {
           confirmLabel={`Marcar ${bulk.count}`}
           onClose={() => setBulk(null)}
           onConfirm={confirmarBulk}
+        />
+      )}
+
+      {historial && (
+        <HistorialSeguimientoModal
+          presupuestoId={historial.id}
+          numero={historial.numero_presupuesto}
+          onClose={() => setHistorial(null)}
         />
       )}
 

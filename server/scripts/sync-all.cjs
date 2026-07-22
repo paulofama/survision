@@ -37,6 +37,7 @@ const { sincronizarTesoreria } = require('../services/tesoreriaExtractor');
 const { sincronizarErogaciones } = require('../services/erogacionesExtractor');
 const { sincronizarTurnosFuturos } = require('../services/turnosFuturosExtractor');
 const { correrMatch } = require('../services/matchPracticasService');
+const { correrCierres } = require('../services/seguimientoJob');
 
 // Período YYYY-MM del mes en curso y del anterior (para el ETL fiscal del IVA).
 function periodosIvaRecientes() {
@@ -92,6 +93,8 @@ const SYNCS = [
   // Match presupuesto→práctica realizada (solo Supabase; corre después de movimientos):
   // auto-marca practicado los matches inequívocos y deja los ambiguos como sugeridos.
   { nombre: 'match presupuesto→práctica (Supabase)', fn: () => correrMatch({ write: true }) },
+  // Seguimiento: cierre automático "sin respuesta" (2ª ronda agotada + 5 días).
+  { nombre: 'cierres seguimiento (Supabase)', fn: () => correrCierres({ write: true }) },
   // Próximos: prestaciones-realizadas, etc.
 ];
 
