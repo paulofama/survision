@@ -617,7 +617,7 @@ export default function BusquedaPresupuestosPage() {
 
       {/* Header de la página */}
       <div className="bg-white border-b border-gray-200 px-6 py-5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -641,7 +641,7 @@ export default function BusquedaPresupuestosPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-4">
+      <div className="w-full p-6 space-y-4">
 
         {/* ── Filtros ── */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
