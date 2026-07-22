@@ -72,6 +72,29 @@ export function sumarDiasCalendario(fechaISO: string, n: number): string {
   return toISO(dt);
 }
 
+// ── Teléfono (normalización a formato wa.me: 549 + 10 dígitos) ──
+
+/**
+ * Normaliza un teléfono argentino al formato de wa.me: `549` + 10 dígitos
+ * (código de área + abonado, sin 0 ni 15). Devuelve null si no se puede
+ * reducir con confianza a 10 dígitos significativos (input inválido).
+ */
+export function normalizarTelefonoAR(raw: string | null | undefined): string | null {
+  let d = String(raw || '').replace(/\D/g, '');
+  if (!d) return null;
+  if (d.startsWith('549')) d = d.slice(3);
+  else if (d.startsWith('54')) d = d.slice(2);
+  if (d.startsWith('0')) d = d.slice(1);
+  // Quitar el "15" de celular ubicado tras el código de área (2 a 4 dígitos).
+  if (d.length === 11) {
+    for (const areaLen of [2, 3, 4]) {
+      if (d.slice(areaLen, areaLen + 2) === '15') { d = d.slice(0, areaLen) + d.slice(areaLen + 2); break; }
+    }
+  }
+  if (d.length !== 10) return null;
+  return '549' + d;
+}
+
 // ── Derivación del estado de contacto y de la cola (al vuelo) ──
 
 export interface EstadoCola {

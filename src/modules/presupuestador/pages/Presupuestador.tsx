@@ -4,6 +4,7 @@ import { useTipoCambio } from "@shared/context/TipoCambioContext";
 import { useAuth } from "@shared/context/AuthContext";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 import AnalisisResultados from "../components/AnalisisResultados";
+import { normalizarTelefonoAR } from "../utils/seguimiento";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -1121,6 +1122,10 @@ export default function Presupuestador() {
     if (!form.cirujano) return notify("Seleccione cirujano", "warning");
     if (!form.administrativa) return notify("Seleccione administrativa", "warning");
 
+    // Teléfono obligatorio y normalizado (necesario para el seguimiento telefónico/WhatsApp).
+    const telNorm = normalizarTelefonoAR(form.telefono);
+    if (!telNorm) return notify("Ingrese un teléfono válido: 10 dígitos con código de área (ej. 2604 380885)", "warning");
+
     setLoading(true);
     try {
       const prestDesc =
@@ -1221,6 +1226,7 @@ export default function Presupuestador() {
           paciente_apellido: toTitleCase(form.apellido),
           paciente_documento: form.documento,
           paciente_id: pacId || null,
+          telefono: telNorm,
           prestacion_codigo: form.prestacionCodigo,
           prestacion_descripcion: prestDesc,
           cirujano: form.cirujano,
@@ -1245,6 +1251,7 @@ export default function Presupuestador() {
           paciente_apellido: toTitleCase(form.apellido),
           paciente_documento: form.documento,
           paciente_id: pacId || null,
+          telefono: telNorm,
           prestacion_codigo: form.prestacionCodigo,
           prestacion_descripcion: prestDesc,
           cirujano: form.cirujano,
@@ -1750,7 +1757,21 @@ export default function Presupuestador() {
                     )}
                   </div>
 
-                  <FormInput label="Teléfono" value={form.telefono} onChange={(v) => updateField("telefono", v)} />
+                  <FormInput
+                    label="Teléfono"
+                    value={form.telefono}
+                    onChange={(v) => updateField("telefono", v)}
+                    required
+                    placeholder="2604 380885"
+                    invalid={form.telefono.trim() !== "" && !normalizarTelefonoAR(form.telefono)}
+                    hint={
+                      form.telefono.trim() === ""
+                        ? "Obligatorio: código de área + número (para el seguimiento)"
+                        : normalizarTelefonoAR(form.telefono)
+                        ? `WhatsApp: +${normalizarTelefonoAR(form.telefono)}`
+                        : "Formato inválido — 10 dígitos con código de área, sin 0 ni 15"
+                    }
+                  />
                   <FormInput label="Fecha Nacimiento" type="date" value={form.fechaNacimiento} onChange={(v) => updateField("fechaNacimiento", v)} />
                   <FormInput label="Obra Social" value={form.obraSocial} onChange={(v) => updateField("obraSocial", toTitleCase(v))} />
                   <FormInput label="Nro. Afiliado" value={form.numeroAfiliado} onChange={(v) => updateField("numeroAfiliado", v)} />
@@ -2695,19 +2716,25 @@ interface FormInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  required?: boolean;
+  hint?: string;
+  invalid?: boolean;
 }
 
-function FormInput({ label, value, onChange, placeholder, type = "text" }: FormInputProps) {
+function FormInput({ label, value, onChange, placeholder, type = "text", required, hint, invalid }: FormInputProps) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className={`w-full border rounded-lg px-3 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${invalid ? "border-red-400 bg-red-50" : "border-gray-300"}`}
       />
+      {hint && <p className={`text-xs mt-1 ${invalid ? "text-red-500" : "text-gray-400"}`}>{hint}</p>}
     </div>
   );
 }
