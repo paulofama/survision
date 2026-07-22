@@ -1248,7 +1248,10 @@ export default function Presupuestador() {
           monto_usd: totalMontoUSD,
           monto_ars: calcs.subtotalOriginal,
           total_final: calcs.total,
-          estado: "borrador",
+          // El presupuesto se entrega en el momento -> nace "entregado" (emitido),
+          // así entra directo al circuito de resultado y al análisis de conversión.
+          estado: "entregado",
+          fecha_entrega: new Date().toISOString().split("T")[0],
           datos_completos: datosCompletos,
         });
         // Quedar en modo edición para poder imprimir sin resetear el form
@@ -1257,7 +1260,7 @@ export default function Presupuestador() {
           setEditMode(true);
         }
         setPresupuestoNumero(numero);
-        setPresupuestoEstado("borrador");
+        setPresupuestoEstado("entregado");
         setDatosGuardados(datosCompletos);
         setYaGuardado(true);
         notify(`Presupuesto ${numero} guardado ✅ — Ya podés imprimir`, "success");
