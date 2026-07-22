@@ -1,85 +1,74 @@
 @echo off
-:: ============================================
-:: SCRIPT DE INICIO - SISTEMA DE COSTOS
-:: Instituto Dr. Mercado
-:: ============================================
+setlocal
+title Sistema Integral de Gestion - Launcher
+:: ============================================================
+:: LAUNCHER - Sistema Integral de Gestion (Survision S.A.)
+:: Levanta backend (3001) + frontend (3000) y abre el navegador.
+:: Doble clic y listo: no hace falta correr "npm run dev" a mano.
+:: ============================================================
+
+:: Trabajar siempre desde la carpeta de este .bat (aunque se
+:: ejecute desde otro lugar / acceso directo).
+cd /d "%~dp0"
 
 echo.
-echo ============================================
-echo    SISTEMA DE COSTOS - INICIANDO...
-echo    Instituto Dr. Mercado
-echo ============================================
+echo ============================================================
+echo    SISTEMA INTEGRAL DE GESTION - Iniciando...
+echo    Survision S.A. / Instituto Dr. Mercado
+echo ============================================================
 echo.
 
-:: Verificar si Node.js está instalado
+:: --- Verificar Node.js ---
 where node >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo ❌ ERROR: Node.js no está instalado.
-    echo    Por favor instala Node.js desde https://nodejs.org
+if errorlevel 1 (
+    echo [ERROR] Node.js no esta instalado.
+    echo         Instalalo desde https://nodejs.org y volve a intentar.
+    echo.
     pause
     exit /b 1
 )
+echo [OK] Node.js detectado.
 
-echo ✓ Node.js detectado
-echo.
-
-:: ============================================
-:: PASO 1: Instalar dependencias del backend
-:: ============================================
-echo [1/4] Instalando dependencias del backend...
-cd server
+:: --- Instalar dependencias solo si faltan ---
 if not exist "node_modules" (
-    call npm install
-    if %ERRORLEVEL% NEQ 0 (
-        echo ❌ ERROR instalando dependencias del backend
-        pause
-        exit /b 1
-    )
+    echo [..] Instalando dependencias del frontend ^(primera vez^)...
+    call npm install || (echo [ERROR] Fallo npm install frontend & pause & exit /b 1)
 )
-cd ..
-echo ✓ Backend listo
-echo.
-
-:: ============================================
-:: PASO 2: Instalar dependencias del frontend
-:: ============================================
-echo [2/4] Verificando dependencias del frontend...
-if not exist "node_modules" (
-    call npm install
-    if %ERRORLEVEL% NEQ 0 (
-        echo ❌ ERROR instalando dependencias del frontend
-        pause
-        exit /b 1
-    )
+if not exist "server\node_modules" (
+    echo [..] Instalando dependencias del backend ^(primera vez^)...
+    pushd server
+    call npm install || (echo [ERROR] Fallo npm install backend & popd & pause & exit /b 1)
+    popd
 )
-echo ✓ Frontend listo
+echo [OK] Dependencias listas.
 echo.
 
-:: ============================================
-:: PASO 3: Iniciar backend (nueva ventana)
-:: ============================================
-echo [3/4] Iniciando servidor backend (puerto 3001)...
-start "API Backend - Sistema Costos" cmd /k "cd server && npm start"
-echo ✓ Backend iniciando...
-echo.
+:: --- Iniciar backend en su propia ventana ---
+echo [1/3] Iniciando backend  (http://localhost:3001)...
+start "Backend - Sistema Integral de Gestion" /d "%~dp0server" cmd /k npm start
 
-:: Esperar 3 segundos para que el backend arranque
-timeout /t 3 /nobreak >nul
+:: --- Iniciar frontend en su propia ventana ---
+echo [2/3] Iniciando frontend (http://localhost:3000)...
+start "Frontend - Sistema Integral de Gestion" /d "%~dp0." cmd /k npm run dev
 
-:: ============================================
-:: PASO 4: Iniciar frontend
-:: ============================================
-echo [4/4] Iniciando aplicación frontend (puerto 3000)...
+:: --- Esperar a que Vite levante y abrir el navegador ---
+echo [3/3] Abriendo el navegador...
+timeout /t 6 /nobreak >nul
+start "" "http://localhost:3000"
+
 echo.
-echo ============================================
-echo   🚀 SISTEMA INICIADO
-echo   
+echo ============================================================
+echo   SISTEMA INICIADO
+echo.
 echo   Frontend: http://localhost:3000
 echo   Backend:  http://localhost:3001
 echo   Health:   http://localhost:3001/api/health
-echo   
-echo   Servidor SQL: 192.168.1.73 (GECLISA)
-echo ============================================
 echo.
-
-call npm run dev
+echo   Se abrieron 2 ventanas (backend y frontend).
+echo   Para APAGAR el sistema, cerra esas 2 ventanas
+echo   (o Ctrl+C en cada una).
+echo ============================================================
+echo.
+echo Esta ventana ya se puede cerrar.
+pause >nul
+endlocal
