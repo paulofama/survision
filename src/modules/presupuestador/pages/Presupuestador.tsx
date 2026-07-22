@@ -2517,7 +2517,7 @@ export default function Presupuestador() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
                         <th className="text-left px-3 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Nº</th>
-                        <th className="text-left px-3 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Fecha</th>
+                        <th className="text-left px-3 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Entrega</th>
                         <th className="text-left px-3 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Paciente</th>
                         <th className="text-left px-3 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">DNI</th>
                         <th className="text-left px-3 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Obra Social</th>
@@ -2544,7 +2544,7 @@ export default function Presupuestador() {
                               {p.numero_presupuesto}
                             </td>
                             <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap text-xs">
-                              {fmtFecha(p.fecha_creacion)}
+                              {fmtFecha(p.fecha_entrega || p.fecha_creacion)}
                             </td>
                             <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">
                               {p.paciente_apellido}, {p.paciente_nombre}
@@ -3171,7 +3171,7 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, estadoPres
 
       <div class="pdf-meta">
         <div class="meta-item"><strong>Número:</strong> ${numeroStr}</div>
-        <div class="meta-item"><strong>Fecha:</strong> ${fechaStr}</div>
+        <div class="meta-item"><strong>Fecha de entrega:</strong> ${fechaStr}</div>
       </div>
 
       <div class="pdf-columns">

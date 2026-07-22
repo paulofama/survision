@@ -856,7 +856,7 @@ export default function BusquedaPresupuestosPage() {
                 <thead className="sticky top-0 z-10 [&>tr>th]:bg-gray-50">
                   <tr className="bg-gray-50 border-b border-gray-200 shadow-sm">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nº</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Entrega</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paciente</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">DNI</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Prestación</th>
@@ -882,9 +882,9 @@ export default function BusquedaPresupuestosPage() {
                           {p.numero_presupuesto}
                         </td>
 
-                        {/* Fecha */}
+                        {/* Fecha de entrega */}
                         <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                          {fmtFecha(p.fecha_creacion)}
+                          {fmtFecha(p.fecha_entrega || p.fecha_creacion)}
                         </td>
 
                         {/* Paciente */}
