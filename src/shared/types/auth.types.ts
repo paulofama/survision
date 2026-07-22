@@ -21,6 +21,8 @@ export const MODULOS_SISTEMA = {
   // Permiso granular del Presupuestador: edición de los catálogos del circuito
   // post-aceptación (motivos, LIOs, convenios, texto del consentimiento, parámetros).
   'presupuestador:config': { nombre: 'Presupuestador - Configuración', descripcion: 'Editar catálogos del circuito post-aceptación (motivos, LIOs, convenios, consentimiento)' },
+  // Seguimiento telefónico de presupuestos (cola de llamados, encuesta, WhatsApp).
+  'presupuestador:seguimiento': { nombre: 'Presupuestador - Seguimiento', descripcion: 'Seguimiento telefónico de presupuestos entregados (llamados, encuesta)' },
   informes: { nombre: 'Informes', descripcion: 'Informes de gestión mensual' },
   seguimiento_pacientes: { nombre: 'Seguimiento Pacientes', descripcion: 'Seguimiento clínico de pacientes' },
   usuarios: { nombre: 'Usuarios', descripcion: 'Gestión de usuarios del sistema' },
@@ -174,6 +176,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   liquidaciones: false,
   presupuestador: false,
   'presupuestador:config': false,
+  'presupuestador:seguimiento': false,
   informes: false,
   seguimiento_pacientes: false,
   usuarios: false,
@@ -195,6 +198,7 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   liquidaciones: true,
   presupuestador: true,
   'presupuestador:config': true,
+  'presupuestador:seguimiento': true,
   informes: true,
   seguimiento_pacientes: true,
   usuarios: true,

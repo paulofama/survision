@@ -123,6 +123,12 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     icono: FileText,
     color: 'amber'
   },
+  'presupuestador:seguimiento': {
+    nombre: 'Presup. - Seguimiento',
+    descripcion: 'Seguimiento telefónico de presupuestos',
+    icono: FileText,
+    color: 'amber'
+  },
   informes: {
     nombre: 'Informes', 
     descripcion: 'Informes de gestión mensual',
@@ -183,6 +189,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'liquidaciones',
   'presupuestador',
   'presupuestador:config',
+  'presupuestador:seguimiento',
   'informes',
   'seguimiento_pacientes',
   'usuarios',
