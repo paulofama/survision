@@ -13,6 +13,7 @@ import {
 import { Convenio, Lio, sbGet } from "../utils/circuito";
 import AceptacionModal from "../components/AceptacionModal";
 import CircuitoPanel from "../components/CircuitoPanel";
+import MatchesRevisionModal from "../components/MatchesRevisionModal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -380,6 +381,8 @@ export default function BusquedaPresupuestosPage() {
   const [circuito, setCircuito] = useState<Presupuesto | null>(null);
   const [revert, setRevert] = useState<Presupuesto | null>(null);
   const [bulk, setBulk] = useState<{ count: number } | null>(null);
+  const [matchesCount, setMatchesCount] = useState(0);
+  const [showMatches, setShowMatches] = useState(false);
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
@@ -586,10 +589,19 @@ export default function BusquedaPresupuestosPage() {
     navigate("/presupuestos", { state: { presupuesto: p } });
   };
 
+  // ── Contador de matches pendientes de revisión (presupuestos con sugeridos) ──
+  const loadMatchesCount = async () => {
+    try {
+      const rows = await sbGet<{ presupuesto_id: string }>("presupuestos_practica_match?estado=eq.sugerido&select=presupuesto_id");
+      setMatchesCount(new Set(rows.map((r) => r.presupuesto_id)).size);
+    } catch { /* silencioso */ }
+  };
+
   // ── Cargar al montar ──
   useEffect(() => {
     loadCatalogos();
     loadData(1);
+    loadMatchesCount();
     searchRef.current?.focus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -711,12 +723,22 @@ export default function BusquedaPresupuestosPage() {
             <p className="text-xs text-gray-400">
               Vencido = entregado sin respuesta hace más de {plazoDias} días.
             </p>
-            <button
-              onClick={abrirBulk}
-              className="text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              Confirmar vencidos como “Sin respuesta”
-            </button>
+            <div className="flex items-center gap-2">
+              {matchesCount > 0 && (
+                <button
+                  onClick={() => setShowMatches(true)}
+                  className="text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Matches a confirmar ({matchesCount})
+                </button>
+              )}
+              <button
+                onClick={abrirBulk}
+                className="text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Confirmar vencidos como “Sin respuesta”
+              </button>
+            </div>
           </div>
         </div>
 
@@ -975,6 +997,13 @@ export default function BusquedaPresupuestosPage() {
           lios={lios}
           username={username}
           onClose={() => setCircuito(null)}
+        />
+      )}
+      {showMatches && (
+        <MatchesRevisionModal
+          username={username}
+          onClose={() => setShowMatches(false)}
+          onChanged={() => { loadMatchesCount(); loadData(page); }}
         />
       )}
       {revert && (

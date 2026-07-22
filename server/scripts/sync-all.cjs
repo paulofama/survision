@@ -36,6 +36,7 @@ const { sincronizarTipoCambio } = require('../services/tipoCambioExtractor');
 const { sincronizarTesoreria } = require('../services/tesoreriaExtractor');
 const { sincronizarErogaciones } = require('../services/erogacionesExtractor');
 const { sincronizarTurnosFuturos } = require('../services/turnosFuturosExtractor');
+const { correrMatch } = require('../services/matchPracticasService');
 
 // Período YYYY-MM del mes en curso y del anterior (para el ETL fiscal del IVA).
 function periodosIvaRecientes() {
@@ -88,6 +89,9 @@ const SYNCS = [
   { nombre: 'erogaciones (GECLISA→Supabase)', fn: () => sincronizarErogaciones({ write: true }) },
   // Turnos futuros: full refresh de turnos vigentes (~245 filas) para la agenda + recordatorios.
   { nombre: 'turnos futuros (GECLISA→Supabase)', fn: () => sincronizarTurnosFuturos({ write: true }) },
+  // Match presupuesto→práctica realizada (solo Supabase; corre después de movimientos):
+  // auto-marca practicado los matches inequívocos y deja los ambiguos como sugeridos.
+  { nombre: 'match presupuesto→práctica (Supabase)', fn: () => correrMatch({ write: true }) },
   // Próximos: prestaciones-realizadas, etc.
 ];
 
