@@ -690,10 +690,15 @@ export default function Presupuestador() {
         // frontend YA NO pega a GECLISA en vivo → funciona remoto sin túnel.
         let geclisaPac: PacienteGeclisa | null = null;
         try {
+          // El documento en pacientes_geclisa viene con ceros a la izquierda
+          // (rellenado a 8-9 dígitos). Se buscan variantes (plano y rellenado)
+          // para que matchee aunque el usuario tipee el DNI sin los ceros.
+          const dSinCeros = dni.replace(/^0+/, "");
+          const candidatosDoc = [...new Set([dni, dSinCeros, dSinCeros.padStart(8, "0"), dSinCeros.padStart(9, "0")])];
           const { data: pg } = await supabase
             .from("pacientes_geclisa")
             .select("*")
-            .eq("documento", dni)
+            .in("documento", candidatosDoc)
             .order("ficha_id", { ascending: false })
             .limit(1)
             .maybeSingle();
