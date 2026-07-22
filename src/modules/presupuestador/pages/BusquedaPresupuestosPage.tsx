@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Pencil, Send, CheckCircle2, Ban, type LucideIcon } from "lucide-react";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 import { useAuth } from "@shared/context/AuthContext";
 import {
@@ -264,6 +265,24 @@ function ConfirmModal({
 
 // ─── Celda de Resultado (badge + acciones por fila) ───────────────────────────
 
+// Botón de acción operativa (ícono, cuadrado consistente 32px).
+function TransicionBtn({ onClick, title, color, Icon }: { onClick: () => void; title: string; color: "blue" | "green" | "red"; Icon: LucideIcon }) {
+  const hover = {
+    blue: "hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200",
+    green: "hover:bg-green-50 hover:text-green-600 hover:border-green-200",
+    red: "hover:bg-red-50 hover:text-red-600 hover:border-red-200",
+  }[color];
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-400 transition-colors ${hover}`}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
 function CeldaResultado({
   p,
   plazoDias,
@@ -302,9 +321,9 @@ function CeldaResultado({
           <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
           {meta.label}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {p.resultado === "ACEPTADO" && (
-            <button onClick={onCircuito} className="text-[11px] text-blue-600 hover:underline font-medium">
+            <button onClick={onCircuito} className="px-2 py-0.5 text-[11px] font-medium rounded-md border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors">
               Circuito
             </button>
           )}
@@ -333,15 +352,15 @@ function CeldaResultado({
       <span className={`text-[11px] font-medium ${vencido ? "text-amber-600" : "text-gray-400"}`}>
         {vencido ? "Sin respuesta (vencido)" : "Pendiente"}
       </span>
-      <div className="flex items-center gap-1">
-        <button onClick={onAceptar} className="bg-green-600 hover:bg-green-700 text-white text-[11px] px-2 py-1 rounded-md font-medium transition-colors">
+      <div className="inline-flex items-center gap-1.5">
+        <button onClick={onAceptar} className="px-2.5 py-1 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors">
           Aceptar
         </button>
-        <button onClick={onRechazar} className="bg-red-600 hover:bg-red-700 text-white text-[11px] px-2 py-1 rounded-md font-medium transition-colors">
+        <button onClick={onRechazar} className="px-2.5 py-1 text-xs font-medium rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors">
           Rechazar
         </button>
         {vencido && (
-          <button onClick={onSinRespuesta} className="border border-gray-300 text-gray-500 hover:bg-gray-100 text-[11px] px-2 py-1 rounded-md font-medium transition-colors" title="Marcar como Sin respuesta">
+          <button onClick={onSinRespuesta} title="Marcar como Sin respuesta" className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors">
             Sin resp.
           </button>
         )}
@@ -842,7 +861,7 @@ export default function BusquedaPresupuestosPage() {
                         </td>
 
                         {/* Estado */}
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-3 text-center align-middle">
                           <span
                             className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${est.bg} ${est.text}`}
                           >
@@ -852,7 +871,7 @@ export default function BusquedaPresupuestosPage() {
                         </td>
 
                         {/* Resultado comercial */}
-                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
                           <CeldaResultado
                             p={p}
                             plazoDias={plazoDias}
@@ -866,44 +885,26 @@ export default function BusquedaPresupuestosPage() {
 
                         {/* Acciones (operativas) */}
                         <td
-                          className="px-4 py-3 text-center"
+                          className="px-4 py-3 text-center align-middle"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => abrirPresupuesto(p)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shadow-sm"
                               title="Abrir presupuesto para editar"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
                             >
+                              <Pencil className="h-3.5 w-3.5" />
                               Abrir
                             </button>
-
                             {p.estado === "borrador" && (
-                              <button
-                                onClick={() => cambiarEstado(p.id, "entregado")}
-                                className="text-blue-500 hover:bg-blue-100 p-1.5 rounded-lg transition-colors"
-                                title="Marcar como entregado"
-                              >
-                                📤
-                              </button>
+                              <TransicionBtn onClick={() => cambiarEstado(p.id, "entregado")} title="Marcar como entregado" color="blue" Icon={Send} />
                             )}
                             {p.estado === "entregado" && (
-                              <button
-                                onClick={() => cambiarEstado(p.id, "practicado")}
-                                className="text-green-500 hover:bg-green-100 p-1.5 rounded-lg transition-colors"
-                                title="Marcar como practicado"
-                              >
-                                ✅
-                              </button>
+                              <TransicionBtn onClick={() => cambiarEstado(p.id, "practicado")} title="Marcar como practicado" color="green" Icon={CheckCircle2} />
                             )}
                             {p.estado !== "cancelado" && (
-                              <button
-                                onClick={() => cambiarEstado(p.id, "cancelado")}
-                                className="text-red-400 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
-                                title="Cancelar presupuesto"
-                              >
-                                ❌
-                              </button>
+                              <TransicionBtn onClick={() => cambiarEstado(p.id, "cancelado")} title="Cancelar presupuesto" color="red" Icon={Ban} />
                             )}
                           </div>
                         </td>
