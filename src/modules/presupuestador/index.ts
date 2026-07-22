@@ -3,3 +3,4 @@
 // ===========================================================================
 export { default as Presupuestador } from './pages/Presupuestador';
 export { default as BusquedaPresupuestosPage } from './pages/BusquedaPresupuestosPage';
+export { default as SeguimientoPage } from './pages/SeguimientoPage';

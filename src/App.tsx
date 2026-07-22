@@ -40,6 +40,7 @@ import CostosFijosPage from '@modules/insumos/pages/CostosFijosPage';
 // ============================================
 import Presupuestador from '@modules/presupuestador/pages/Presupuestador';
 import BusquedaPresupuestosPage from '@modules/presupuestador/pages/BusquedaPresupuestosPage';
+import SeguimientoPage from '@modules/presupuestador/pages/SeguimientoPage';
 
 // ============================================
 // ANÁLISIS MARGINAL - MULTIPÁGINA
@@ -326,6 +327,7 @@ const App: React.FC = () => {
                       {/* ============================================ */}
                       <Route path="/presupuestos" element={<Presupuestador />} />
                       <Route path="/presupuestos/busqueda" element={<BusquedaPresupuestosPage />} />
+                      <Route path="/presupuestos/seguimiento" element={<ProtectedRoute modulo="presupuestador:seguimiento"><SeguimientoPage /></ProtectedRoute>} />
                       
                       {/* ============================================ */}
                       {/* ADMINISTRACIÓN - Gestión de Accesos Unificada */}

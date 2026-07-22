@@ -53,7 +53,8 @@ import {
   Coins,
   // Herramientas
   Wrench,
-  Ticket
+  Ticket,
+  Bell
 } from 'lucide-react';
 
 // ============================================
@@ -280,6 +281,7 @@ const navItems: NavItem[] = [
     subItems: [
       { path: '/presupuestos', label: 'Nuevo', icon: FilePlus },
       { path: '/presupuestos/busqueda', label: 'Búsqueda', icon: Search },
+      { path: '/presupuestos/seguimiento', label: 'Seguimiento', icon: Bell },
       { path: '/presupuestos/analisis', label: 'Análisis', icon: TrendingUp }
     ]
   },

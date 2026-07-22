@@ -43,6 +43,14 @@ export async function sbPatch(pathWithFilter: string, body: Record<string, unkno
   if (!r.ok) throw new Error(r.statusText);
 }
 
+export async function sbInsert(table: string, body: Record<string, unknown> | Record<string, unknown>[]): Promise<void> {
+  const headers = await authHeaders("return=minimal");
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: "POST", headers, body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(r.statusText);
+}
+
 /** Upsert por on_conflict. resolution 'merge' (pisa) o 'ignore' (preserva existente). */
 export async function sbUpsert(
   table: string,
