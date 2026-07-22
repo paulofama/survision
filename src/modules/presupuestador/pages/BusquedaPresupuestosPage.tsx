@@ -802,10 +802,10 @@ export default function BusquedaPresupuestosPage() {
 
           /* Tabla con datos */
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[70vh]">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
+                <thead className="sticky top-0 z-10 [&>tr>th]:bg-gray-50">
+                  <tr className="bg-gray-50 border-b border-gray-200 shadow-sm">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nº</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paciente</th>
@@ -824,7 +824,7 @@ export default function BusquedaPresupuestosPage() {
                     return (
                       <tr
                         key={p.id}
-                        className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
+                        className="even:bg-gray-50/60 hover:bg-blue-50/50 transition-colors cursor-pointer group"
                         onClick={() => abrirPresupuesto(p)}
                       >
                         {/* Nº */}
