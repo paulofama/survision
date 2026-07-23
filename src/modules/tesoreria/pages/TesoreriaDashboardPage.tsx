@@ -68,6 +68,55 @@ const ICONO_MEDIO: Record<CategoriaMedio, React.ElementType> = {
   otro: DollarSign
 };
 
+// Puente entre el "listado de caja" de GECLISA (que sólo muestra la recaudación
+// del mostrador, todos los medios) y el efectivo neto real de la caja física.
+// Los honorarios/proveedores pagados en efectivo NO figuran en ese listado
+// (se registran como OP/PV), pero salen de la misma caja -> hay que restarlos.
+interface ConciliacionProps {
+  recaudacionTotal: number;   // caja del mes, todos los medios (= listado GECLISA)
+  entraEfectivo: number;      // cobranzas en efectivo
+  saleCajaEfectivo: number;   // egresos de caja en efectivo
+  saleProveedores: number;    // honorarios/proveedores pagados en efectivo
+  neto: number;
+  formatCurrency: (v: number) => string;
+}
+
+const ConciliacionCaja: React.FC<ConciliacionProps> = ({
+  recaudacionTotal, entraEfectivo, saleCajaEfectivo, saleProveedores, neto, formatCurrency
+}) => (
+  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+    <h3 className="font-semibold text-gray-900 mb-1">Conciliación con el listado de caja</h3>
+    <p className="text-xs text-gray-500 mb-4">
+      Por qué el listado de caja de GECLISA da positivo y el efectivo neto no: ese listado muestra
+      lo que entra al mostrador pero no los honorarios pagados en efectivo, que salen de la misma caja.
+    </p>
+    <div className="space-y-2 text-sm">
+      <div className="flex items-center justify-between py-1">
+        <span className="text-gray-700">
+          Recaudación de caja del mes <span className="text-gray-400">(todos los medios — lo que ves en GECLISA)</span>
+        </span>
+        <span className="font-medium text-gray-900">{formatCurrency(recaudacionTotal)}</span>
+      </div>
+      <div className="flex items-center justify-between py-1 pl-4 border-l-2 border-gray-100">
+        <span className="text-gray-500">de eso, en efectivo (mostrador)</span>
+        <span className="text-gray-600">{formatCurrency(entraEfectivo - saleCajaEfectivo)}</span>
+      </div>
+      <div className="flex items-center justify-between py-1">
+        <span className="text-gray-700">
+          − Honorarios y proveedores pagados en efectivo <span className="text-gray-400">(no figuran en el listado)</span>
+        </span>
+        <span className="font-medium text-red-600">−{formatCurrency(saleProveedores)}</span>
+      </div>
+      <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-200">
+        <span className="font-semibold text-gray-900">= Efectivo neto del mes</span>
+        <span className={`font-bold ${neto >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+          {neto >= 0 ? '+' : ''}{formatCurrency(neto)}
+        </span>
+      </div>
+    </div>
+  </div>
+);
+
 interface StatCardProps {
   title: string;
   value: string;
@@ -489,6 +538,16 @@ const TesoreriaDashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Conciliación con el listado de caja de GECLISA */}
+          <ConciliacionCaja
+            recaudacionTotal={dashboard.comprobantes.ingresos - dashboard.comprobantes.egresos}
+            entraEfectivo={dashboard.efectivo.entra}
+            saleCajaEfectivo={dashboard.efectivo.saleCaja}
+            saleProveedores={dashboard.efectivo.saleProveedores}
+            neto={dashboard.efectivo.neto}
+            formatCurrency={formatCurrency}
+          />
 
           {/* Comprobantes del mes (referencia) */}
           <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200 mb-6">
