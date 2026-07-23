@@ -28,7 +28,14 @@ export interface TotalesProveedores {
   total_op: number;
   total_pv: number;
   total_egresos: number;
+  /** true si se alcanzó el tope de filas y los totales son parciales */
+  truncado: boolean;
 }
+
+// Supabase corta en 1.000 filas por request: se pagina hasta este tope para que
+// los totales no queden silenciosamente incompletos.
+const PAGINA = 1000;
+const TOPE_FILAS = 10000;
 
 export interface FiltrosProveedores {
   fechaDesde: string;
@@ -54,7 +61,7 @@ export const useTesoreriaProveedores = () => {
       fechaHasta: hoy.toISOString().split('T')[0],
       tipo: '',
       busqueda: '',
-      limite: 1000,
+      limite: TOPE_FILAS,
     };
   });
 
@@ -65,35 +72,51 @@ export const useTesoreriaProveedores = () => {
       const f = { ...filtros, ...customFiltros };
 
       // Lee del espejo Supabase (tesoreria_proveedores). OP=4, PV=13.
-      let q = supabase
-        .from('tesoreria_proveedores')
-        .select('id, fecha, tcomp_id, tipo_comprobante, tipo_nombre, letra, sucursal, numero, proveedor, cuit, observaciones, importe, usuario, fecha_alta')
-        .order('fecha', { ascending: false })
-        .order('id', { ascending: false })
-        .limit(f.limite || 1000);
-      if (f.fechaDesde) q = q.gte('fecha', f.fechaDesde);
-      if (f.fechaHasta) q = q.lte('fecha', f.fechaHasta);
-      if (f.tipo === 'OP') q = q.eq('tcomp_id', 4);
-      else if (f.tipo === 'PV') q = q.eq('tcomp_id', 13);
-      if (f.busqueda) q = q.or(`proveedor.ilike.%${f.busqueda}%,observaciones.ilike.%${f.busqueda}%`);
+      // Pagina: Supabase corta en 1.000 filas y los totales quedarían parciales.
+      const tope = Math.min(f.limite || TOPE_FILAS, TOPE_FILAS);
+      const filas: Record<string, unknown>[] = [];
+      let desde = 0;
+      let truncado = false;
 
-      const { data, error } = await q;
-      if (error) throw new Error(error.message);
+      for (;;) {
+        let q = supabase
+          .from('tesoreria_proveedores')
+          .select('id, fecha, tcomp_id, tipo_comprobante, tipo_nombre, letra, sucursal, numero, proveedor, cuit, observaciones, importe, usuario, fecha_alta')
+          .order('fecha', { ascending: false })
+          .order('id', { ascending: false })
+          .range(desde, desde + PAGINA - 1);
+        if (f.fechaDesde) q = q.gte('fecha', f.fechaDesde);
+        if (f.fechaHasta) q = q.lte('fecha', f.fechaHasta);
+        if (f.tipo === 'OP') q = q.eq('tcomp_id', 4);
+        else if (f.tipo === 'PV') q = q.eq('tcomp_id', 13);
+        if (f.busqueda) q = q.or(`proveedor.ilike.%${f.busqueda}%,observaciones.ilike.%${f.busqueda}%`);
 
-      const movs: MovimientoProveedor[] = (data || []).map((r: any) => ({
-        id: r.id, fecha: r.fecha, tipo_comprobante: r.tipo_comprobante || '', tipo_nombre: r.tipo_nombre || '',
-        letra: r.letra || '', sucursal: r.sucursal || 0, numero: r.numero || 0, proveedor: r.proveedor || '',
-        cuit: r.cuit || '', observaciones: r.observaciones || '', importe: Number(r.importe) || 0,
-        usuario: r.usuario || '', fecha_alta: r.fecha_alta || '',
+        const { data, error } = await q;
+        if (error) throw new Error(error.message);
+        const lote = data || [];
+        filas.push(...lote);
+
+        if (lote.length < PAGINA) break;
+        desde += PAGINA;
+        if (filas.length >= tope) { truncado = true; break; }
+      }
+
+      const movs: MovimientoProveedor[] = filas.map((r) => ({
+        id: Number(r.id), fecha: String(r.fecha),
+        tipo_comprobante: String(r.tipo_comprobante || ''), tipo_nombre: String(r.tipo_nombre || ''),
+        letra: String(r.letra || ''), sucursal: Number(r.sucursal) || 0, numero: Number(r.numero) || 0,
+        proveedor: String(r.proveedor || ''), cuit: String(r.cuit || ''),
+        observaciones: String(r.observaciones || ''), importe: Number(r.importe) || 0,
+        usuario: String(r.usuario || ''), fecha_alta: String(r.fecha_alta || ''),
       }));
       setMovimientos(movs);
       // Totales sobre el set filtrado (OP = tcomp 4, PV = tcomp 13)
-      const data2 = (data || []) as any[];
       setTotales({
         registros: movs.length,
-        total_op: data2.filter((r) => r.tcomp_id === 4).reduce((s, r) => s + (Number(r.importe) || 0), 0),
-        total_pv: data2.filter((r) => r.tcomp_id === 13).reduce((s, r) => s + (Number(r.importe) || 0), 0),
+        total_op: filas.filter((r) => Number(r.tcomp_id) === 4).reduce((s, r) => s + (Number(r.importe) || 0), 0),
+        total_pv: filas.filter((r) => Number(r.tcomp_id) === 13).reduce((s, r) => s + (Number(r.importe) || 0), 0),
         total_egresos: movs.reduce((s, m) => s + m.importe, 0),
+        truncado,
       });
       setIsConnected(true);
     } catch (err) {
@@ -118,7 +141,7 @@ export const useTesoreriaProveedores = () => {
       fechaHasta: hoy.toISOString().split('T')[0],
       tipo: '',
       busqueda: '',
-      limite: 1000,
+      limite: TOPE_FILAS,
     });
   }, []);
 

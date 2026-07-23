@@ -229,6 +229,14 @@ const CajaMovimientosPage: React.FC = () => {
         </div>
       )}
 
+      {/* Aviso de truncamiento: los totales de arriba son del set traído */}
+      {totales?.truncado && (
+        <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+          El rango supera el máximo de filas que se traen ({formatNumber(totales.registros)}).
+          Los totales corresponden sólo a los movimientos listados. Acotá las fechas para verlos completos.
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">

@@ -1,75 +1,130 @@
 // ============================================
-// TESORERÍA - SALDO HISTÓRICO
-// Sistema de Costos - Instituto Dr. Mercado
-// v1.0.0
+// TESORERÍA - FLUJO DE EFECTIVO MENSUAL
+// Sistema Integral de Gestión - Instituto Dr. Mercado
+// v2.0.0
 // ============================================
-// RUTA DESTINO: src/pages/SaldoHistoricoPage.tsx
+// Antes esta página consultaba el "saldo de caja a una fecha" sumando todos los
+// comprobantes desde 2018 (transferencias y tarjetas incluidas, sin restar los
+// pagos a proveedores) -> devolvía cifras de miles de millones, ficticias.
+//
+// Ahora muestra el FLUJO DE EFECTIVO mes a mes: cuánto entró en efectivo, cuánto
+// salió por egresos de caja, cuánto salió pagando proveedores en efectivo, y el
+// neto. Fuente: RPC tes_efectivo_por_mes (migración 30), alcance 2024+.
 // ============================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Wallet,
-  Calendar,
-  Search,
-  Clock,
+  Banknote,
   ChevronLeft,
   ArrowUpRight,
   ArrowDownRight,
-  History,
-  RefreshCw
+  RefreshCw,
+  Info,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTesoreriaCaja, SaldoHistorico } from '../hooks/useTesoreriaCaja';
+import { useTesoreriaCaja, FlujoMes } from '../hooks/useTesoreriaCaja';
+
+// ============================================
+// HELPERS A NIVEL DE MÓDULO
+// ============================================
+
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+const etiquetaMes = (f: FlujoMes) => `${MESES[f.mes - 1] || '?'} ${f.anio}`;
+
+interface FilaFlujoProps {
+  fila: FlujoMes;
+  maxAbs: number;
+  formatCurrency: (v: number) => string;
+}
+
+const FilaFlujo: React.FC<FilaFlujoProps> = ({ fila, maxAbs, formatCurrency }) => {
+  const saleTotal = fila.sale_caja + fila.sale_prov;
+  const anchoEntra = maxAbs > 0 ? (fila.entra / maxAbs) * 50 : 0;
+  const anchoSale = maxAbs > 0 ? (saleTotal / maxAbs) * 50 : 0;
+
+  return (
+    <tr className="border-b border-gray-100 hover:bg-gray-50">
+      <td className="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+        {etiquetaMes(fila)}
+      </td>
+      <td className="py-3 px-4 text-sm text-right text-green-600 whitespace-nowrap">
+        {formatCurrency(fila.entra)}
+      </td>
+      <td className="py-3 px-4 text-sm text-right text-red-600 whitespace-nowrap">
+        {formatCurrency(fila.sale_caja)}
+      </td>
+      <td className="py-3 px-4 text-sm text-right text-orange-600 whitespace-nowrap">
+        {formatCurrency(fila.sale_prov)}
+      </td>
+      <td className={`py-3 px-4 text-sm text-right font-semibold whitespace-nowrap ${
+        fila.neto >= 0 ? 'text-green-700' : 'text-red-700'
+      }`}>
+        {fila.neto >= 0 ? '+' : ''}{formatCurrency(fila.neto)}
+      </td>
+      <td className="py-3 px-4 w-48">
+        <div className="flex gap-1 h-4">
+          <div
+            className="bg-green-400 rounded-l"
+            style={{ width: `${anchoEntra}%` }}
+            title={`Entra: ${formatCurrency(fila.entra)}`}
+          />
+          <div
+            className="bg-red-400 rounded-r"
+            style={{ width: `${anchoSale}%` }}
+            title={`Sale: ${formatCurrency(saleTotal)}`}
+          />
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 
 const SaldoHistoricoPage: React.FC = () => {
   const {
+    flujoMensual,
     loading,
     error,
-    fetchSaldoHistorico,
-    formatCurrency,
-    formatNumber
+    fetchFlujoMensual,
+    formatCurrency
   } = useTesoreriaCaja();
 
-  const [fechaConsulta, setFechaConsulta] = useState<string>(
-    new Date().toISOString().split('T')[0]
+  const [desde, setDesde] = useState<string>('2024-01-01');
+
+  useEffect(() => {
+    fetchFlujoMensual(desde);
+  }, [fetchFlujoMensual, desde]);
+
+  const filas = useMemo(
+    () => [...flujoMensual].sort((a, b) => (b.anio - a.anio) || (b.mes - a.mes)),
+    [flujoMensual]
   );
-  const [resultado, setResultado] = useState<SaldoHistorico | null>(null);
-  const [historialConsultas, setHistorialConsultas] = useState<Array<{
-    fecha: string;
-    saldo: number;
-    consultadoEn: Date;
-  }>>([]);
 
-  const handleConsultar = useCallback(async () => {
-    const data = await fetchSaldoHistorico(fechaConsulta);
-    if (data) {
-      setResultado(data);
-      // Agregar al historial
-      setHistorialConsultas(prev => {
-        const nuevo = {
-          fecha: fechaConsulta,
-          saldo: data.saldo,
-          consultadoEn: new Date()
-        };
-        // Evitar duplicados y mantener máximo 10
-        const filtrado = prev.filter(h => h.fecha !== fechaConsulta);
-        return [nuevo, ...filtrado].slice(0, 10);
-      });
-    }
-  }, [fechaConsulta, fetchSaldoHistorico]);
+  const maxAbs = useMemo(
+    () => Math.max(1, ...filas.map(f => Math.max(f.entra, f.sale_caja + f.sale_prov))),
+    [filas]
+  );
 
-  // Presets de fechas rápidas
-  const setPreset = (dias: number) => {
-    const fecha = new Date();
-    fecha.setDate(fecha.getDate() - dias);
-    setFechaConsulta(fecha.toISOString().split('T')[0]);
-  };
+  const totales = useMemo(() => filas.reduce(
+    (acc, f) => ({
+      entra: acc.entra + f.entra,
+      sale_caja: acc.sale_caja + f.sale_caja,
+      sale_prov: acc.sale_prov + f.sale_prov,
+      neto: acc.neto + f.neto
+    }),
+    { entra: 0, sale_caja: 0, sale_prov: 0, neto: 0 }
+  ), [filas]);
 
-  const setFinMesAnterior = () => {
-    const fecha = new Date();
-    fecha.setDate(0); // Último día del mes anterior
-    setFechaConsulta(fecha.toISOString().split('T')[0]);
-  };
+  const promedioNeto = filas.length ? totales.neto / filas.length : 0;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -79,200 +134,130 @@ const SaldoHistoricoPage: React.FC = () => {
           <ChevronLeft className="h-5 w-5 text-gray-600" />
         </Link>
         <div className="p-2 bg-emerald-100 rounded-lg">
-          <History className="h-6 w-6 text-emerald-600" />
+          <Banknote className="h-6 w-6 text-emerald-600" />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Saldo Histórico</h1>
-          <p className="text-sm text-gray-500">Consultar saldo de caja a una fecha específica</p>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-gray-900">Flujo de Efectivo Mensual</h1>
+          <p className="text-sm text-gray-500">Movimiento de caja mes a mes, sólo medios de pago en efectivo</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600">Desde</label>
+          <input
+            type="date"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+          <button
+            onClick={() => fetchFlujoMensual(desde)}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Panel de consulta */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Formulario de consulta */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              <h3 className="font-semibold text-gray-900">Seleccionar Fecha</h3>
-            </div>
+      {/* Aclaración metodológica */}
+      <div className="mb-6 flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+        <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        <span>
+          Sólo cuenta el <strong>efectivo</strong>: las transferencias y tarjetas van al banco, no a la caja.
+          Se restan tanto los egresos de caja como los pagos a proveedores hechos en efectivo.
+          El detalle de medios de pago está disponible desde enero de 2024.
+        </span>
+      </div>
 
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <input
-                  type="date"
-                  value={fechaConsulta}
-                  onChange={(e) => setFechaConsulta(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-lg"
-                />
-              </div>
-              <button
-                onClick={handleConsultar}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-              >
-                {loading ? (
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Search className="h-5 w-5" />
-                )}
-                Consultar Saldo
-              </button>
-            </div>
-
-            {/* Presets rápidos */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              <button
-                onClick={() => setPreset(0)}
-                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Hoy
-              </button>
-              <button
-                onClick={() => setPreset(1)}
-                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Ayer
-              </button>
-              <button
-                onClick={() => setPreset(7)}
-                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Hace 7 días
-              </button>
-              <button
-                onClick={setFinMesAnterior}
-                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Fin mes anterior
-              </button>
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
-            </div>
-          )}
-
-          {/* Resultado */}
-          {resultado && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Saldo destacado */}
-              <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-8 text-white">
-                <p className="text-emerald-100 mb-2">
-                  Saldo al {new Date(resultado.fecha).toLocaleDateString('es-AR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-                <p className="text-5xl font-bold">
-                  {formatCurrency(resultado.saldo)}
-                </p>
-              </div>
-
-              {/* Detalles */}
-              <div className="grid grid-cols-3 divide-x divide-gray-200">
-                <div className="p-6 text-center">
-                  <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
-                    <ArrowUpRight className="h-5 w-5" />
-                    <span className="text-sm font-medium">Total Ingresos</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(resultado.total_ingresos)}
-                  </p>
-                </div>
-                <div className="p-6 text-center">
-                  <div className="flex items-center justify-center gap-2 text-red-600 mb-2">
-                    <ArrowDownRight className="h-5 w-5" />
-                    <span className="text-sm font-medium">Total Egresos</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(resultado.total_egresos)}
-                  </p>
-                </div>
-                <div className="p-6 text-center">
-                  <div className="flex items-center justify-center gap-2 text-gray-600 mb-2">
-                    <Wallet className="h-5 w-5" />
-                    <span className="text-sm font-medium">Movimientos</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatNumber(resultado.total_movimientos)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Link a movimientos */}
-              <div className="p-4 bg-gray-50 border-t border-gray-200">
-                <Link
-                  to={`/tesoreria/caja/movimientos?fechaHasta=${resultado.fecha}`}
-                  className="flex items-center justify-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium"
-                >
-                  Ver movimientos hasta esta fecha
-                  <ChevronLeft className="h-4 w-4 rotate-180" />
-                </Link>
-              </div>
-            </div>
-          )}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
         </div>
+      )}
 
-        {/* Panel lateral - Historial */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-gray-400" />
-              <h3 className="font-semibold text-gray-900">Consultas Recientes</h3>
+      {/* Resumen del período */}
+      {filas.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowUpRight className="h-4 w-4 text-green-600" />
+              <span className="text-sm text-gray-500">Entró en efectivo</span>
             </div>
-
-            {historialConsultas.length > 0 ? (
-              <div className="space-y-3">
-                {historialConsultas.map((consulta, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setFechaConsulta(consulta.fecha);
-                      handleConsultar();
-                    }}
-                    className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900">
-                        {new Date(consulta.fecha).toLocaleDateString('es-AR')}
-                      </span>
-                      <span className={`font-semibold ${
-                        consulta.saldo >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {formatCurrency(consulta.saldo)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Consultado: {consulta.consultadoEn.toLocaleTimeString('es-AR')}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-400">
-                <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No hay consultas recientes</p>
-              </div>
-            )}
+            <p className="text-xl font-bold text-green-600">{formatCurrency(totales.entra)}</p>
           </div>
-
-          {/* Tips */}
-          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
-            <h4 className="font-medium text-emerald-800 mb-2">💡 Tip</h4>
-            <p className="text-sm text-emerald-700">
-              El saldo histórico calcula todos los movimientos desde el inicio hasta la fecha seleccionada, 
-              permitiéndote verificar el saldo de caja en cualquier momento del pasado.
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowDownRight className="h-4 w-4 text-red-600" />
+              <span className="text-sm text-gray-500">Salió de caja</span>
+            </div>
+            <p className="text-xl font-bold text-red-600">{formatCurrency(totales.sale_caja)}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingDown className="h-4 w-4 text-orange-600" />
+              <span className="text-sm text-gray-500">Pagó proveedores en efectivo</span>
+            </div>
+            <p className="text-xl font-bold text-orange-600">{formatCurrency(totales.sale_prov)}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-500">Neto del período</span>
+            </div>
+            <p className={`text-xl font-bold ${totales.neto >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              {totales.neto >= 0 ? '+' : ''}{formatCurrency(totales.neto)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Promedio {formatCurrency(promedioNeto)} por mes
             </p>
           </div>
         </div>
+      )}
+
+      {/* Tabla */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {loading && filas.length === 0 ? (
+          <div className="flex items-center justify-center h-48">
+            <div className="flex flex-col items-center gap-3">
+              <RefreshCw className="h-7 w-7 text-emerald-600 animate-spin" />
+              <span className="text-gray-500">Cargando flujo...</span>
+            </div>
+          </div>
+        ) : filas.length === 0 ? (
+          <div className="flex items-center justify-center h-48 text-gray-400">
+            No hay datos para el período seleccionado
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase">Mes</th>
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">Entra</th>
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">Sale de caja</th>
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">Paga proveedores</th>
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">Neto</th>
+                  <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase">Comparación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((f) => (
+                  <FilaFlujo
+                    key={`${f.anio}-${f.mes}`}
+                    fila={f}
+                    maxAbs={maxAbs}
+                    formatCurrency={formatCurrency}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      <p className="text-center text-xs text-gray-400 mt-6">
+        Fuente: espejo de GECLISA (MovValores / MovProv_Valores). Desarrollo: P. Famá
+      </p>
     </div>
   );
 };

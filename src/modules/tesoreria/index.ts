@@ -7,7 +7,14 @@
 // ===========================================================================
 
 export { useTesoreriaCaja } from './hooks/useTesoreriaCaja';
-export type { SaldoHistorico } from './hooks/useTesoreriaCaja';
+export type {
+  DashboardTesoreria,
+  FlujoMes,
+  MedioPago,
+  CategoriaMedio,
+  MovimientoCaja,
+  TotalesCaja
+} from './hooks/useTesoreriaCaja';
 
 export { useTesoreriaProveedores } from './hooks/useTesoreriaProveedores';
 
