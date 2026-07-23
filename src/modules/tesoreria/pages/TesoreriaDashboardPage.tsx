@@ -227,6 +227,11 @@ const TesoreriaDashboardPage: React.FC = () => {
   const totalEgresosProv = dashboard
     ? dashboard.egresos.proveedoresPorMedio.reduce((s, m) => s + m.total, 0)
     : 0;
+  // Caja del mes tal como la larga el listado de GECLISA (todos los medios):
+  // ingresos de caja menos egresos de caja. Reconcilia al peso con el archivo.
+  const recaudacionCaja = dashboard
+    ? dashboard.comprobantes.ingresos - dashboard.comprobantes.egresos
+    : 0;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -238,7 +243,7 @@ const TesoreriaDashboardPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Tesorería</h1>
-            <p className="text-sm text-gray-500">Flujo de efectivo y cobranzas</p>
+            <p className="text-sm text-gray-500">Caja y cobranzas</p>
           </div>
         </div>
 
@@ -308,33 +313,29 @@ const TesoreriaDashboardPage: React.FC = () => {
             )}
           </div>
 
-          {/* Efectivo neto del mes - Destacado */}
-          <div className={`rounded-2xl p-8 mb-6 shadow-xl bg-gradient-to-br ${
-            dashboard.efectivo.neto >= 0
-              ? 'from-emerald-500 to-emerald-700'
-              : 'from-orange-500 to-orange-700'
-          }`}>
+          {/* Recaudación de caja del mes — el mismo número que larga el listado de GECLISA */}
+          <div className="rounded-2xl p-8 mb-6 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-700">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-white/80 text-lg mb-2">
-                  Efectivo neto del mes
+                  Recaudación de Caja del mes
                 </p>
                 <p className="text-5xl font-bold text-white">
-                  {formatCurrency(dashboard.efectivo.neto)}
+                  {formatCurrency(recaudacionCaja)}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 text-white/90 text-sm">
                   <span className="flex items-center gap-1.5">
                     <ArrowUpRight className="h-4 w-4" />
-                    Entra {formatCurrency(dashboard.efectivo.entra)}
+                    Ingresos {formatCurrency(dashboard.comprobantes.ingresos)}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <ArrowDownRight className="h-4 w-4" />
-                    Sale de caja {formatCurrency(dashboard.efectivo.saleCaja)}
+                    Egresos de caja {formatCurrency(dashboard.comprobantes.egresos)}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <ArrowDownRight className="h-4 w-4" />
-                    Paga proveedores {formatCurrency(dashboard.efectivo.saleProveedores)}
+                    <Activity className="h-4 w-4" />
+                    {formatNumber(dashboard.comprobantes.movimientos)} comprobantes
                   </span>
                 </div>
 
@@ -349,7 +350,7 @@ const TesoreriaDashboardPage: React.FC = () => {
                 </p>
               </div>
               <div className="hidden md:block">
-                <Banknote className="h-28 w-28 text-white/20" />
+                <Wallet className="h-28 w-28 text-white/20" />
               </div>
             </div>
           </div>
@@ -358,26 +359,27 @@ const TesoreriaDashboardPage: React.FC = () => {
           <div className="mb-6 flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
             <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>
-              Sólo cuenta los medios de pago en <strong>efectivo</strong>. Las transferencias y tarjetas
-              van al banco, no a la caja. Los pagos a proveedores en efectivo se restan.
+              Es la caja tal como la larga el sistema (listado de caja): cobranzas del mostrador
+              por todos los medios menos los egresos de caja. Los honorarios pagados en efectivo se
+              analizan más abajo (no figuran en el listado de caja).
             </span>
           </div>
 
           {/* Métricas del mes */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <StatCard
-              title="Efectivo que entró"
-              value={formatCurrency(dashboard.efectivo.entra)}
-              subtitle={`${formatNumber(dashboard.efectivo.movimientos)} movimientos en efectivo`}
-              icon={Banknote}
-              color="bg-gradient-to-br from-green-500 to-green-600"
-            />
-            <StatCard
               title="Cobranzas del mes"
               value={formatCurrency(totalIngresos)}
               subtitle="Todos los medios (caja + banco)"
               icon={TrendingUp}
               color="bg-gradient-to-br from-blue-500 to-blue-600"
+            />
+            <StatCard
+              title="Efectivo cobrado"
+              value={formatCurrency(dashboard.efectivo.entra)}
+              subtitle={`${formatNumber(dashboard.efectivo.movimientos)} movimientos en efectivo`}
+              icon={Banknote}
+              color="bg-gradient-to-br from-green-500 to-green-600"
             />
             <StatCard
               title="Egresos de caja"
@@ -539,25 +541,24 @@ const TesoreriaDashboardPage: React.FC = () => {
             </div>
           </div>
 
+          {/* ── Sección de análisis (fuera del listado de caja) ── */}
+          <div className="flex items-center gap-2 mt-8 mb-3">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Análisis de efectivo · no figura en el listado de caja
+            </span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
+
           {/* Conciliación con el listado de caja de GECLISA */}
           <ConciliacionCaja
-            recaudacionTotal={dashboard.comprobantes.ingresos - dashboard.comprobantes.egresos}
+            recaudacionTotal={recaudacionCaja}
             entraEfectivo={dashboard.efectivo.entra}
             saleCajaEfectivo={dashboard.efectivo.saleCaja}
             saleProveedores={dashboard.efectivo.saleProveedores}
             neto={dashboard.efectivo.neto}
             formatCurrency={formatCurrency}
           />
-
-          {/* Comprobantes del mes (referencia) */}
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200 mb-6">
-            <p className="text-sm text-gray-500">
-              <strong className="text-gray-700">{formatNumber(dashboard.comprobantes.movimientos)}</strong> comprobantes
-              de caja en el mes por <strong className="text-gray-700">{formatCurrency(dashboard.comprobantes.ingresos)}</strong> de
-              ingresos y <strong className="text-gray-700">{formatCurrency(dashboard.comprobantes.egresos)}</strong> de egresos.
-              Incluye lo cobrado por banco y tarjeta, por eso no coincide con el efectivo.
-            </p>
-          </div>
 
           {/* Accesos rápidos */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
