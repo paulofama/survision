@@ -93,7 +93,7 @@ const ConciliacionCaja: React.FC<ConciliacionProps> = ({
     <div className="space-y-2 text-sm">
       <div className="flex items-center justify-between py-1">
         <span className="text-gray-700">
-          Recaudación de caja del mes <span className="text-gray-400">(todos los medios — lo que ves en GECLISA)</span>
+          Saldo de caja del mes <span className="text-gray-400">(todos los medios — lo que ves en GECLISA)</span>
         </span>
         <span className="font-medium text-gray-900">{formatCurrency(recaudacionTotal)}</span>
       </div>
@@ -227,9 +227,11 @@ const TesoreriaDashboardPage: React.FC = () => {
   const totalEgresosProv = dashboard
     ? dashboard.egresos.proveedoresPorMedio.reduce((s, m) => s + m.total, 0)
     : 0;
-  // Caja del mes tal como la larga el listado de GECLISA (todos los medios):
-  // ingresos de caja menos egresos de caja. Reconcilia al peso con el archivo.
-  const recaudacionCaja = dashboard
+  // Saldo de caja del mes tal como lo larga el listado de GECLISA (todos los
+  // medios): ingresos de caja menos egresos de caja. Es el neto del período,
+  // NO la recaudación bruta (esa sería sólo los ingresos). Reconcilia al peso
+  // con el archivo.
+  const saldoCajaMes = dashboard
     ? dashboard.comprobantes.ingresos - dashboard.comprobantes.egresos
     : 0;
 
@@ -313,15 +315,17 @@ const TesoreriaDashboardPage: React.FC = () => {
             )}
           </div>
 
-          {/* Recaudación de caja del mes — el mismo número que larga el listado de GECLISA */}
-          <div className="rounded-2xl p-8 mb-6 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-700">
+          {/* Saldo de caja del mes — el mismo número que larga el listado de GECLISA */}
+          <div className={`rounded-2xl p-8 mb-6 shadow-xl bg-gradient-to-br ${
+            saldoCajaMes >= 0 ? 'from-emerald-500 to-emerald-700' : 'from-orange-500 to-orange-700'
+          }`}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-white/80 text-lg mb-2">
-                  Recaudación de Caja del mes
+                  Saldo de Caja del mes
                 </p>
                 <p className="text-5xl font-bold text-white">
-                  {formatCurrency(recaudacionCaja)}
+                  {formatCurrency(saldoCajaMes)}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 text-white/90 text-sm">
@@ -359,7 +363,7 @@ const TesoreriaDashboardPage: React.FC = () => {
           <div className="mb-6 flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
             <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>
-              Es la caja tal como la larga el sistema (listado de caja): cobranzas del mostrador
+              Saldo de la caja tal como lo larga el sistema (listado de caja): ingresos del mostrador
               por todos los medios menos los egresos de caja. Los honorarios pagados en efectivo se
               analizan más abajo (no figuran en el listado de caja).
             </span>
@@ -552,7 +556,7 @@ const TesoreriaDashboardPage: React.FC = () => {
 
           {/* Conciliación con el listado de caja de GECLISA */}
           <ConciliacionCaja
-            recaudacionTotal={recaudacionCaja}
+            recaudacionTotal={saldoCajaMes}
             entraEfectivo={dashboard.efectivo.entra}
             saleCajaEfectivo={dashboard.efectivo.saleCaja}
             saleProveedores={dashboard.efectivo.saleProveedores}
