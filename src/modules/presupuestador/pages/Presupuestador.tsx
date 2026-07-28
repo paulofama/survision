@@ -363,12 +363,6 @@ const fmtARS = (v: number): string => {
 const fmtUSD = (v: number): string => `USD ${fmtARS(v)}`;
 const fmtPesos = (v: number): string => `$ ${fmtARS(v)}`;
 
-const parseArgNum = (str: string | number): number => {
-  if (typeof str === "number") return str;
-  if (!str) return 0;
-  return parseFloat(String(str).replace(/\./g, "").replace(",", ".")) || 0;
-};
-
 const toTitleCase = (s: string): string =>
   s ? s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : "";
 
@@ -1043,7 +1037,11 @@ export default function Presupuestador() {
   // ── Insumos ──
   const addInsumo = useCallback(() => {
     if (!newInsumoDesc.trim()) return notify("Descripción requerida", "warning");
-    const montoOriginal = parseArgNum(newInsumoMonto);
+    // newInsumoMonto viene de un input type="number" (o de String(precio) del
+    // catálogo): SIEMPRE formato canónico con punto decimal. Usar parseFloat,
+    // NO parseArgNum (que trata el punto como separador de miles y lo borra →
+    // inflaba x10/x100 los precios con decimales).
+    const montoOriginal = parseFloat(newInsumoMonto) || 0;
     if (montoOriginal <= 0) return notify("Monto debe ser mayor a 0", "warning");
     const tc = form.tipoCambio || DEFAULT_TC;
     const montoARS = newInsumoMoneda === "USD" ? montoOriginal * tc : montoOriginal;
@@ -2134,9 +2132,9 @@ export default function Presupuestador() {
                   </button>
                 </div>
                 {/* Preview conversión cuando es USD */}
-                {newInsumoMoneda === "USD" && newInsumoMonto && parseArgNum(newInsumoMonto) > 0 && (
+                {newInsumoMoneda === "USD" && newInsumoMonto && (parseFloat(newInsumoMonto) || 0) > 0 && (
                   <p className="text-xs text-blue-600 mb-2">
-                    = {fmtPesos(parseArgNum(newInsumoMonto) * (form.tipoCambio || DEFAULT_TC))} al TC actual
+                    = {fmtPesos((parseFloat(newInsumoMonto) || 0) * (form.tipoCambio || DEFAULT_TC))} al TC actual
                   </p>
                 )}
                 {form.insumos.length > 0 && (
