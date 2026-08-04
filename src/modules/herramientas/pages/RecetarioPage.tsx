@@ -1,6 +1,6 @@
 // ============================================
 // RECETARIO MÉDICO — Herramientas
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================
 //
 // Embebe el recetario médico (public/recetario.html) en un iframe aislado.

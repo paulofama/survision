@@ -1,6 +1,6 @@
 // ============================================================
 // Sobre Quirúrgico — builders de los 5 documentos (jsPDF)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Cada builder dibuja su documento sobre el Lienzo recibido, arrancando en la
 // hoja actual (el orquestador de index.ts abre una hoja nueva entre documentos).

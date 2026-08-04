@@ -1,6 +1,6 @@
 // ============================================
 // PÁGINA: LIQUIDACIÓN DE DERIVACIONES
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -670,7 +670,7 @@ const DerivacionesLiquidacionPage = () => {
     doc.setTextColor(130, 130, 130);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text('Sistema de Costos - Desarrollo | P. Famá', m, pageH - 5);
+    doc.text('Sistema de Gestión Integral - Desarrollo | P. Famá', m, pageH - 5);
     doc.text(`Instituto Dr. Mercado - ${new Date().getFullYear()}`, pageW - m, pageH - 5, { align: 'right' });
   };
 

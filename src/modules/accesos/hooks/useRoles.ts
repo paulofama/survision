@@ -1,6 +1,6 @@
 // ============================================
 // USE ROLES - Hook para gestión de roles
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/hooks/useRoles.ts
 // ============================================

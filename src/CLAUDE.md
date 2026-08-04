@@ -1,4 +1,4 @@
-# CLAUDE.md — SurVisión / Sistema Integral de Gestión
+# CLAUDE.md — SurVisión / Sistema de Gestión Integral
 
 > Este archivo lo lee Claude Code automáticamente al iniciar cada sesión.
 > Contiene el contexto del proyecto + convenciones + estado actual.
@@ -8,12 +8,12 @@
 
 ## Identidad del proyecto
 
-- **Sistema**: SurVisión / Sistema Integral de Gestión.
+- **Sistema**: SurVisión / Sistema de Gestión Integral.
 - **Cliente**: Instituto Dr. Mercado / Survisión S.A.
 - **CUIT empresa**: 30-70967266-1
 - **Naturaleza**: Sistema de gestión financiera y operativa para clínica de oftalmología (cost análisis, rentabilidad marginal, presupuestos, clasificación de gastos, tesorería, liquidaciones de honorarios, seguimiento de pacientes, reportes de gestión).
 - **Desarrollador principal**: P. Famá (Paulo). Contador interno de la clínica y desarrollador del sistema.
-- **Branding del sistema**: "Sistema Integral de Gestión" (NUNCA "Sistema de Costos").
+- **Branding del sistema**: "Sistema de Gestión Integral" (NUNCA "Sistema de Costos").
 - **Footer de desarrollo**: "Desarrollo: P. Famá".
 
 ---

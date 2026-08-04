@@ -1,7 +1,7 @@
 {
   "name": "sistema-costos-api",
   "version": "1.0.0",
-  "description": "API Backend para Sistema de Costos - Instituto Dr. Mercado",
+  "description": "API Backend para Sistema de Gestión Integral - Instituto Dr. Mercado",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

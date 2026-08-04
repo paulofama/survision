@@ -1,6 +1,6 @@
 // ============================================================
 // PERÍODO — Análisis Marginal (selección mes / multi-mes)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Helper PURO (sin dependencias, sin React, sin Supabase) que modela el período

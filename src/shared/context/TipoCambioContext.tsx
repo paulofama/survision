@@ -1,6 +1,6 @@
 // ============================================
 // CONTEXT: Tipo de Cambio BCRA
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Centraliza el tipo de cambio para toda la app
 // ============================================
 

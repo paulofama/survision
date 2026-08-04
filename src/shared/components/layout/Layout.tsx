@@ -1,6 +1,6 @@
 // ============================================
 // LAYOUT PRINCIPAL - VERSIÓN CORREGIDA
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v4.2 - Compatible con Sidebar fixed
 // ============================================
 // RUTA DESTINO: src/components/layout/Layout.tsx

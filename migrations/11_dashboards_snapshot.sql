@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 11: snapshots de dashboards por período (GECLISA -> Supabase)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Tabla genérica que guarda el payload calculado de dashboards mensuales como
 -- JSON, una fila por (modulo, anio, mes). La refresca el daemon on-prem; el

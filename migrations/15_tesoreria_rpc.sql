@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 15: funciones RPC de Tesorería Caja (agregados server-side)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- El saldo de caja suma ~110k filas -> no conviene traerlas al browser. Estas
 -- funciones agregan en Postgres y el frontend las llama con supabase.rpc().

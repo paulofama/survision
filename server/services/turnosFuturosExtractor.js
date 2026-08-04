@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor de turnos futuros GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Alimenta la sección operativa "Turnos" (agenda de turnos futuros +

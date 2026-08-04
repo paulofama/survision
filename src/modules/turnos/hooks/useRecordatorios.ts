@@ -1,6 +1,6 @@
 // ============================================================
 // HOOK: useRecordatorios — marca persistente de avisos por TIPO de mensaje
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Lee turnos_recordatorios (qué avisos ya se enviaron por WhatsApp) y expone

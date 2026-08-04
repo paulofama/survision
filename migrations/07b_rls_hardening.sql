@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 07b — Endurecimiento de RLS (Sueldos + perfiles)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 --
 -- ⚠️  MIGRACIÓN DESTRUCTIVA DE POLICIES. Aplicar SOLO cuando:

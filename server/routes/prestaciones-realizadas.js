@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE PRESTACIONES REALIZADAS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Dashboard similar a Power BI
 // VERSIÓN 3.0 - ESTADÍSTICAS EN SERVIDOR
 // ============================================

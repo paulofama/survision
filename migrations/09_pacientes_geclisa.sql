@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 09 — Tabla espejo del maestro de pacientes de GECLISA
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 --
 -- Copia (sincronizada) del maestro de pacientes de GECLISA (tabla Ficha +

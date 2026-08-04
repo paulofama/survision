@@ -1,6 +1,6 @@
 // ===========================================================
 // CostosFijosPage.tsx - v2.4
-// Sistema de Costos Fijos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Costos Fijos - Instituto Dr. Mercado
 // Menú contextual de clasificación en primera columna
 // v2.4: Columna "Tipo" informativa (Fijo / Variable / vacío)
 // ===========================================================

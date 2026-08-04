@@ -1,6 +1,6 @@
 // ============================================================
 // BACKEND - API: INFORME DE GESTIÓN MENSUAL
-// Instituto Dr. Mercado - Sistema Integral de Gestión
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 // ENDPOINT:
 //   GET /api/informes/gestion-mensual?mes=1&anio=2026

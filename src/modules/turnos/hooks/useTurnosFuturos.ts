@@ -1,6 +1,6 @@
 // ============================================================
 // HOOK: useTurnosFuturos — lee la agenda de turnos futuros (espejo Supabase)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Lee la tabla turnos_futuros (espejo que refresca el daemon on-prem desde

@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE MOVIMIENTOS (ATENCIONES)
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Tabla: MovEnca + MovPrac + ObrasSociales
 // ============================================
 // VERSIÓN 3.5 - Prorrateo de ingresos por prestador

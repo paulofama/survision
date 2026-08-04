@@ -1,6 +1,6 @@
 // ============================================
 // HOOK: useTesoreriaCaja
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v2.0.0
 // ============================================
 // CAMBIO v2 (migración 30): se abandona el "saldo acumulado de caja".

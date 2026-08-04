@@ -1,7 +1,7 @@
 -- ===========================================================================
 -- MIGRACION: 05_sueldos_fase4_asientos.sql
 -- ===========================================================================
--- Sistema: SurVision / Sistema Integral de Gestion
+-- Sistema: SurVision / Sistema de Gestion Integral
 -- Cliente: Instituto Dr. Mercado / Survision S.A.
 -- Desarrollo: P. Fama
 --

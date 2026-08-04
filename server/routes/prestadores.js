@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE PRESTADORES - GECLISA → SUPABASE
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Sincronización de prestadores
 // ============================================
 

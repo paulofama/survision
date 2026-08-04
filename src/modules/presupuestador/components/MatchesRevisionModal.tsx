@@ -1,6 +1,6 @@
 // ============================================================
 // Revisión de matches ambiguos presupuesto → práctica realizada (Fase C)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Lista los presupuestos con matches 'sugerido' (varios candidatos). Por cada
 // uno, el operador elige la cirugía correcta ("Es esta" → marca practicado y

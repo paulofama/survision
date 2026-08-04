@@ -1,6 +1,6 @@
 // ============================================================
 // CLI: snapshots del seguimiento de pacientes GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // USO:
 //   cd server

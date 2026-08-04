@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 18: fix RLS Turnos + Seguimiento (permisos inexistentes)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Dos RLS pedían un nombre de módulo que NO existe en el sistema, por lo que
 -- app_tiene_permiso() devolvía false para todo no-admin (Paulo no lo notó por

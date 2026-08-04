@@ -1,6 +1,6 @@
 // ============================================================
 // DAEMON DE SYNC: GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Corre TODOS los extractores de sync (GECLISA -> Supabase) registrados.
 // A medida que se sumen módulos (movimientos, tesorería, etc.), se agregan acá.

@@ -1,6 +1,6 @@
 // ============================================================
 // Ruta de inicio según el rol/permisos del usuario
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Al loguearse (o entrar a "/"), cada usuario va a su pantalla principal:
 //   - Admin o quien tenga acceso al dashboard (prestaciones/análisis) -> "/".

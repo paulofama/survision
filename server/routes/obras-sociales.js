@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE OBRAS SOCIALES
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 const express = require('express');

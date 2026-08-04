@@ -1,6 +1,6 @@
 // ============================================================
 // TYPES - MÓDULO INFORMES DE GESTIÓN
-// Instituto Dr. Mercado - Sistema de Costos
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 // CAMBIO: Se agregaron acumActual y acumAnterior en las secciones
 // porObraSocial, porPrestador y porPractica para alimentar

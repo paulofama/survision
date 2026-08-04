@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 25: Circuito post-aceptación del Presupuestador (Fase 1)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Fundamentos de datos para: resultado comercial del presupuesto
 -- (ACEPTADO/RECHAZADO/SIN_RESPUESTA), rama de circuito al aceptar, checklist

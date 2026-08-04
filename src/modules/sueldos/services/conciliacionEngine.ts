@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO (browser): Engine de conciliación Minuta vs F.931
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Port literal de server/services/conciliacionEngine.js. Función PURA: compara
 // los 6 conceptos del bloque seguridad_social + sindicato de la minuta contra

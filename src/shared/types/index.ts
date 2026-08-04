@@ -1,6 +1,6 @@
 // ============================================
 // TIPOS TYPESCRIPT - SEGMENTOS HOMOGÉNEOS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 // ============================================

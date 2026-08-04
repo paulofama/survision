@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE DIAGNÓSTICO - TURNOS GECLISA
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Endpoint para investigar tabla Turnos
 // ============================================
 

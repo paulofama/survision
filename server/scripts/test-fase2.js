@@ -1,6 +1,6 @@
 // ============================================================
 // SCRIPT DE DIAGNOSTICO - Modulo Sueldos (Fase 1 + Fase 2 + Fase 3)
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // USO:

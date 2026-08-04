@@ -1,6 +1,6 @@
 // ============================================================
 // Recordatorios de Turnos por WhatsApp — armado de mensajes y helpers
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Lógica pura (sin React) de la sección Turnos:

@@ -1,6 +1,6 @@
 // ============================================================
 // CLI: snapshot de la comparativa inteligente GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // USO:
 //   cd server

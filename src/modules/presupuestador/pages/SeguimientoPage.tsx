@@ -1,6 +1,6 @@
 // ============================================================
 // Cola de Seguimiento telefónico de presupuestos
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Lista los presupuestos que hay que llamar hoy (derivado al vuelo del circuito).
 // Cada uno: datos del llamado + acción (Llamar / WhatsApp). Registra todo con el

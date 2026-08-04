@@ -1,7 +1,7 @@
 // ============================================================
 // HOOK - useInformeGestion
 // Fetch y gestión de datos para Informe de Gestión Mensual
-// Instituto Dr. Mercado - Sistema de Costos
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 
 import { useState, useCallback } from 'react';

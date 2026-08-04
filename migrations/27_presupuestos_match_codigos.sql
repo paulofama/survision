@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 27: equivalencias de códigos para el match de prácticas (Fase B)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- El match "presupuesto → práctica realizada" cruza por código. Los códigos
 -- 030xxx COINCIDEN en su mayoría entre el presupuesto y movimientos_geclisa

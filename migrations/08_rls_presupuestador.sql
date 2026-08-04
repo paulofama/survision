@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 08 — Endurecimiento de RLS: módulo Presupuestador
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 --
 -- Cierra el acceso anon a los datos del Presupuestador (hoy anon lee las 800

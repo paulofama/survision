@@ -1,8 +1,8 @@
 @echo off
 setlocal
-title Sistema Integral de Gestion - Launcher
+title Sistema de Gestion Integral - Launcher
 :: ============================================================
-:: LAUNCHER - Sistema Integral de Gestion (Survision S.A.)
+:: LAUNCHER - Sistema de Gestion Integral (Survision S.A.)
 :: Levanta backend (3001) + frontend (3000) y abre el navegador.
 :: Doble clic y listo: no hace falta correr "npm run dev" a mano.
 :: ============================================================
@@ -13,7 +13,7 @@ cd /d "%~dp0"
 
 echo.
 echo ============================================================
-echo    SISTEMA INTEGRAL DE GESTION - Iniciando...
+echo    SISTEMA DE GESTION INTEGRAL - Iniciando...
 echo    Survision S.A. / Instituto Dr. Mercado
 echo ============================================================
 echo.
@@ -45,11 +45,11 @@ echo.
 
 :: --- Iniciar backend en su propia ventana ---
 echo [1/3] Iniciando backend  (http://localhost:3001)...
-start "Backend - Sistema Integral de Gestion" /d "%~dp0server" cmd /k npm start
+start "Backend - Sistema de Gestion Integral" /d "%~dp0server" cmd /k npm start
 
 :: --- Iniciar frontend en su propia ventana ---
 echo [2/3] Iniciando frontend (http://localhost:3000)...
-start "Frontend - Sistema Integral de Gestion" /d "%~dp0." cmd /k npm run dev
+start "Frontend - Sistema de Gestion Integral" /d "%~dp0." cmd /k npm run dev
 
 :: --- Esperar a que Vite levante y abrir el navegador ---
 echo [3/3] Abriendo el navegador...

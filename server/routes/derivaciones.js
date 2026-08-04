@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE LIQUIDACIÓN DE DERIVACIONES
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v2.0.0 - Lógica corregida según Power BI DAX
 // ============================================
 // DAX Original:

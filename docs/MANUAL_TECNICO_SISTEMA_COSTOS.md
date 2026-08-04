@@ -1,4 +1,4 @@
-# 📚 MANUAL TÉCNICO - SISTEMA DE COSTOS 
+# 📚 MANUAL TÉCNICO - SISTEMA DE GESTIÓN INTEGRAL 
 ## Instituto Dr. Mercado
 
 ---
@@ -7,7 +7,7 @@
 
 | **Propiedad** | **Valor** |
 |---------------|-----------|
-| **Nombre** | Sistema de Costos - Instituto Dr. Mercado |
+| **Nombre** | Sistema de Gestión Integral - Instituto Dr. Mercado |
 | **Versión** | 1.0.0 |
 | **Stack Principal** | React + TypeScript + Supabase |
 | **Desarrollador** | P. Famá |
@@ -229,7 +229,7 @@ interface InsumoVariable {
 ```typescript
 URL: https://ecraryyvngnyxusdggvj.supabase.co
 Anon Key: [Configurado en .env]
-App Title: "Sistema de Costos - Instituto Dr. Mercado"
+App Title: "Sistema de Gestión Integral - Instituto Dr. Mercado"
 Version: 1.0.0
 Dev Mode: true
 Enable Logger: true
@@ -364,7 +364,7 @@ npm run build-storybook   # Build Storybook estático
 
 ---
 
-*Manual técnico generado automáticamente - Sistema de Costos v1.0.0*
+*Manual técnico generado automáticamente - Sistema de Gestión Integral v1.0.0*
 *Última actualización: [PENDIENTE - se completará con archivos faltantes]*
 
 ---
@@ -743,7 +743,7 @@ const calcularEstadisticasDinamicas = () => {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Costos - Instituto Dr. Mercado</title>
+    <title>Sistema de Gestión Integral - Instituto Dr. Mercado</title>
     <meta name="description" content="Sistema de gestión de costos médicos para Instituto Dr. Mercado" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   </head>
@@ -820,5 +820,5 @@ Este manual documenta un sistema de gestión médica **100% funcional** desarrol
 
 ---
 
-*Manual técnico actualizado - Sistema de Costos v1.0.0*
+*Manual técnico actualizado - Sistema de Gestión Integral v1.0.0*
 *Última actualización: $(date) - Documentación 100% completa*

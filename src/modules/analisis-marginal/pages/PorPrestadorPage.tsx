@@ -1,6 +1,6 @@
 // ============================================
 // POR PRESTADOR PAGE - v1.0
-// Análisis Marginal - Sistema de Costos
+// Análisis Marginal - Sistema de Gestión Integral
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/analisis-marginal/PorPrestadorPage.tsx

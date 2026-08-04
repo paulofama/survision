@@ -1449,4 +1449,4 @@ ORDER BY e.Stock_Actual ASC
 **FIN DEL DOCUMENTO**
 
 *Generado automáticamente por Claude AI*
-*Instituto Dr. Mercado - Sistema de Costos*
+*Instituto Dr. Mercado - Sistema de Gestión Integral*

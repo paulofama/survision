@@ -1,6 +1,6 @@
 // ============================================
 // COMPONENTE: Indicador de Tipo de Cambio
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Componente reutilizable para mostrar el TC
 // ============================================
 

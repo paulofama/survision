@@ -1,6 +1,6 @@
 // ============================================
 // HOOK: useErogaciones
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v2.2 - Toggle 3 estados (sin_clasificar / fijo / variable)
 // ============================================
 // RUTA DESTINO: src/hooks/useErogaciones.ts

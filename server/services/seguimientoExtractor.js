@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor del seguimiento mensual de pacientes GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Porta la lógica del endpoint GET /api/seguimiento-pacientes/informe-mensual

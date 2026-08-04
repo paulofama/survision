@@ -1,6 +1,6 @@
 // ============================================
 // PÁGINA: Prestaciones (Catálogo de Prácticas)
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Con Tipo de Cambio BCRA y columnas USD/ARS
 // ============================================
 

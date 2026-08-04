@@ -1,6 +1,6 @@
 // ============================================
 // PÁGINA: Configuración de Pools de Insumos
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // CON FUNCIONALIDAD DE IMPRESIÓN Y CREACIÓN
 // ============================================
 
@@ -69,7 +69,7 @@ const getFechaActual = (): string => {
   });
 };
 
-const FOOTER_TEXT = 'Sistema de Costos - Desarrollo | P. Famá';
+const FOOTER_TEXT = 'Sistema de Gestión Integral - Desarrollo | P. Famá';
 
 // Imprimir un pool individual con detalle
 const imprimirPool = (pool: PoolConItems) => {

@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Costo laboral del período (puente al módulo de Sueldos)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Fuente ÚNICA del costo laboral para el Análisis Marginal (lo usan tanto

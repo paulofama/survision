@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 28: matches presupuesto → práctica/cirugía realizada (Fase C)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Una fila por CANDIDATO (presupuesto ↔ atención realizada del espejo
 -- movimientos_geclisa). El motor (matchPracticasService.js) cruza por DNI +

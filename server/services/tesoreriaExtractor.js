@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor de Tesorería GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Espeja a Supabase:
 //   tesoreria_caja         <- MovValoresEnca (comprobantes de caja/valores)

@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 22: RLS movimientos_geclisa también para 'liquidaciones'
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- BUG: la pantalla "Liquidación de Derivaciones" (módulo Liquidaciones) lee
 -- movimientos_geclisa para armar el listado y el dropdown de derivadores. Pero

@@ -1,6 +1,6 @@
 // ============================================================
 // SCRIPT DE EXPLORACION - PDFs F.931
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // USO:

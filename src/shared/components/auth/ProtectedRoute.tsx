@@ -1,6 +1,6 @@
 // ============================================
 // PROTECTED ROUTE - Rutas Protegidas
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/components/auth/ProtectedRoute.tsx
 // ============================================

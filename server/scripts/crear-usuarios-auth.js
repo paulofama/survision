@@ -1,6 +1,6 @@
 // ============================================================
 // PROVISIONAMIENTO de usuarios en Supabase Auth + vínculo
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // USO:
 //   cd server

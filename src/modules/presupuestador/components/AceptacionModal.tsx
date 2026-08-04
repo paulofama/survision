@@ -1,6 +1,6 @@
 // ============================================================
 // Modal de aceptación del presupuesto — captura la rama del circuito
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Al ACEPTAR, define: rama de cobertura (Particular / OS → Círculo o directa +
 // convenio), fecha tentativa, ojo, LIO y si requiere análisis/ECG. Persiste:

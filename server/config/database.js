@@ -1,6 +1,6 @@
 // ============================================
 // CONFIGURACIÓN DE BASE DE DATOS SQL SERVER
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Servidor: GECLISA (192.168.1.73)
 // ============================================
 

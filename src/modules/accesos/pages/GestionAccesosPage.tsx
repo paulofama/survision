@@ -1,6 +1,6 @@
 // ============================================
 // GESTIÓN DE ACCESOS - Usuarios y Roles
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/GestionAccesosPage.tsx
 // ============================================

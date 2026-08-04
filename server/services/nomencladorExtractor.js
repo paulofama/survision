@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor de nomenclador/prestaciones GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Replica el endpoint POST /api/nomenclador/sync pero server-side: trae los

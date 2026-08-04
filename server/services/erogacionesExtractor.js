@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor de erogaciones (costos fijos) GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Espeja las 3 fuentes de erogaciones (mismas queries que /api/erogaciones/:anio/:mes)
 // a la tabla `erogaciones_geclisa`. El frontend (useErogaciones) las cruza con

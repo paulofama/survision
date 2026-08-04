@@ -2,7 +2,7 @@
   "name": "sistema-costos",
   "private": true,
   "version": "1.0.0",
-  "description": "Sistema de Gestión de Costos - Instituto Dr. Mercado",
+  "description": "Sistema de Gestión Integral - Instituto Dr. Mercado",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

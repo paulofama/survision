@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACION 07a — Vínculo con Supabase Auth + función de permisos
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 --
 -- PARTE NO DESTRUCTIVA del endurecimiento de seguridad para exponer

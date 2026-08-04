@@ -1,6 +1,6 @@
 // ============================================================
 // CLI: carga de maestros GECLISA -> Supabase (prestadores + insumos)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // USO:
 //   cd server

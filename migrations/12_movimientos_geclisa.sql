@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 12: espejo de movimientos crudos (GECLISA -> Supabase)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Tabla espejo de las atenciones (Me_Area='A') al grano más fino:
 -- atención × práctica × prestador. Desnormalizada (trae nombres de paciente,

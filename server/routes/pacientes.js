@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE PACIENTES - BÚSQUEDA POR DNI
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Fuente: GECLISA (Ficha + FichaPlan + ObrasSociales)
 // v1.2 - Fallback a MovEnca para OS + mejor logging
 // ============================================

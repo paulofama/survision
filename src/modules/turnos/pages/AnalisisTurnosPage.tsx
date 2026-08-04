@@ -1,6 +1,6 @@
 // ============================================
 // ANÁLISIS DE TURNOS - Dashboard Analítico
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';

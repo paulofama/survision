@@ -1,6 +1,6 @@
 // ============================================================
 // MIDDLEWARE: requireAuth(modulo) — autenticación + permiso de módulo
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Middleware reutilizable para proteger rutas del backend. Como el backend

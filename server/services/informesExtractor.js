@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor del informe de gestión mensual GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Porta la lógica del endpoint GET /api/informes/gestion-mensual (19 queries +

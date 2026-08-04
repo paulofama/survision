@@ -1,6 +1,6 @@
 // ============================================
 // POR PRESTACION PAGE - v3.0
-// Análisis Marginal - Sistema Integral de Gestión
+// Análisis Marginal - Sistema de Gestión Integral
 // Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/pages/analisis-marginal/PorPrestacionPage.tsx

@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: transiciones por tiempo del seguimiento (job del daemon)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Aplica el CIERRE automático "sin_respuesta": presupuestos entregados cuya 2ª
 // ronda terminó en WhatsApp sin respuesta y ya pasaron 5 días.

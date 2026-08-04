@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 14: espejo de Tesorería (Caja + Pagos a Proveedores)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Dos tablas espejo desde GECLISA para que Tesorería ande desde afuera:
 --   tesoreria_caja        <- MovValoresEnca (movimientos de caja/valores)

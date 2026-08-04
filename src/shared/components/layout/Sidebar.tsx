@@ -1,6 +1,6 @@
 // ============================================
 // SIDEBAR - Navegación Principal con Auth
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v4.6 - Seguimiento Pacientes agregado
 // ============================================
 // RUTA DESTINO: src/components/layout/Sidebar.tsx
@@ -681,7 +681,7 @@ const Sidebar: React.FC = () => {
         `}>
           {!isCollapsed ? (
             <div className="text-xs text-blue-300">
-              <p className="font-medium">Sistema de Costos</p>
+              <p className="font-medium">Sistema de Gestión Integral</p>
               <p className="text-blue-400 mt-1">v1.0.0</p>
               <p className="text-blue-400/70 mt-2 text-right">P. Famá | Desarrollo</p>
             </div>

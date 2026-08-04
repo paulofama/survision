@@ -1,6 +1,6 @@
 // ============================================================
 // Resultado comercial del presupuesto (circuito post-aceptación) — helpers puros
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Eje COMERCIAL del presupuesto (ACEPTADO / RECHAZADO / SIN_RESPUESTA), separado

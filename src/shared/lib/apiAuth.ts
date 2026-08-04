@@ -1,6 +1,6 @@
 // ============================================
 // HELPER: fetch al backend con el JWT de Supabase Auth
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================
 //
 // Los endpoints del módulo Sueldos del backend exigen el access_token de la

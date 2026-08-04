@@ -1,6 +1,6 @@
 // ============================================================
 // CLI: espejo de turnos futuros GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // USO:
 //   cd server

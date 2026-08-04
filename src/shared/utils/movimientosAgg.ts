@@ -1,6 +1,6 @@
 // ============================================================
 // Agregación de movimientos (cliente) — reemplaza stats-periodo del backend
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Reconstruye, desde el espejo `movimientos_geclisa` (grano atención×práctica×
 // prestador), las mismas vistas que daba /api/movimientos/stats-periodo:

@@ -1,6 +1,6 @@
 // ============================================
 // COMPONENTES UI - Exportaciones Centralizadas
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // RUTA: src/components/ui/index.ts
 // ============================================

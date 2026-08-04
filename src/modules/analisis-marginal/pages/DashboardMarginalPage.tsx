@@ -1,6 +1,6 @@
 // ============================================
 // DASHBOARD MARGINAL PAGE
-// Análisis Marginal - Sistema de Costos
+// Análisis Marginal - Sistema de Gestión Integral
 // Instituto Dr. Mercado
 // Vista principal con KPIs y resumen general
 // ============================================

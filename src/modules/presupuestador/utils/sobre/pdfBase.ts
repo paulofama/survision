@@ -1,6 +1,6 @@
 // ============================================================
 // Sobre Quirúrgico — primitivas jsPDF (membrete institucional + helpers)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Patrón visual del sistema (jsPDF): encabezado "Instituto Dr. Mercado —
 // Survisión S.A." + lema, pie con datos de contacto y "Desarrollo: P. Famá".

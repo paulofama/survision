@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor del tipo de cambio USD -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Obtiene el TC oficial (BNA) de DolarAPI con fallback al BCRA, y lo guarda en
 // la tabla singleton `tipo_cambio`. Antes esto vivía en /api/nomenclador/tipocambio

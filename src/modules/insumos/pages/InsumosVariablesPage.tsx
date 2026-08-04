@@ -1,6 +1,6 @@
 // ============================================
 // INSUMOS VARIABLES PAGE - CON GESTIÓN DE POOLS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';

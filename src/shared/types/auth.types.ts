@@ -1,6 +1,6 @@
 // ============================================
 // TIPOS DE AUTENTICACIÓN Y PERMISOS
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/types/auth.types.ts
 // ============================================

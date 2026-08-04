@@ -1,6 +1,6 @@
 // ============================================================
 // Panel Circuito — rama de aceptación + checklist de trámites del presupuesto
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Muestra los datos de la aceptación (cobertura/convenio/fecha/ojo/LIO) y el
 // checklist de trámites hasta "LISTO PARA CIRUGÍA". Lee/escribe

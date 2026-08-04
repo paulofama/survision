@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 30: espejo del DETALLE DE VALORES (medios de pago) de Tesorería
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- PROBLEMA QUE RESUELVE
 -- --------------------

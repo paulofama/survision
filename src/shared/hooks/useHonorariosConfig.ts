@@ -1,7 +1,7 @@
 // ============================================
 // HOOK: useHonorariosConfig
 // Gestión de configuración de honorarios
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';

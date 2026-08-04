@@ -1,6 +1,6 @@
 // ============================================
 // MARGINAL LAYOUT - Layout Compartido
-// Análisis Marginal - Sistema de Costos
+// Análisis Marginal - Sistema de Gestión Integral
 // Instituto Dr. Mercado
 // ============================================
 

@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE ELEMENTOS (INSUMOS) - GECLISA
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Sincronización con Supabase
 // ============================================
 

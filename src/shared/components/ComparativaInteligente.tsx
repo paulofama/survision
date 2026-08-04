@@ -1,6 +1,6 @@
 // ============================================
 // COMPONENTE: COMPARATIVA INTELIGENTE
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // Ubicación: src/components/ComparativaInteligente.tsx
 // ============================================

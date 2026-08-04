@@ -1,6 +1,6 @@
 // ============================================================
 // AGENDA DE TURNOS — listado operativo + recordatorios por WhatsApp
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Sección operativa (distinta del dashboard analítico AnalisisTurnosPage):

@@ -1,6 +1,6 @@
 // ============================================================
 // BACKEND - API EMPLEADOS (Modulo Carga de Sueldos)
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // CRUD del maestro de empleados sobre la tabla `empleados` en Supabase.

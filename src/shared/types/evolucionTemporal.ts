@@ -1,6 +1,6 @@
 // ============================================
 // TYPES: Evolución Temporal del Análisis Marginal
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // RUTA DESTINO: src/types/evolucionTemporal.ts
 // ============================================

@@ -1,7 +1,7 @@
 // ============================================================
 // PÁGINA: INFORMES DE GESTIÓN
 // Panel principal para selección y descarga de informes
-// Instituto Dr. Mercado - Sistema de Costos
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 
 import React, { useState, useMemo } from 'react';

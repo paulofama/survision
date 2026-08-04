@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 13: tipo de cambio USD (para uso remoto)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Tabla singleton (id=1) con el tipo de cambio oficial (BNA). La refresca el
 -- daemon on-prem (tipoCambioExtractor.js, fuente DolarAPI/BCRA) y el frontend la

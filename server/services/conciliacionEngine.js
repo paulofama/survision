@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Engine de Conciliacion Minuta vs F.931
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // Funcion PURA que compara los conceptos de la minuta (Fase 2) contra los

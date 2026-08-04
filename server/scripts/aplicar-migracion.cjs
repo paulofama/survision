@@ -1,6 +1,6 @@
 // ============================================================
 // APLICAR MIGRACIÓN SQL (DDL) a Supabase vía conexión Postgres directa
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // USO:
 //   cd server

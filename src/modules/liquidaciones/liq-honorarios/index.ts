@@ -1,6 +1,6 @@
 // ============================================================
 // Liquidación de Honorarios - Module Exports
-// Instituto Dr. Mercado - Sistema de Costos
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 
 // Page (default export)

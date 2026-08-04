@@ -1,4 +1,4 @@
-# 🏥 Sistema de Costos - Instituto Dr. Mercado
+# 🏥 Sistema de Gestión Integral - Instituto Dr. Mercado
 
 ## Conexión con Servidor Local GECLISA
 
@@ -199,4 +199,4 @@ sistema-costos/
 
 ---
 
-*Sistema de Costos v1.0.0 - Instituto Dr. Mercado*
+*Sistema de Gestión Integral v1.0.0 - Instituto Dr. Mercado*

@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 29: Seguimiento telefónico de presupuestos (Fase 1)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Capa de SEGUIMIENTO (independiente del resultado comercial y de la regla de
 -- "vencido = 45 días"). Cola de llamados, historial de intentos y encuesta.

@@ -1,6 +1,6 @@
 // ============================================================
 // Helpers de carga de Supabase para el cómputo de Sueldos (browser)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Replican lo que hacían los endpoints backend (routes/conciliacion.js y
 // asientos.js) para armar los inputs de los motores (conciliación / asiento):

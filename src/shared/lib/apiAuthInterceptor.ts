@@ -1,6 +1,6 @@
 // ============================================
 // INTERCEPTOR GLOBAL DE FETCH — JWT al backend
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================
 //
 // Parchea window.fetch UNA vez para adjuntar el access_token de Supabase Auth

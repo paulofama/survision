@@ -1,5 +1,5 @@
 # ============================================================
-# Netlify — Sistema Integral de Gestión (Survisión S.A.)
+# Netlify — Sistema de Gestión Integral (Survisión S.A.)
 # ============================================================
 # Frontend estático (Vite) servido por Netlify. Las llamadas al backend van por
 # rutas relativas /api/* y se PROXEAN al backend on-premise (Express, vía túnel

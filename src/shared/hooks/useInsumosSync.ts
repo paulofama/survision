@@ -1,7 +1,7 @@
 // ============================================
 // HOOK: useInsumosSync
 // Sincronización automática GECLISA → Supabase
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // CORREGIDO: Usa apiConfig.ts para URL dinámica
 // ============================================

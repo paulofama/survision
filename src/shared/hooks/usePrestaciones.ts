@@ -1,6 +1,6 @@
 // ============================================
 // HOOK: usePrestaciones - SERVIDOR LOCAL
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Fuente: SQL Server Local (GECLISA)
 // ============================================
 

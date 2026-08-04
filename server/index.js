@@ -1,6 +1,6 @@
 // ============================================
 // SERVIDOR EXPRESS - API BACKEND
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Conexión con SQL Server Local (GECLISA)
 // v2.0.0 - Con Seguimiento de Pacientes
 // ============================================
@@ -113,7 +113,7 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    service: 'Sistema de Costos - API Backend',
+    service: 'Sistema de Gestión Integral - API Backend',
     version: '2.0.0',
     network: {
       localIP: LOCAL_IP,
@@ -270,7 +270,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('╔══════════════════════════════════════════════════════════════╗');
   console.log('║     🚀 SERVIDOR API BACKEND INICIADO                       ║');
-  console.log('║     Sistema de Costos - Instituto Dr. Mercado              ║');
+  console.log('║     Sistema de Gestión Integral - Instituto Dr. Mercado              ║');
   console.log('╠══════════════════════════════════════════════════════════════╣');
   console.log('║                                                            ║');
   console.log(`║  🔒 Local:      http://localhost:${PORT}                      ║`);

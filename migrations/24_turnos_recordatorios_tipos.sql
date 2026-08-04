@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 24: recordatorios de turnos por TIPO de mensaje
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- La sección Turnos ahora manda 3 mensajes distintos por turno:
 --   inicial → al sacar el turno (confirmación)

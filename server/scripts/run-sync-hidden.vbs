@@ -1,6 +1,6 @@
 ' ============================================================
 ' Lanzador OCULTO del sync GECLISA -> Supabase
-' Sistema Integral de Gestion - Survision S.A.
+' Sistema de Gestion Integral - Survision S.A.
 ' ============================================================
 ' Ejecuta sync-all.cjs con node SIN abrir ninguna ventana de consola.
 ' Lo usa la tarea programada "Survision-SyncGECLISA" para que la

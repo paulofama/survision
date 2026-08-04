@@ -1,7 +1,7 @@
 // ===========================================================================
 // COMPONENT: EmpleadoBajaConfirmModal - MODULO CARGA DE SUELDOS
 // ===========================================================================
-// Sistema: SurVision / Sistema Integral de Gestion
+// Sistema: SurVision / Sistema de Gestion Integral
 // Cliente: Instituto Dr. Mercado / Survision S.A.
 // Desarrollo: P. Fama
 //

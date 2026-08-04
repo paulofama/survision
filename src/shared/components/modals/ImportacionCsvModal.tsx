@@ -1,6 +1,6 @@
 // ============================================
 // MODAL IMPORTACIÓN CSV - PRÁCTICAS REALIZADAS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import React, { useState, useRef } from 'react';

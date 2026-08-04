@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 07c — Endurecer el bucket de adjuntos de Sueldos
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 --
 -- Cierra el último acceso permisivo: el bucket 'sueldos-adjuntos' (F.931 PDFs)

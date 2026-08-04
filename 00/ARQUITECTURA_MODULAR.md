@@ -1,4 +1,4 @@
-# Arquitectura modular — Sistema Integral de Gestión
+# Arquitectura modular — Sistema de Gestión Integral
 
 > Refactor de modularización (en curso). Objetivo: pasar de carpetas-por-tipo
 > (todo mezclado en `pages/`, `hooks/`, `components/`) a **carpetas-por-dominio**.

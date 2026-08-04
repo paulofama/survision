@@ -1,6 +1,6 @@
 // ============================================
 // TIPOS PARA POOLS DE INSUMOS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ACTUALIZADO: Con campos de prorrateo
 // ============================================
 

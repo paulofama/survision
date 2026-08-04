@@ -1,6 +1,6 @@
 // ============================================
 // CLIENTE SUPABASE - Backend API
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================
 //
 // Cliente singleton del proyecto Supabase usado por el modulo Sueldos

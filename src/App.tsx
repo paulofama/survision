@@ -1,6 +1,6 @@
 // ============================================
 // APP.TSX - ROUTER PRINCIPAL CON AUTENTICACIÓN
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v4.1 - Con Evolución Temporal del Análisis Marginal
 // ============================================
 // RUTA DESTINO: src/App.tsx

@@ -1,6 +1,6 @@
 // ============================================
 // PÁGINA: Prestaciones Realizadas
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // VERSIÓN 3.0 - Diseño Moderno
 // ============================================
 

@@ -1,6 +1,6 @@
 // ============================================
 // CLIENTE API ANÁLISIS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Comunicación con endpoints de análisis
 // ============================================
 

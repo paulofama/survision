@@ -1,7 +1,7 @@
 // ============================================
 // HONORARIOS PAGE
 // Configuración de honorarios por segmento
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -1067,7 +1067,7 @@ const HonorariosPage: React.FC = () => {
       {/* Footer */}
       <div className="mt-6 text-center">
         <p className="text-xs text-gray-500">
-          Configuración de Honorarios | Sistema de Costos | Instituto Dr. Mercado
+          Configuración de Honorarios | Sistema de Gestión Integral | Instituto Dr. Mercado
         </p>
       </div>
     </div>

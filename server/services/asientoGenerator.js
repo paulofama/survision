@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Generador de la Propuesta de Asiento de devengamiento
-// Modulo Sueldos - Fase 4 - Sistema Integral de Gestion - Survision S.A.
+// Modulo Sueldos - Fase 4 - Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // Funcion PURA que arma la propuesta de asiento de devengamiento de sueldos

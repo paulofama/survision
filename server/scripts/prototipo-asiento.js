@@ -1,6 +1,6 @@
 // ============================================================
 // PROTOTIPO (read-only) - Propuesta de Asiento de devengamiento
-// Modulo Sueldos - Fase 4 - Sistema Integral de Gestion - Survision S.A.
+// Modulo Sueldos - Fase 4 - Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // USO:

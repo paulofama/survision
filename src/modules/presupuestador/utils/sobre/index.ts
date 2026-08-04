@@ -1,6 +1,6 @@
 // ============================================================
 // Sobre Quirúrgico — orquestador (contexto + generación de PDFs)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 
 import { nuevoLienzo, nuevaHoja, cerrar } from "./pdfBase";

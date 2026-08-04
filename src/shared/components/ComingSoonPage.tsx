@@ -1,6 +1,6 @@
 // ============================================
 // COMING SOON PAGE
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import React from 'react';
@@ -65,7 +65,7 @@ const ComingSoonPage: React.FC<ComingSoonPageProps> = ({ title }) => {
 
         {/* Footer */}
         <p className="mt-8 text-sm text-gray-400">
-          Sistema de Costos - Instituto Dr. Mercado
+          Sistema de Gestión Integral - Instituto Dr. Mercado
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 // ============================================
 // HOOK: usePools - ACTUALIZADO CON PRORRATEO
 // Gestión de Pools de Insumos
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';

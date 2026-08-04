@@ -1,6 +1,6 @@
 // ============================================================
 // Análisis de resultado comercial del Presupuestador (Fase 5)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Funnel de emitidos, tasa de conversión (aceptados/emitidos), ranking de
 // motivos de rechazo y cruces por obra social, prestador y rango de monto.

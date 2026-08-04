@@ -1,6 +1,6 @@
 // ============================================================
 // BACKEND - API CONCILIACION (Modulo Carga de Sueldos - Fase 3)
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // Endpoints para conciliar la minuta (Fase 2) contra el F.931 (Fase 3).

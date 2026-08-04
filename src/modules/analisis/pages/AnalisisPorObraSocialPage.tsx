@@ -1,6 +1,6 @@
 // ============================================
 // PÁGINA: ANÁLISIS POR OBRA SOCIAL
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // VERSIÓN 3.0 - TOTALES DESDE SERVIDOR
 // ============================================
 // CAMBIO v3.0: KPIs desde totalesPeriodo del servidor,

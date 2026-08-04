@@ -1,6 +1,6 @@
 // ============================================
 // TESORERÍA - FLUJO DE EFECTIVO MENSUAL
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v2.0.0
 // ============================================
 // Antes esta página consultaba el "saldo de caja a una fecha" sumando todos los

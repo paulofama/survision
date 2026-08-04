@@ -1,7 +1,7 @@
 // ===========================================================================
 // PAGE: ReportesSueldosPage - MODULO CARGA DE SUELDOS (Fase 5)
 // ===========================================================================
-// Sistema: SurVisión / Sistema Integral de Gestión
+// Sistema: SurVisión / Sistema de Gestión Integral
 // Cliente: Instituto Dr. Mercado / Survisión S.A.
 // Desarrollo: P. Famá
 //

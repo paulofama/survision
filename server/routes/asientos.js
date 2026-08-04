@@ -1,6 +1,6 @@
 // ============================================================
 // BACKEND - API ASIENTOS (Modulo Carga de Sueldos - Fase 4)
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // Endpoints para generar y leer la PROPUESTA DE ASIENTO de devengamiento

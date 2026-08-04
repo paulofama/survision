@@ -1,6 +1,6 @@
 // ============================================
 // HOOK: useMovimientosPrestaciones
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // v4.0 (2026-06): lee del espejo Supabase `movimientos_geclisa` (sync GECLISA)
 // en vez de /api/movimientos/*. Trae las filas del período UNA vez y deriva

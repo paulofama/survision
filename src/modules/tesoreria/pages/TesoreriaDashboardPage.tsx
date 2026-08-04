@@ -1,6 +1,6 @@
 // ============================================
 // TESORERÍA - DASHBOARD
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v2.0.0
 // ============================================
 // La métrica principal es el EFECTIVO NETO DEL MES (entra en efectivo − sale

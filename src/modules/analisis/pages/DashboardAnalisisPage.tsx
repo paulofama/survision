@@ -1,6 +1,6 @@
 // ============================================
 // DASHBOARD EJECUTIVO v3 - COMPARACIÓN INTELIGENTE
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // Visión 360° con comparativas justas por período
 // ============================================

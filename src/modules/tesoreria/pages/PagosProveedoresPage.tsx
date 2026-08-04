@@ -1,6 +1,6 @@
 // ============================================
 // TESORERÍA - PAGOS A PROVEEDORES (OP / PV)
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 // Egresos a proveedores (Órdenes de Pago + Pagos Varios) desde MovProv (GECLISA).
 // Sección aparte de la caja: NO se mezcla con el saldo de caja.

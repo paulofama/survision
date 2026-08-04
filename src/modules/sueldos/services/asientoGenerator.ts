@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO (browser): Generador de la Propuesta de Asiento de Sueldos
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Port literal de server/services/asientoGenerator.js. Función PURA: arma la
 // propuesta de asiento de devengamiento desde la minuta + el F.931, repartiendo

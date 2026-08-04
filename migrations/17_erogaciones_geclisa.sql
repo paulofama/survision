@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 17: espejo de erogaciones (costos fijos) GECLISA -> Supabase
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Espeja las erogaciones crudas (3 fuentes unificadas: MovProv pagos, egresos de
 -- caja MovValoresEnca, liquidaciones LiqComp) para que el módulo de Costos Fijos

@@ -1,6 +1,6 @@
 // ============================================================
 // BACKEND - API F.931 (Modulo Carga de Sueldos - Fase 3)
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // Endpoints relacionados al parsing del PDF F.931. La persistencia (upload

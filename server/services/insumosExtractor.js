@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor de insumos (elementos médicos) GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Replica la lógica que hoy corre en el frontend (useInsumosSync): trae los

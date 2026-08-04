@@ -1,6 +1,6 @@
 // =====================================================
 // API LOCAL - CONEXIÓN CON BACKEND EXPRESS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // =====================================================
 // Maneja la comunicación con el servidor Express local
 // que conecta con SQL Server (GECLISA)

@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor del análisis de turnos GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Corre las mismas queries que la ruta GET /api/turnos/analisis y arma el

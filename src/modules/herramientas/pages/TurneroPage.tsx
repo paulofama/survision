@@ -1,6 +1,6 @@
 // ============================================
 // TURNERO — Herramientas
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================
 //
 // Embebe el turnero (public/turnero.html) en un iframe aislado. Las secretarias

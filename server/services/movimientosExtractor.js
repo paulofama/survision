@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor de movimientos crudos GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Espeja las atenciones (Me_Area='A') al grano atención×práctica×prestador en la

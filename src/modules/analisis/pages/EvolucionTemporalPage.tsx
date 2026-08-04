@@ -1,6 +1,6 @@
 // ============================================
 // EVOLUCIÓN TEMPORAL
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Tendencias y comparativos mensuales
 // v3.0 - Con ECharts
 // ============================================

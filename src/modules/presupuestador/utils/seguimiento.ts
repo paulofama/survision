@@ -1,6 +1,6 @@
 // ============================================================
 // Seguimiento telefónico de presupuestos — lógica del circuito (pura)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Circuito (independiente del resultado comercial y de la regla "vencido 45d"):
 //   entrega -> +3 días hábiles entra a la cola (pendiente_contacto)

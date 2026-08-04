@@ -1,6 +1,6 @@
 // ============================================
 // ANÁLISIS POR GRUPO DE PRÁCTICAS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // VERSIÓN 3.0 - TOTALES DESDE SERVIDOR
 // ============================================
 // CAMBIO v3.0: Los KPIs ahora usan `totalesPeriodo` y

@@ -1,6 +1,6 @@
 // ============================================================
 // Formulario de llamada + encuesta de seguimiento
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Registra el intento (usuario logueado + fecha/hora), pregunta ¿Atendió?; si
 // no atendió guarda el intento fallido; si atendió corre la encuesta con ramas

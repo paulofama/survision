@@ -1,6 +1,6 @@
 // ============================================
 // NUEVA CONFIGURACIÓN DE SUPABASE
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 
 import { createClient } from '@supabase/supabase-js';
@@ -208,7 +208,7 @@ export interface PrestacionConAgrupacion extends Prestacion {
 export const ENV_CONFIG = {
   SUPABASE_URL: supabaseUrl,
   SUPABASE_ANON_KEY: supabaseAnonKey,
-  APP_TITLE: 'Sistema de Costos - Instituto Dr. Mercado',
+  APP_TITLE: 'Sistema de Gestión Integral - Instituto Dr. Mercado',
   APP_VERSION: '1.0.0',
   DEV_MODE: true,
   ENABLE_LOGGER: true,

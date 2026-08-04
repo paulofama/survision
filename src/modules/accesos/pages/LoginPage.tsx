@@ -1,6 +1,6 @@
 // ============================================
 // LOGIN PAGE - Email + Contraseña (Supabase Auth)
-// Sistema Integral de Gestión - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // ============================================
 //
 // Login por EMAIL + contraseña contra Supabase Auth (ver AuthContext).
@@ -138,7 +138,7 @@ const LoginPage: React.FC = () => {
           <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
             <DollarSign className="h-10 w-10 text-blue-300" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Sistema Integral de Gestión</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Sistema de Gestión Integral</h1>
           <p className="text-blue-200">Instituto Dr. Mercado</p>
         </div>
 
@@ -248,7 +248,7 @@ const LoginPage: React.FC = () => {
 
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-blue-200 text-sm">Sistema Integral de Gestión v1.0.0</p>
+          <p className="text-blue-200 text-sm">Sistema de Gestión Integral v1.0.0</p>
           <p className="text-blue-300/60 text-xs mt-1">P. Famá | Desarrollo</p>
         </div>
       </div>

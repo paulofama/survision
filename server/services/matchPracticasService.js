@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Match presupuesto → práctica/cirugía realizada (Fase C)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Cruza presupuestos EMITIDOS (estado='entregado', aún no practicados) con las
 // prácticas realizadas del espejo movimientos_geclisa, por:

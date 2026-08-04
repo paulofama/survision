@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 10: snapshot del análisis de turnos (GECLISA -> Supabase)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Tabla de UNA fila (singleton id=1) que guarda el payload completo del
 -- dashboard de turnos (resumen, próximos 7 días, por prestador/servicio,

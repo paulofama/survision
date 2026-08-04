@@ -1,6 +1,6 @@
 // ============================================================
 // PDF GENERATOR - INFORME DE GESTIÓN MENSUAL
-// Instituto Dr. Mercado - Sistema de Costos
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 //
 // DEPENDENCIAS NECESARIAS:
@@ -610,7 +610,7 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
   doc.setTextColor(...COLORS.textMuted);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistema de Costos - Instituto Dr. Mercado', MARGIN.left, 285);
+  doc.text('Sistema de Gestión Integral - Instituto Dr. Mercado', MARGIN.left, 285);
   doc.text('P. Fama | Desarrollo', MARGIN.left + CONTENT_WIDTH, 285, { align: 'right' });
 }
 
@@ -1406,7 +1406,7 @@ function dibujarAnalisisEjecutivo(doc: jsPDF, y: number, datos: DatosInformeGest
   doc.setFontSize(7);
   doc.setFont('helvetica', 'italic');
   doc.text(
-    `Instituto Dr. Mercado - Sistema de Costos | ${datos.generadoEn ? new Date(datos.generadoEn).toLocaleString('es-AR') : ''}`,
+    `Instituto Dr. Mercado - Sistema de Gestión Integral | ${datos.generadoEn ? new Date(datos.generadoEn).toLocaleString('es-AR') : ''}`,
     105,
     y,
     { align: 'center' }

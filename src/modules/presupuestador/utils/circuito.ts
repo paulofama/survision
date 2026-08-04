@@ -1,6 +1,6 @@
 // ============================================================
 // Circuito de aceptación del presupuesto — tipos, catálogos, checklist, REST
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Rama que se define al ACEPTAR un presupuesto (cobertura/convenio/fecha/ojo/LIO)

@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE NOMENCLADOR (PRESTACIONES)
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // Datos: GECLISA (SQL Server) + Precios: Supabase
 // ============================================
 

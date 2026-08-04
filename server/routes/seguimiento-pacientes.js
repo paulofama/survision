@@ -1,6 +1,6 @@
 // ============================================================
 // BACKEND - API: SEGUIMIENTO MENSUAL DE PACIENTES
-// Instituto Dr. Mercado - Sistema Integral de Gestión
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 // ENDPOINTS:
 //   GET /api/seguimiento-pacientes/informe-mensual?mes=1&anio=2026

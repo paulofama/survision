@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Extractor de pacientes GECLISA -> Supabase
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 //
 // Replica la lógica del viejo endpoint /api/pacientes/buscar-dni pero para

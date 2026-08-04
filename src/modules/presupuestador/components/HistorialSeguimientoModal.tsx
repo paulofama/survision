@@ -1,6 +1,6 @@
 // ============================================================
 // Historial de seguimiento de un presupuesto (llamadas + encuestas)
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 
 import { useEffect, useState } from "react";

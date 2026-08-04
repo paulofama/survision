@@ -1,7 +1,7 @@
 // ===========================================================================
 // PAGE: MesDetallePage - MODULO CARGA DE SUELDOS (Fase 2 + Fase 3)
 // ===========================================================================
-// Sistema: SurVision / Sistema Integral de Gestion
+// Sistema: SurVision / Sistema de Gestion Integral
 // Cliente: Instituto Dr. Mercado / Survision S.A.
 // Desarrollo: P. Fama
 //

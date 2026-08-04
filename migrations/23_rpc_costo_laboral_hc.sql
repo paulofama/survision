@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 23: agregar HC de empleados de recibo al costo laboral
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- CONTEXTO: la RPC app_costo_laboral_meses (migración 21) devolvía bruto (recibo)
 -- + cargas patronales. Las HORAS COMPLEMENTARIAS quedaban afuera del informe.

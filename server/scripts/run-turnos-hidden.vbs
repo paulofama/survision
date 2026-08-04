@@ -1,6 +1,6 @@
 ' ============================================================
 ' Lanzador OCULTO del sync de TURNOS FUTUROS GECLISA -> Supabase
-' Sistema Integral de Gestion - Survision S.A.
+' Sistema de Gestion Integral - Survision S.A.
 ' ============================================================
 ' Ejecuta cargar-turnos-futuros-geclisa.cjs --write SIN abrir ninguna
 ' ventana de consola. Lo usa la tarea programada "Survision-SyncTurnos",

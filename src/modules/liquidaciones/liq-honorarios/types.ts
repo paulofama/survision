@@ -1,6 +1,6 @@
 // ============================================================
 // TYPES: Liquidación de Honorarios
-// Instituto Dr. Mercado - Sistema de Costos
+// Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 
 /** Prestador habilitado para liquidación */

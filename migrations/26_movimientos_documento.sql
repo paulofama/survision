@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 26: DNI/ficha del paciente en el espejo movimientos_geclisa
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Para el match automático "presupuesto → cirugía/práctica realizada" hace falta
 -- identificar al paciente de forma EXACTA. El espejo tenía solo el nombre (sin

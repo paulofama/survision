@@ -394,7 +394,7 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setFontSize(8); doc.setTextColor(...C.medium);
   doc.text('DOCUMENTO CONFIDENCIAL', PW / 2, 245, { align: 'center' });
   doc.setFontSize(7);
-  doc.text('Survisión S.A. — Sistema Integral de Gestión', PW / 2, 251, { align: 'center' });
+  doc.text('Survisión S.A. — Sistema de Gestión Integral', PW / 2, 251, { align: 'center' });
   doc.text(`Emitido: ${new Date().toLocaleDateString('es-AR')}`, PW / 2, 257, { align: 'center' });
 
   // Franja azul inferior

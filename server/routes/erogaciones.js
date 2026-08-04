@@ -1,6 +1,6 @@
 // =====================================================
 // RUTAS DE EROGACIONES / COSTOS FIJOS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v2.0 - Con MovValoresEnca (Egresos de Caja)
 // =====================================================
 

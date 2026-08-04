@@ -1,6 +1,6 @@
 // ============================================
 // RUTAS DE TESORERÍA - CAJA Y BANCOS
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v1.0.0
 // ============================================
 // RUTA DESTINO: server/routes/tesoreria.js

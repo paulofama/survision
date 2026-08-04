@@ -1,6 +1,6 @@
 // ============================================
 // PÁGINA: Recetas de Costos por Práctica
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // VERSIÓN: Modal de Configuración + Tabla Expandida
 // ============================================
 
@@ -169,7 +169,7 @@ const imprimirReceta = (receta: RecetaCompleta) => {
     <body>
       <div class="header">
         <div class="logo-title">INSTITUTO DR. MERCADO</div>
-        <div class="subtitle">Sistema de Costos - Receta de Costos por Práctica</div>
+        <div class="subtitle">Sistema de Gestión Integral - Receta de Costos por Práctica</div>
       </div>
 
       <div class="practica-info">
@@ -236,7 +236,7 @@ const imprimirReceta = (receta: RecetaCompleta) => {
 
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
       </div>
 
       <script>window.onload = function() { window.print(); }</script>
@@ -462,7 +462,7 @@ const imprimirTodasRecetas = (recetas: PracticaRecetaConCostos[]) => {
 
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
       </div>
 
       <script>
@@ -585,7 +585,7 @@ const imprimirRecetasResumen = (recetas: PracticaRecetaConCostos[]) => {
       </div>
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
       </div>
       <script>window.onload = function() { window.print(); }</script>
     </body>
@@ -702,7 +702,7 @@ const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
       ${recetasSections}
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Costos - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
       </div>
       <script>window.onload = function() { window.print(); }</script>
     </body>
@@ -1730,7 +1730,7 @@ const RecetasCostosPage: React.FC = () => {
         ${recetasSections}
         <div class="footer">
           <span>Generado: ${fechaActual}</span>
-          <span>Sistema de Costos - Desarrollo | P. Famá</span>
+          <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
         </div>
         <script>window.onload = function() { window.print(); }</script>
       </body>

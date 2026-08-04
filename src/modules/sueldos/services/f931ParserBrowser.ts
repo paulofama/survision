@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO (browser): Parser F.931 / VEP con pdf.js
-// Sistema Integral de Gestión - Survisión S.A.
+// Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
 // Port del backend server/services/f931Parser.js al navegador. La ÚNICA
 // diferencia es la extracción de texto: antes pdf-parse (Node), ahora pdf.js

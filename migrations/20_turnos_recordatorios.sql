@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 20: registro de recordatorios enviados (sección Turnos)
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Guarda qué turnos ya fueron avisados por WhatsApp, para que la marca
 -- "✓ Avisado" persista. NO puede vivir en turnos_futuros porque el daemon

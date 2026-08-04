@@ -1,6 +1,6 @@
 // ============================================
 // TESORERÍA - MOVIMIENTOS DE CAJA
-// Sistema de Costos - Instituto Dr. Mercado
+// Sistema de Gestión Integral - Instituto Dr. Mercado
 // v1.0.0
 // ============================================
 // RUTA DESTINO: src/pages/CajaMovimientosPage.tsx

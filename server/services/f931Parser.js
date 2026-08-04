@@ -1,6 +1,6 @@
 // ============================================================
 // SERVICIO: Parser F.931 (Formulario AFIP - Cargas Sociales)
-// Sistema Integral de Gestion - Survision S.A.
+// Sistema de Gestion Integral - Survision S.A.
 // ============================================================
 //
 // Toma el buffer de un PDF y devuelve un F931ParseResult con los campos

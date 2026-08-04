@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 16: RPC de Tesorería Caja como SECURITY DEFINER
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- FIX de la 15: con SECURITY INVOKER la policy RLS app_tiene_permiso('tesoreria')
 -- se evaluaba por CADA fila (110k) -> statement timeout. Acá las funciones son

@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 19: espejo de turnos futuros GECLISA -> Supabase + permiso 'turnos'
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- Crea la tabla espejo que alimenta la sección operativa "Turnos" (agenda de
 -- turnos futuros + recordatorios por WhatsApp). La refresca el daemon on-prem

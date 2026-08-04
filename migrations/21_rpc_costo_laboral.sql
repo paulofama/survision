@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRACIÓN 21: RPC de costo laboral mensual para Análisis Marginal
--- Sistema Integral de Gestión - Survisión S.A.
+-- Sistema de Gestión Integral - Survisión S.A.
 -- ============================================================
 -- El Análisis Marginal necesita el COSTO LABORAL del período (sueldos como costo
 -- fijo), pero las tablas del módulo Sueldos (asientos_sueldos, f931_declaraciones)
