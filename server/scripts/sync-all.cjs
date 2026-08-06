@@ -31,6 +31,7 @@ const { sincronizarSeguimiento } = require('../services/seguimientoExtractor');
 const { sincronizarInformes } = require('../services/informesExtractor');
 const { sincronizarComparativa } = require('../services/analisisExtractor');
 const { sincronizarMovimientos } = require('../services/movimientosExtractor');
+const { sincronizarGeclisaValores } = require('../services/geclisaValoresExtractor');
 const { sincronizarPeriodo: sincronizarIvaPeriodo } = require('../services/ivaExtractor');
 const { sincronizarTipoCambio } = require('../services/tipoCambioExtractor');
 const { sincronizarTesoreria } = require('../services/tesoreriaExtractor');
@@ -69,6 +70,9 @@ const SYNCS = [
   // cerrados —p. ej. un derivante— se auto-corrigen). El histórico (2024+) se
   // carga una vez con cargar-movimientos-geclisa.cjs --write --historico
   { nombre: 'movimientos (GECLISA→Supabase)', fn: () => sincronizarMovimientos({ write: true }) },
+  // Valores bancarios (cobranzas transf + tarjeta débito) para conciliar contra
+  // el banco. UPSERT por id_origen preservando estado_conciliacion. Año en curso.
+  { nombre: 'geclisa_valores (GECLISA→Supabase)', fn: () => sincronizarGeclisaValores({ write: true }) },
   // IVA fiscal: re-sincroniza todo el año en curso (cargas tardías de meses ya
   // cerrados). El histórico (2025-02..) se carga con cargar-iva.cjs.
   {

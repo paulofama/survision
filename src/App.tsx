@@ -97,6 +97,11 @@ const PagosProveedoresPage = lazy(() =>
     default: () => <ComingSoonPage title="Pagos a Proveedores" />
   }))
 );
+const BancosPage = lazy(() =>
+  import('@modules/tesoreria/bancos/pages/BancosPage').catch(() => ({
+    default: () => <ComingSoonPage title="Bancos" />
+  }))
+);
 const FiscalDashboardPage = lazy(() =>
   import('@modules/fiscal/pages/FiscalDashboardPage').catch(() => ({
     default: () => <ComingSoonPage title="Fiscal - Dashboard IVA" />
@@ -292,7 +297,7 @@ const App: React.FC = () => {
                       <Route path="/fiscal/ventas" element={<IvaVentasPage />} />
                       <Route path="/fiscal/compras" element={<IvaComprasPage />} />
                       <Route path="/fiscal/resumen" element={<ResumenAnualPage />} />
-                      <Route path="/tesoreria/bancos" element={<ComingSoonPage title="Bancos" />} />
+                      <Route path="/tesoreria/bancos" element={<BancosPage />} />
                       
                       {/* ============================================ */}
                       {/* DERIVACIONES */}
