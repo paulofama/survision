@@ -9,7 +9,7 @@ import { supabase } from '@shared/lib/supabase';
 // Core isomórfico (compartido con el CLI diario)
 import { ingestarExtracto } from '../core/ingesta.mjs';
 import type { IngestaResult } from '../core/ingesta.mjs';
-import { conciliarAutomatico, crearConciliacion, desconciliar, buscarSugerencias } from '../core/conciliacionEngine.mjs';
+import { conciliarTodo, crearConciliacion, desconciliar, buscarSugerencias } from '../core/conciliacionEngine.mjs';
 
 export interface CuentaBanco {
   id: string; banco: string; nro_cuenta: string; cbu: string | null;
@@ -174,7 +174,7 @@ export function useBancos() {
       origen: 'manual', usuario, archivoNombre: file.name, write: opts.write,
     });
     if (opts.write && res.ok) {
-      await conciliarAutomatico(supabase, { cuentaId: c.id, usuario: usuario || 'motor' });
+      await conciliarTodo(supabase, { cuentaId: c.id, usuario: usuario || 'motor' });
       await cargarBase();
       await cargarMovimientos();
     }
@@ -188,7 +188,7 @@ export function useBancos() {
     setError(null);
     try {
       const usuario = await emailUsuario();
-      const r = await conciliarAutomatico(supabase, { cuentaId: c.id, usuario: usuario || 'motor' });
+      const r = await conciliarTodo(supabase, { cuentaId: c.id, usuario: usuario || 'motor' });
       await cargarMovimientos();
       return r;
     } catch (e) {

@@ -90,12 +90,13 @@ async function main() {
   const gv = await sincronizarGeclisaValores({ write: true, desde: d0, hasta: d1 });
   log(`GECLISA valores sincronizados: ${gv.insertados} filas (${d0}..${d1}).`);
 
-  // 3) Conciliación automática del período
-  const c = await engine.conciliarAutomatico(supabase, {
+  // 3) Conciliación automática del período (1:1 cobranzas/pagos + lote Getnet)
+  const c = await engine.conciliarTodo(supabase, {
     cuentaId: cuenta.id, usuario: 'daemon',
     desde: res.resumen.periodoDesde, hasta: res.resumen.periodoHasta,
   });
-  log(`Conciliación: ${c.auto} auto, ${c.ambiguos} ambiguos, ${c.sinCandidato} sin candidato (de ${c.banco} créditos; ${c.valores} valores GECLISA).`);
+  log(`Conciliación 1:1: ${c.auto} auto, ${c.ambiguos} ambiguos, ${c.sinCandidato} sin candidato (de ${c.banco} movimientos).`);
+  log(`Conciliación Getnet: ${c.getnet.auto} auto, ${c.getnet.ambiguos} ambiguos (de ${c.getnet.getnet} créditos getnet).`);
   log('=== Ingesta bancaria terminada ===');
 }
 

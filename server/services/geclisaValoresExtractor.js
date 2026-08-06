@@ -75,6 +75,54 @@ async function extraerValores(desde, hasta) {
   });
 }
 
+// EGRESOS (v2): OP/PV de proveedores pagadas por TRANSFERENCIA bancaria. Se toma
+// SOLO la porción transferida (mpv.Imp de medios esTransferencia, sin efectivo ni
+// tarjeta ni retenciones) porque es lo que impacta el extracto; el resto (efectivo,
+// cheque, retenciones) no matchea el banco. Grano = OP/PV (sumando sus transferencias).
+const QUERY_PAGOS = `
+  SELECT mp.MProv_id AS mprov_id,
+    CONVERT(varchar(10), mp.Fecha, 23) AS fecha,
+    RTRIM(ISNULL(mp.Nombre, '')) AS tercero,
+    RTRIM(ISNULL(mp.CUIT, '')) AS cuit,
+    RTRIM(ISNULL(tc.TComp_sigla, '')) AS sigla, mp.TComp_id AS tcomp_id,
+    SUM(mpv.Imp) AS transferido
+  FROM MovProv mp
+  INNER JOIN MovProv_Valores mpv ON mpv.MProv_id = mp.MProv_id
+  INNER JOIN TipoValores tv ON mpv.Tv_id = tv.Tv_id
+  LEFT JOIN TipoComp tc ON mp.TComp_id = tc.TComp_id
+  WHERE mp.Fecha >= @desde AND mp.Fecha <= @hasta
+    AND ISNULL(mp.Anulado, 0) = 0 AND mp.TComp_id IN (4, 13)
+    AND ISNULL(tv.esEfectivo, 0) = 0 AND ISNULL(tv.esTransferencia, 0) = 1
+    AND tv.Tv_Nombre NOT LIKE '%arjeta%'
+  GROUP BY mp.MProv_id, mp.Fecha, mp.Nombre, mp.CUIT, tc.TComp_sigla, mp.TComp_id
+  HAVING SUM(mpv.Imp) > 0
+`;
+
+/** Lee los pagos a proveedores por transferencia en [desde, hasta]. importe negativo. */
+async function extraerPagos(desde, hasta) {
+  const r = await executeQuery(QUERY_PAGOS, { desde, hasta });
+  return (r.recordset || []).map((row) => {
+    const fecha = row.fecha;
+    return {
+      id_origen: `MOVPROV-${row.mprov_id}`,
+      tipo: 'pago',
+      fecha,
+      anio: fecha ? Number(fecha.slice(0, 4)) : null,
+      mes: fecha ? Number(fecha.slice(5, 7)) : null,
+      comprobante: (row.sigla || '').trim() || null,
+      comprobante_sigla: (row.sigla || '').trim() || null,
+      tercero_nombre: (row.tercero || '').trim() || null,
+      tercero_cuit: (row.cuit || '').replace(/\D/g, '') || null,
+      medio_id: null,
+      medio_nombre: 'Transferencia',
+      banco_geclisa: null,
+      importe: -(Math.abs(parseFloat(row.transferido) || 0)), // egreso = negativo
+      anulado: false,
+      raw: { mprov_id: row.mprov_id, tcomp: (row.sigla || '').trim() },
+    };
+  });
+}
+
 function rangoAnioEnCurso() {
   const hoy = new Date();
   return { desde: `${hoy.getFullYear()}-01-01`, hasta: hoy.toISOString().split('T')[0] };
@@ -90,8 +138,10 @@ async function sincronizarGeclisaValores({ write = false, historico = false, des
     else { ({ desde: rDesde, hasta: rHasta } = rangoAnioEnCurso()); }
   }
 
-  const filas = await extraerValores(rDesde, rHasta);
-  if (!write) return { total: filas.length, desde: rDesde, hasta: rHasta, escrito: false };
+  const cobranzas = await extraerValores(rDesde, rHasta);
+  const pagos = await extraerPagos(rDesde, rHasta);
+  const filas = [...cobranzas, ...pagos];
+  if (!write) return { total: filas.length, cobranzas: cobranzas.length, pagos: pagos.length, desde: rDesde, hasta: rHasta, escrito: false };
 
   let insertados = 0;
   const LOTE = 500;
@@ -103,7 +153,7 @@ async function sincronizarGeclisaValores({ write = false, historico = false, des
     if (error) throw new Error(`upsert geclisa_valores lote ${i}: ${error.message}`);
     insertados += lote.length;
   }
-  return { total: filas.length, insertados, desde: rDesde, hasta: rHasta, escrito: true };
+  return { total: filas.length, cobranzas: cobranzas.length, pagos: pagos.length, insertados, desde: rDesde, hasta: rHasta, escrito: true };
 }
 
-module.exports = { extraerValores, sincronizarGeclisaValores };
+module.exports = { extraerValores, extraerPagos, sincronizarGeclisaValores };

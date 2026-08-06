@@ -33,10 +33,16 @@ export function crearConciliacion(supabase: any, args: {
 
 export function desconciliar(supabase: any, conciliacionId: string, usuario?: string | null): Promise<{ bancoIds: string[]; geclisaIds: string[] }>;
 
-export function conciliarAutomatico(supabase: any, opts: {
+export interface ConciliarOpts {
   cuentaId: string;
   usuario?: string;
   desde?: string;
   hasta?: string;
   [k: string]: unknown;
-}): Promise<{ auto: number; ambiguos: number; sinCandidato: number; banco: number; valores?: number }>;
+}
+
+export function conciliarAutomatico(supabase: any, opts: ConciliarOpts): Promise<{ auto: number; ambiguos: number; sinCandidato: number; banco: number; valores?: number }>;
+
+export function conciliarGetnet(supabase: any, opts: ConciliarOpts): Promise<{ auto: number; ambiguos: number; sinCandidato: number; getnet: number; tarjetas?: number }>;
+
+export function conciliarTodo(supabase: any, opts: ConciliarOpts): Promise<{ auto: number; ambiguos: number; sinCandidato: number; banco: number; valores?: number; getnet: { auto: number; ambiguos: number; sinCandidato: number; getnet: number; tarjetas?: number } }>;

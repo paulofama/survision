@@ -21,6 +21,7 @@ export const DEFAULTS = {
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const claveImporte = (v) => num(v).toFixed(2);
+const soloDig = (s) => String(s ?? '').replace(/\D/g, ''); // CUIT a solo-dígitos (banco sin guiones, GECLISA con)
 
 const norm = (s) =>
   String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -70,10 +71,12 @@ export function buscarSugerencias(bancoMov, valoresPendientes, opts = {}) {
     const importeOk = Math.abs(num(v.importe) - imp) <= o.toleranciaImporte;
     const dias = bancoMov.fecha && v.fecha ? diasHabilesEntre(bancoMov.fecha, v.fecha) : 99;
     if (!importeOk || dias > o.ventanaDiasHabiles) continue;
-    // Si ambos tienen CUIT, deben coincidir
-    if (bancoMov.contraparte_cuit && v.tercero_cuit && bancoMov.contraparte_cuit !== v.tercero_cuit) continue;
+    // Si ambos tienen CUIT, deben coincidir (comparando solo dígitos)
+    const cuitB = soloDig(bancoMov.contraparte_cuit);
+    const cuitV = soloDig(v.tercero_cuit);
+    if (cuitB && cuitV && cuitB !== cuitV) continue;
     const sim = nombreSimilitud(bancoMov.contraparte_nombre, v.tercero_nombre);
-    const cuitMatch = bancoMov.contraparte_cuit && v.tercero_cuit && bancoMov.contraparte_cuit === v.tercero_cuit;
+    const cuitMatch = !!cuitB && cuitB === cuitV;
     const score = (cuitMatch ? 1 : sim) - dias * 0.02;
     out.push({ valor: v, score, sim, dias, importeOk, cuitMatch });
   }
@@ -149,10 +152,11 @@ async function traerTodo(query) {
 export async function conciliarAutomatico(supabase, { cuentaId, usuario = 'motor', desde, hasta, ...opts } = {}) {
   const o = { ...DEFAULTS, ...opts };
 
-  // Créditos del banco pendientes (v1 = cobranzas: importe > 0)
+  // Movimientos pendientes (créditos ↔ cobranzas, débitos ↔ pagos). Getnet se
+  // concilia aparte (lote con arancel), por eso se excluye de esta fase 1:1.
   let qBanco = supabase.from('banco_movimientos')
     .select('id, fecha, importe, contraparte_nombre, contraparte_cuit, categoria')
-    .eq('cuenta_id', cuentaId).eq('estado_conciliacion', 'pendiente').gt('importe', 0)
+    .eq('cuenta_id', cuentaId).eq('estado_conciliacion', 'pendiente').neq('categoria', 'getnet')
     .order('fecha', { ascending: true });
   if (desde) qBanco = qBanco.gte('fecha', desde);
   if (hasta) qBanco = qBanco.lte('fecha', hasta);
@@ -200,4 +204,62 @@ export async function conciliarAutomatico(supabase, { cuentaId, usuario = 'motor
     }
   }
   return { auto, ambiguos, sinCandidato, banco: banco.length, valores: valores.length };
+}
+
+/**
+ * Conciliación de acreditaciones Getnet contra cobranzas con tarjeta de GECLISA.
+ * El banco acredita NETO de arancel; se busca la tarjeta cuyo bruto menos el
+ * arancel (hasta toleranciaLotePct) dé el neto acreditado. Auto solo si el
+ * candidato es único (montos repetidos → queda pendiente, sin riesgo).
+ */
+export async function conciliarGetnet(supabase, { cuentaId, usuario = 'motor', ...opts } = {}) {
+  const o = { ...DEFAULTS, ...opts };
+  const getnet = await traerTodo(supabase.from('banco_movimientos')
+    .select('id, fecha, importe, contraparte_nombre')
+    .eq('cuenta_id', cuentaId).eq('estado_conciliacion', 'pendiente').eq('categoria', 'getnet').gt('importe', 0)
+    .order('fecha', { ascending: true }));
+  if (!getnet.length) return { auto: 0, ambiguos: 0, sinCandidato: 0, getnet: 0 };
+
+  const fechas = getnet.map((g) => g.fecha).filter(Boolean).sort();
+  const buffer = 5;
+  const d0 = new Date(new Date(fechas[0] + 'T00:00:00Z').getTime() - buffer * 86400000).toISOString().slice(0, 10);
+  const d1 = new Date(new Date(fechas[fechas.length - 1] + 'T00:00:00Z').getTime() + buffer * 86400000).toISOString().slice(0, 10);
+  const tarjetas = await traerTodo(supabase.from('geclisa_valores')
+    .select('id, fecha, importe, tercero_nombre, medio_nombre')
+    .eq('estado_conciliacion', 'pendiente').eq('tipo', 'cobranza').ilike('medio_nombre', '%tarjeta%')
+    .gte('fecha', d0).lte('fecha', d1));
+
+  const usados = new Set();
+  let auto = 0, ambiguos = 0, sinCandidato = 0;
+  for (const g of getnet) {
+    const net = num(g.importe);
+    const cand = tarjetas.filter((t) => {
+      if (usados.has(t.id) || !t.fecha) return false;
+      if (diasHabilesEntre(g.fecha, t.fecha) > o.ventanaDiasHabiles) return false;
+      const bruto = num(t.importe);
+      return bruto >= net - 0.01 && (bruto - net) <= o.toleranciaLotePct * bruto + 0.01;
+    });
+    if (cand.length === 1) {
+      const t = cand[0];
+      const bruto = num(t.importe);
+      const arancel = Math.round((bruto - net) * 100) / 100;
+      await crearConciliacion(supabase, {
+        tipo: 'automatica', usuario, bancoIds: [g.id], geclisaIds: [t.id],
+        diferencia: arancel, motivoDiferencia: 'Arancel Getnet',
+        totalBanco: net, totalGeclisa: bruto,
+        observacion: `Getnet neto de arancel ${bruto ? (arancel / bruto * 100).toFixed(1) : '0'}%`,
+      });
+      usados.add(t.id);
+      auto++;
+    } else if (cand.length > 1) ambiguos++;
+    else sinCandidato++;
+  }
+  return { auto, ambiguos, sinCandidato, getnet: getnet.length, tarjetas: tarjetas.length };
+}
+
+/** Corre todas las fases: 1:1 (cobranzas + pagos) y lote Getnet. */
+export async function conciliarTodo(supabase, opts = {}) {
+  const uno = await conciliarAutomatico(supabase, opts);
+  const getnet = await conciliarGetnet(supabase, opts);
+  return { ...uno, getnet };
 }
