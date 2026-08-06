@@ -65,8 +65,9 @@ const SYNCS = [
   { nombre: 'informes (GECLISA→Supabase)', fn: () => sincronizarInformes({ write: true, soloRecientes: true }) },
   // Comparativa de Análisis: singleton dinámico (depende del día); se recalcula siempre.
   { nombre: 'comparativa (GECLISA→Supabase)', fn: () => sincronizarComparativa({ write: true }) },
-  // Movimientos crudos: solo el mes en curso (las atenciones viejas no cambian).
-  // El histórico se carga una vez con cargar-movimientos-geclisa.cjs --write --historico
+  // Movimientos crudos: el AÑO en curso (cargas/ediciones tardías de meses ya
+  // cerrados —p. ej. un derivante— se auto-corrigen). El histórico (2024+) se
+  // carga una vez con cargar-movimientos-geclisa.cjs --write --historico
   { nombre: 'movimientos (GECLISA→Supabase)', fn: () => sincronizarMovimientos({ write: true }) },
   // IVA fiscal: re-sincroniza el mes en curso + el anterior (cargas tardías). El
   // histórico (2025-02..) se carga con cargar-iva.cjs. Antes era 100% manual.
