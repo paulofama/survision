@@ -14,7 +14,11 @@
 //
 // Refresh por DELETE de rango de fechas + INSERT (idempotente):
 //   - histórico: desde 2024-01-01 hasta hoy (una vez, por CLI).
-//   - daemon: solo el mes en curso (las atenciones viejas no cambian).
+//   - daemon: desde el 1-ene del año en curso hasta hoy. NO alcanza con el mes
+//     en curso: un derivante/coseguro puede cargarse en GECLISA después de
+//     cerrado el mes (caso real: derivaciones que no salían a liquidar). Cubrir
+//     el año a la fecha hace que esas ediciones tardías se auto-corrijan en la
+//     próxima corrida. (~11k filas, segundos.) Años anteriores no se re-tocan.
 // ============================================================
 
 const { executeQuery } = require('../config/database');
@@ -137,17 +141,21 @@ async function extraerMovimientos(desde, hasta) {
   });
 }
 
-/** Rango por defecto del daemon: el mes en curso (lo único que puede cambiar). */
-function rangoMesEnCurso() {
+/**
+ * Rango por defecto del daemon: desde el 1-ene del año en curso hasta hoy.
+ * Cubre ediciones tardías de meses ya cerrados (p. ej. un derivante que se carga
+ * el mes siguiente y de otro modo nunca se re-sincronizaría).
+ */
+function rangoAnioEnCurso() {
   const hoy = new Date();
-  const desde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+  const desde = `${hoy.getFullYear()}-01-01`;
   const hasta = hoy.toISOString().split('T')[0];
   return { desde, hasta };
 }
 
 /**
  * Sincroniza un rango de fechas (DELETE rango + INSERT). Idempotente.
- *   sin opts            -> mes en curso (daemon)
+ *   sin opts            -> año en curso a la fecha (daemon)
  *   { historico: true } -> desde 2024-01-01 hasta hoy (carga inicial)
  *   { desde, hasta }    -> rango explícito
  */
@@ -159,7 +167,7 @@ async function sincronizarMovimientos({ write = false, historico = false, desde,
       rDesde = '2024-01-01';
       rHasta = new Date().toISOString().split('T')[0];
     } else {
-      ({ desde: rDesde, hasta: rHasta } = rangoMesEnCurso());
+      ({ desde: rDesde, hasta: rHasta } = rangoAnioEnCurso());
     }
   }
 
