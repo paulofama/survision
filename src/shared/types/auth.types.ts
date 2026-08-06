@@ -16,6 +16,9 @@ export const MODULOS_SISTEMA = {
   analisis: { nombre: 'Análisis', descripcion: 'Por OS, prestador, evolución' },
   analisis_marginal: { nombre: 'Análisis Marginal', descripcion: 'Rentabilidad y márgenes' },
   tesoreria: { nombre: 'Tesorería', descripcion: 'Caja, bancos y movimientos financieros' },
+  // Permiso granular de Tesorería: la subsección Bancos (conciliación del extracto
+  // bancario Santander con GECLISA). Requiere también el permiso base 'tesoreria'.
+  'tesoreria:bancos': { nombre: 'Tesorería - Bancos', descripcion: 'Conciliación bancaria (extracto Santander ↔ GECLISA)' },
   liquidaciones: { nombre: 'Liquidaciones', descripcion: 'Derivaciones y honorarios' },
   presupuestador: { nombre: 'Presupuestador', descripcion: 'Generación y búsqueda de presupuestos' },
   // Permiso granular del Presupuestador: edición de los catálogos del circuito
@@ -173,6 +176,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   analisis: false,
   analisis_marginal: false,
   tesoreria: false,
+  'tesoreria:bancos': false,
   liquidaciones: false,
   presupuestador: false,
   'presupuestador:config': false,
@@ -195,6 +199,7 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   analisis: true,
   analisis_marginal: true,
   tesoreria: true,
+  'tesoreria:bancos': true,
   liquidaciones: true,
   presupuestador: true,
   'presupuestador:config': true,

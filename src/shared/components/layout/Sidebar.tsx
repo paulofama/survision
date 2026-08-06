@@ -173,7 +173,7 @@ const navItems: NavItem[] = [
       { path: '/tesoreria/caja/movimientos', label: 'Movimientos Caja', icon: CreditCard },
       { path: '/tesoreria/caja/saldo-historico', label: 'Saldo Histórico', icon: History },
       { path: '/tesoreria/proveedores', label: 'Pagos a Proveedores', icon: Receipt },
-      { path: '/tesoreria/bancos', label: 'Bancos', icon: Banknote }
+      { path: '/tesoreria/bancos', label: 'Bancos', icon: Banknote, requierePermiso: 'tesoreria:bancos' }
     ]
   },
 

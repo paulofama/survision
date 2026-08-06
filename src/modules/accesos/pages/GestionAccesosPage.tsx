@@ -36,6 +36,7 @@ import {
   Activity,
   Wrench,
   CalendarClock,
+  Banknote,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
@@ -104,6 +105,12 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     descripcion: 'Caja, bancos y movimientos',
     icono: DollarSign,
     color: 'yellow'
+  },
+  'tesoreria:bancos': {
+    nombre: 'Bancos',
+    descripcion: 'Conciliación bancaria (Santander ↔ GECLISA)',
+    icono: Banknote,
+    color: 'emerald'
   },
   liquidaciones: {
     nombre: 'Liquidaciones',
@@ -186,6 +193,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'analisis',
   'analisis_marginal',
   'tesoreria',
+  'tesoreria:bancos',
   'liquidaciones',
   'presupuestador',
   'presupuestador:config',
