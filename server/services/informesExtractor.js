@@ -475,17 +475,22 @@ async function generarInformeGestion(mesNum, anioNum) {
 
 // ------------------------------------------------------------
 // Sincroniza snapshots a Supabase (dashboards_snapshot, modulo='informes').
-//   soloRecientes=true  -> mes actual + anterior (para el daemon)
+//   anioEnCurso=true    -> todos los meses del año en curso (daemon): cubre
+//                          ediciones tardías de meses ya cerrados.
+//   soloRecientes=true  -> mes actual + anterior
 //   soloRecientes=false -> rango que ofrecen los selectores: desde enero de
 //                          (año actual - 2) hasta el mes actual (carga histórica)
 // ------------------------------------------------------------
-async function sincronizarInformes({ write = false, soloRecientes = true } = {}) {
+async function sincronizarInformes({ write = false, soloRecientes = true, anioEnCurso = false } = {}) {
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = hoy.getMonth() + 1;
 
   let objetivos;
-  if (soloRecientes) {
+  if (anioEnCurso) {
+    objetivos = [];
+    for (let m = 1; m <= mesActual; m++) objetivos.push({ anio: anioActual, mes: m });
+  } else if (soloRecientes) {
     const mesAnt = mesActual === 1 ? 12 : mesActual - 1;
     const anioAnt = mesActual === 1 ? anioActual - 1 : anioActual;
     objetivos = [{ anio: anioActual, mes: mesActual }, { anio: anioAnt, mes: mesAnt }];

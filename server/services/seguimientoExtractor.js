@@ -397,12 +397,20 @@ async function mesesConDatos() {
 
 // ------------------------------------------------------------
 // Sincroniza snapshots a Supabase (dashboards_snapshot, modulo='seguimiento').
-//   soloRecientes=true  -> recalcula mes actual + anterior (para el daemon)
+//   anioEnCurso=true    -> recalcula todos los meses del año en curso (daemon):
+//                          cubre ediciones tardías de meses ya cerrados.
+//   soloRecientes=true  -> recalcula mes actual + anterior
 //   soloRecientes=false -> recalcula TODOS los meses con datos (carga histórica)
 // ------------------------------------------------------------
-async function sincronizarSeguimiento({ write = false, soloRecientes = true } = {}) {
+async function sincronizarSeguimiento({ write = false, soloRecientes = true, anioEnCurso = false } = {}) {
   let objetivos;
-  if (soloRecientes) {
+  if (anioEnCurso) {
+    const hoy = new Date();
+    const anio = hoy.getFullYear();
+    const mesActual = hoy.getMonth() + 1;
+    objetivos = [];
+    for (let m = 1; m <= mesActual; m++) objetivos.push({ anio, mes: m });
+  } else if (soloRecientes) {
     const hoy = new Date();
     const anio = hoy.getFullYear();
     const mes = hoy.getMonth() + 1;

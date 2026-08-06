@@ -251,15 +251,19 @@ async function insertarLotes(tabla, filas) {
 /**
  * Sincroniza Tesorería.
  *   historico=true   -> caja desde 2018 + valores desde 2024 + proveedores/prov_valores full
- *   default (daemon) -> caja y valores últimos 2 meses (DELETE rango + INSERT)
+ *   anioEnCurso=true -> caja/valores del año en curso (daemon): cubre cargas
+ *                       tardías de meses ya cerrados.
+ *   default          -> caja y valores últimos 2 meses (DELETE rango + INSERT)
  *                       + proveedores y prov_valores full (tablas chicas)
  */
-async function sincronizarTesoreria({ write = false, historico = false } = {}) {
+async function sincronizarTesoreria({ write = false, historico = false, anioEnCurso = false } = {}) {
   // Rango a refrescar
   let desde;
   const hasta = new Date().toISOString().split('T')[0];
   if (historico) {
     desde = '2018-01-01';
+  } else if (anioEnCurso) {
+    desde = `${new Date().getFullYear()}-01-01`;
   } else {
     const d = new Date();
     d.setMonth(d.getMonth() - 1); // mes en curso + anterior

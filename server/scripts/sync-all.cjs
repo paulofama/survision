@@ -39,15 +39,15 @@ const { sincronizarTurnosFuturos } = require('../services/turnosFuturosExtractor
 const { correrMatch } = require('../services/matchPracticasService');
 const { correrCierres } = require('../services/seguimientoJob');
 
-// Período YYYY-MM del mes en curso y del anterior (para el ETL fiscal del IVA).
-function periodosIvaRecientes() {
+// Períodos YYYY-MM del año en curso (ene..mes actual) para el ETL fiscal del IVA.
+// Cubre cargas tardías de meses ya cerrados (antes solo mes actual + anterior).
+function periodosIvaAnioEnCurso() {
   const hoy = new Date();
   const y = hoy.getFullYear();
-  const m = hoy.getMonth() + 1;
-  const mAnt = m === 1 ? 12 : m - 1;
-  const yAnt = m === 1 ? y - 1 : y;
-  const fmt = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}`;
-  return [fmt(yAnt, mAnt), fmt(y, m)];
+  const mActual = hoy.getMonth() + 1;
+  const periodos = [];
+  for (let m = 1; m <= mActual; m++) periodos.push(`${y}-${String(m).padStart(2, '0')}`);
+  return periodos;
 }
 
 // ------------------------------------------------------------
@@ -59,23 +59,23 @@ const SYNCS = [
   { nombre: 'insumos (GECLISA→Supabase)', fn: () => sincronizarInsumos({ write: true }) },
   { nombre: 'nomenclador (GECLISA→Supabase)', fn: () => sincronizarNomenclador({ write: true }) },
   { nombre: 'turnos (GECLISA→Supabase)', fn: () => sincronizarTurnos({ write: true }) },
-  // Seguimiento e Informes: solo mes actual + anterior (lo que cambia). El
-  // histórico se carga una vez con sus CLIs (--write --historico).
-  { nombre: 'seguimiento (GECLISA→Supabase)', fn: () => sincronizarSeguimiento({ write: true, soloRecientes: true }) },
-  { nombre: 'informes (GECLISA→Supabase)', fn: () => sincronizarInformes({ write: true, soloRecientes: true }) },
+  // Seguimiento e Informes: todo el año en curso (cubre ediciones tardías de
+  // meses ya cerrados). El histórico se carga una vez con sus CLIs (--historico).
+  { nombre: 'seguimiento (GECLISA→Supabase)', fn: () => sincronizarSeguimiento({ write: true, anioEnCurso: true }) },
+  { nombre: 'informes (GECLISA→Supabase)', fn: () => sincronizarInformes({ write: true, anioEnCurso: true }) },
   // Comparativa de Análisis: singleton dinámico (depende del día); se recalcula siempre.
   { nombre: 'comparativa (GECLISA→Supabase)', fn: () => sincronizarComparativa({ write: true }) },
   // Movimientos crudos: el AÑO en curso (cargas/ediciones tardías de meses ya
   // cerrados —p. ej. un derivante— se auto-corrigen). El histórico (2024+) se
   // carga una vez con cargar-movimientos-geclisa.cjs --write --historico
   { nombre: 'movimientos (GECLISA→Supabase)', fn: () => sincronizarMovimientos({ write: true }) },
-  // IVA fiscal: re-sincroniza el mes en curso + el anterior (cargas tardías). El
-  // histórico (2025-02..) se carga con cargar-iva.cjs. Antes era 100% manual.
+  // IVA fiscal: re-sincroniza todo el año en curso (cargas tardías de meses ya
+  // cerrados). El histórico (2025-02..) se carga con cargar-iva.cjs.
   {
     nombre: 'iva fiscal (GECLISA→Supabase)',
     fn: async () => {
       let filas = 0;
-      for (const per of periodosIvaRecientes()) {
+      for (const per of periodosIvaAnioEnCurso()) {
         const r = await sincronizarIvaPeriodo(per);
         filas += (r.v?.filas || 0) + (r.c?.filas || 0);
       }
@@ -84,9 +84,9 @@ const SYNCS = [
   },
   // Tipo de cambio USD (DolarAPI/BCRA) -> tabla singleton; el frontend remoto lo lee.
   { nombre: 'tipo de cambio (BNA→Supabase)', fn: () => sincronizarTipoCambio({ write: true }) },
-  // Tesorería: caja últimos 2 meses (saldo viejo fijo) + proveedores full. El
-  // histórico de caja (2018+) se carga una vez con cargar-tesoreria-geclisa.cjs --historico
-  { nombre: 'tesorería (GECLISA→Supabase)', fn: () => sincronizarTesoreria({ write: true }) },
+  // Tesorería: caja/valores del año en curso + proveedores full. El histórico
+  // de caja (2018+) se carga una vez con cargar-tesoreria-geclisa.cjs --historico
+  { nombre: 'tesorería (GECLISA→Supabase)', fn: () => sincronizarTesoreria({ write: true, anioEnCurso: true }) },
   // Erogaciones (costos fijos): full refresh 2024+ (~5.4k filas).
   { nombre: 'erogaciones (GECLISA→Supabase)', fn: () => sincronizarErogaciones({ write: true }) },
   // Turnos futuros: full refresh de turnos vigentes (~245 filas) para la agenda + recordatorios.
