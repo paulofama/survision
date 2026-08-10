@@ -13,7 +13,8 @@ import { useState } from "react";
 import {
   Convenio, Lio, RamaCobertura, SubRama, Ojo,
   OJOS, SUB_RAMAS, CHECKLIST_ITEMS,
-  sbPatch, sbUpsert,
+  itemsAplicables, clavesAplicables, lioSugerido,
+  sbPatch, sbUpsert, sbDelete,
 } from "../utils/circuito";
 
 interface PresupuestoMin {
@@ -21,6 +22,8 @@ interface PresupuestoMin {
   numero_presupuesto: string;
   paciente_apellido: string;
   paciente_nombre: string;
+  prestacion_codigo?: string;
+  prestacion_descripcion?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   datos_completos?: any;
 }
@@ -40,6 +43,7 @@ export default function AceptacionModal({
   username,
   onClose,
   onDone,
+  lioEditable = false,
 }: {
   presupuesto: PresupuestoMin;
   convenios: Convenio[];
@@ -47,13 +51,28 @@ export default function AceptacionModal({
   username: string | null;
   onClose: () => void;
   onDone: () => void;
+  /**
+   * Definición de Administración (10/08/2026): "el LIO debe quedar el del
+   * presupuesto" — el selector es de SÓLO LECTURA. Pasar `lioEditable` sólo si
+   * en el futuro se habilita cambiar la lente durante el circuito.
+   */
+  lioEditable?: boolean;
 }) {
+  // El LIO del presupuesto viene preseleccionado (se deduce de la prestación).
+  const lioDelPresupuesto = lioSugerido(presupuesto, lios);
+  const lioPresupuestoNombre = lios.find((l) => l.id === lioDelPresupuesto)?.nombre || "";
+  // Si la prestación NO identifica un LIO no se puede bloquear el campo: el
+  // operador quedaría sin poder aceptar el presupuesto.
+  const lioSoloLectura = !lioEditable && !!lioDelPresupuesto;
+
   const [rama, setRama] = useState<RamaCobertura | "">("");
   const [subRama, setSubRama] = useState<SubRama | "">("");
   const [convenioId, setConvenioId] = useState<string>("");
   const [fecha, setFecha] = useState<string>("");
   const [ojo, setOjo] = useState<Ojo | "">(ojoDesdeSnapshot(presupuesto));
-  const [lioId, setLioId] = useState<string>(lios.length === 1 ? lios[0].id : "");
+  const [lioId, setLioId] = useState<string>(
+    lioDelPresupuesto || (lios.length === 1 ? lios[0].id : ""),
+  );
   const [requiere, setRequiere] = useState<boolean>(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string>("");
@@ -101,14 +120,30 @@ export default function AceptacionModal({
         "merge",
       );
 
-      // 3) Checklist (no_aplica según la rama; preserva progreso previo)
+      // 3) Checklist: sólo los ítems que EXISTEN para esta cobertura
+      //    (ej. "Orden autorizada" no corresponde a un circuito Particular).
+      //    `no_aplica` sigue marcando los que existen pero no corresponden a
+      //    este caso puntual (ej. análisis/ECG no solicitados).
       const aRef = { rama_cobertura: rama as RamaCobertura, requiere_analisis_ecg: requiere };
-      const rows = CHECKLIST_ITEMS.map((it) => ({
+      const aplicables = itemsAplicables(aRef);
+      const rows = aplicables.map((it) => ({
         presupuesto_id: presupuesto.id,
         item_clave: it.clave,
         no_aplica: it.noAplica ? it.noAplica(aRef) : false,
       }));
       await sbUpsert("presupuestos_checklist", rows, "presupuesto_id,item_clave", "merge");
+
+      // 3b) Si se re-acepta cambiando de cobertura (OS -> Particular), borrar las
+      //     filas que quedaron de la cobertura anterior y ya no corresponden.
+      const sobrantes = CHECKLIST_ITEMS
+        .map((it) => it.clave)
+        .filter((c) => !clavesAplicables(aRef).has(c));
+      if (sobrantes.length) {
+        await sbDelete(
+          `presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}` +
+          `&item_clave=in.(${sobrantes.join(",")})`,
+        );
+      }
 
       onDone();
     } catch (e) {
@@ -197,11 +232,25 @@ export default function AceptacionModal({
               <select
                 value={lioId}
                 onChange={(e) => setLioId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                disabled={lioSoloLectura}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
               >
                 <option value="">Seleccioná…</option>
                 {lios.filter((l) => l.activo).map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
               </select>
+              {lioPresupuestoNombre ? (
+                <span className="text-[11px] text-gray-500 mt-1 block">
+                  {lioSoloLectura
+                    ? `Es el LIO del presupuesto — no se modifica en el circuito.`
+                    : lioId === lioDelPresupuesto
+                      ? `Del presupuesto: ${lioPresupuestoNombre}`
+                      : `⚠️ El presupuesto es ${lioPresupuestoNombre}`}
+                </span>
+              ) : (
+                <span className="text-[11px] text-amber-600 mt-1 block">
+                  La prestación del presupuesto no identifica un LIO — elegilo a mano.
+                </span>
+              )}
             </label>
           </div>
 

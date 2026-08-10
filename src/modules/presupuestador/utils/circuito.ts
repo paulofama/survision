@@ -51,6 +51,12 @@ export async function sbInsert(table: string, body: Record<string, unknown> | Re
   if (!r.ok) throw new Error(r.statusText);
 }
 
+export async function sbDelete(pathWithFilter: string): Promise<void> {
+  const headers = await authHeaders("return=minimal");
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${pathWithFilter}`, { method: "DELETE", headers });
+  if (!r.ok) throw new Error(r.statusText);
+}
+
 /** Upsert por on_conflict. resolution 'merge' (pisa) o 'ignore' (preserva existente). */
 export async function sbUpsert(
   table: string,
@@ -90,9 +96,14 @@ export interface Lio {
   id: string;
   nombre: string;
   descripcion: string | null;
+  /** Código de `prestaciones` que implica este LIO (migración 33). */
+  codigo_practica: string | null;
   activo: boolean;
   orden: number;
 }
+
+/** Cómo se determinó el depósito en garantía (Particular). */
+export type DepositoModalidad = "MONTO" | "PORCENTAJE";
 
 export interface Aceptacion {
   presupuesto_id: string;
@@ -104,6 +115,15 @@ export interface Aceptacion {
   lio_id: string | null;
   requiere_analisis_ecg: boolean;
   created_by: string | null;
+  // ── Ingreso de caja (migración 33) ──
+  /** Particular: MONTO fijo o PORCENTAJE sobre el valor total de la cirugía. */
+  deposito_modalidad: DepositoModalidad | null;
+  /** Particular: el valor cargado ($ si MONTO, % si PORCENTAJE). Sin default. */
+  deposito_valor: number | string | null;
+  /** Obra social (directa o Círculo Médico): monto único, sin desglose de IVA. */
+  caja_monto_unico: number | string | null;
+  caja_registrado_por: string | null;
+  caja_registrado_en: string | null;
 }
 
 export interface ChecklistRow {
@@ -132,25 +152,94 @@ export const SUB_RAMAS: { value: SubRama; label: string }[] = [
 ];
 
 // ------------------------------------------------------------
-// Checklist de seguimiento (definición fija; estado persistido en DB)
+// LIO del presupuesto
 // ------------------------------------------------------------
+// El presupuesto NO guarda un campo LIO propio: el LIO está implícito en la
+// PRESTACIÓN elegida (códigos 0305xx). `presupuestos_lios.codigo_practica`
+// (migración 33) hace ese mapeo; si el código no matchea, se cae a comparar el
+// nombre del LIO contra la descripción de la prestación.
+
+const normalizar = (s: string): string =>
+  (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+/**
+ * LIO que corresponde al presupuesto. Devuelve el id, o "" si no se puede
+ * inferir (el operador lo elige a mano).
+ */
+export function lioSugerido(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  presupuesto: any,
+  lios: Lio[],
+): string {
+  const activos = lios.filter((l) => l.activo);
+  if (!activos.length) return "";
+
+  const codigo = String(
+    presupuesto?.prestacion_codigo ||
+    presupuesto?.datos_completos?.tratamiento?.prestacionCodigo ||
+    "",
+  ).trim();
+  if (codigo) {
+    const porCodigo = activos.find((l) => (l.codigo_practica || "").trim() === codigo);
+    if (porCodigo) return porCodigo.id;
+  }
+
+  const desc = normalizar(
+    presupuesto?.prestacion_descripcion ||
+    presupuesto?.datos_completos?.tratamiento?.prestacionDescripcion ||
+    "",
+  );
+  if (desc) {
+    // Nombres más largos primero: "Tórico monofocal" antes que "Monofocal".
+    const porNombre = activos
+      .slice()
+      .sort((a, b) => b.nombre.length - a.nombre.length)
+      .find((l) => desc.includes(normalizar(l.nombre)));
+    if (porNombre) return porNombre.id;
+  }
+
+  return "";
+}
+
+// ------------------------------------------------------------
+// Checklist de seguimiento (definición declarativa por cobertura;
+// estado persistido en DB)
+// ------------------------------------------------------------
+
+export type ChecklistCtx = Pick<Aceptacion, "rama_cobertura" | "requiere_analisis_ecg">;
 
 export interface ChecklistDef {
   clave: string;
   label: string;
-  /** Si devuelve true, el ítem no aplica para esa aceptación (se pre-marca no_aplica). */
-  noAplica?: (a: Pick<Aceptacion, "rama_cobertura" | "requiere_analisis_ecg">) => boolean;
+  /** Si devuelve false, el ítem NO existe para esa cobertura (no se crea ni se muestra). */
+  aplica?: (a: ChecklistCtx) => boolean;
+  /** Si devuelve true, el ítem se crea pero pre-marcado "no aplica" (se ve tachado). */
+  noAplica?: (a: ChecklistCtx) => boolean;
 }
 
+const soloObraSocial = (a: ChecklistCtx) => a.rama_cobertura === "OBRA_SOCIAL";
+
 export const CHECKLIST_ITEMS: ChecklistDef[] = [
-  { clave: "autorizacion_os",         label: "Autorización de OS gestionada",              noAplica: (a) => a.rama_cobertura === "PARTICULAR" },
-  { clave: "orden_autorizada",        label: "Orden autorizada / pedido de cirugía recibido" },
+  // Trámites de obra social: en Particular no existen (el circuito particular no
+  // pasa por autorización ni por orden/pedido de cirugía de la OS).
+  { clave: "autorizacion_os",         label: "Autorización de OS gestionada",                aplica: soloObraSocial },
+  { clave: "orden_autorizada",        label: "Orden autorizada / pedido de cirugía recibido", aplica: soloObraSocial },
   { clave: "consentimiento_firmado",  label: "Consentimiento firmado entregado" },
-  { clave: "analisis_ecg",            label: "Análisis y ECG presentados",                 noAplica: (a) => !a.requiere_analisis_ecg },
+  { clave: "analisis_ecg",            label: "Análisis y ECG presentados",                   noAplica: (a) => !a.requiere_analisis_ecg },
   { clave: "deposito_garantia",       label: "Depósito en garantía realizado" },
   { clave: "lio_definido",            label: "LIO definido" },
   { clave: "fecha_cirugia_confirmada",label: "Fecha de cirugía confirmada" },
 ];
+
+/** Ítems que existen para esa cobertura. */
+export function itemsAplicables(ctx: ChecklistCtx): ChecklistDef[] {
+  return CHECKLIST_ITEMS.filter((it) => (it.aplica ? it.aplica(ctx) : true));
+}
+
+/** Claves que existen para esa cobertura (para filtrar filas ya persistidas). */
+export function clavesAplicables(ctx: ChecklistCtx): Set<string> {
+  return new Set(itemsAplicables(ctx).map((it) => it.clave));
+}
 
 /** LISTO PARA CIRUGÍA = todos los ítems aplicables (no_aplica=false) completados. */
 export function listoParaCirugia(rows: ChecklistRow[]): boolean {

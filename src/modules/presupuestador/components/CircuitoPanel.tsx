@@ -11,10 +11,14 @@ import { useEffect, useState } from "react";
 import {
   Aceptacion, ChecklistRow, Convenio, Lio,
   CHECKLIST_ITEMS, OJOS, SUB_RAMAS,
-  listoParaCirugia, progresoChecklist,
+  clavesAplicables, listoParaCirugia, progresoChecklist,
   sbGet, sbPatch,
 } from "../utils/circuito";
-import { DOCS, armarContexto, cargarConsentimiento, generarDocumento, generarSobreCompleto } from "../utils/sobre";
+import {
+  CajaOpts, SobreCtx,
+  DOCS, armarContexto, cargarConsentimiento, generarDocumento, generarSobreCompleto,
+} from "../utils/sobre";
+import CajaIngresoModal from "./CajaIngresoModal";
 
 interface PresupuestoMin {
   id: string;
@@ -26,6 +30,9 @@ interface PresupuestoMin {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   datos_completos?: any;
 }
+
+/** Qué se genera después de confirmar los datos de caja. */
+type PendienteCaja = { modo: "uno" } | { modo: "sobre" };
 
 const fmtFecha = (d: string | null | undefined): string => {
   if (!d) return "—";
@@ -53,6 +60,7 @@ export default function CircuitoPanel({
   const [consentimiento, setConsentimiento] = useState<{ titulo: string; cuerpo: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const [pendienteCaja, setPendienteCaja] = useState<PendienteCaja | null>(null);
 
   const cargar = async () => {
     setLoading(true);
@@ -63,11 +71,23 @@ export default function CircuitoPanel({
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
         cargarConsentimiento(),
       ]);
-      setAceptacion(a[0] || null);
+      const acept = a[0] || null;
+      setAceptacion(acept);
       setConsentimiento(cons);
-      // ordenar por el orden fijo de CHECKLIST_ITEMS
+      // Sólo los ítems que existen para esta cobertura (ej. "Orden autorizada"
+      // no corresponde a un circuito Particular), en el orden fijo de la
+      // definición. Filtrar acá corrige también los circuitos ya aceptados
+      // antes de esta regla, sin tocar datos.
+      const validas = acept
+        ? clavesAplicables(acept)
+        : new Set(CHECKLIST_ITEMS.map((it) => it.clave));
       const orden = new Map(CHECKLIST_ITEMS.map((it, i) => [it.clave, i]));
-      setRows((ch || []).slice().sort((x, y) => (orden.get(x.item_clave) ?? 99) - (orden.get(y.item_clave) ?? 99)));
+      setRows(
+        (ch || [])
+          .filter((r) => validas.has(r.item_clave))
+          .slice()
+          .sort((x, y) => (orden.get(x.item_clave) ?? 99) - (orden.get(y.item_clave) ?? 99)),
+      );
     } catch (e) {
       setError((e as Error).message || "No se pudo cargar el circuito");
     } finally {
@@ -104,15 +124,57 @@ export default function CircuitoPanel({
   };
 
   // ── Generación del Sobre Quirúrgico ──
+  const contexto = (caja?: CajaOpts): SobreCtx | null => {
+    if (!aceptacion) return null;
+    return armarContexto({ presupuesto, aceptacion, convenios, lios, consentimiento, caja });
+  };
+
+  /**
+   * El comprobante de caja necesita datos que carga el operador (monto o % del
+   * depósito en Particular; monto único en obra social), así que cualquier
+   * generación que lo incluya pasa antes por el modal.
+   */
   const generarUno = (clave: string) => {
     if (!aceptacion) return;
-    const ctx = armarContexto({ presupuesto, aceptacion, convenios, lios, consentimiento });
-    generarDocumento(clave, ctx);
+    if (clave === "caja") { setPendienteCaja({ modo: "uno" }); return; }
+    const ctx = contexto();
+    if (ctx) generarDocumento(clave, ctx);
   };
+
   const generarTodo = () => {
     if (!aceptacion) return;
-    const ctx = armarContexto({ presupuesto, aceptacion, convenios, lios, consentimiento });
-    generarSobreCompleto(ctx);
+    setPendienteCaja({ modo: "sobre" });
+  };
+
+  /** Persiste lo cargado en caja y genera lo que estaba pendiente. */
+  const confirmarCaja = async (caja: CajaOpts) => {
+    if (!aceptacion || !pendienteCaja) return;
+    try {
+      await sbPatch(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}`, {
+        deposito_modalidad: caja.depositoModalidad,
+        deposito_valor: caja.depositoValor,
+        caja_monto_unico: caja.montoUnico,
+        caja_registrado_por: username,
+        caja_registrado_en: new Date().toISOString(),
+      });
+      setAceptacion((prev) => (prev ? {
+        ...prev,
+        deposito_modalidad: caja.depositoModalidad,
+        deposito_valor: caja.depositoValor,
+        caja_monto_unico: caja.montoUnico,
+      } : prev));
+    } catch (e) {
+      // Si falla el guardado, igual se emite el comprobante: la caja no puede
+      // quedar bloqueada por un problema de red.
+      setError((e as Error).message || "No se pudo guardar el dato de caja (el comprobante se generó igual)");
+    }
+
+    const ctx = contexto(caja);
+    if (ctx) {
+      if (pendienteCaja.modo === "sobre") generarSobreCompleto(ctx);
+      else generarDocumento("caja", ctx);
+    }
+    setPendienteCaja(null);
   };
 
   const labelDe = (clave: string) => CHECKLIST_ITEMS.find((i) => i.clave === clave)?.label || clave;
@@ -123,6 +185,8 @@ export default function CircuitoPanel({
 
   const listo = listoParaCirugia(rows);
   const prog = progresoChecklist(rows);
+  // Contexto para el modal de caja (usa los valores ya persistidos como default).
+  const ctxCaja = pendienteCaja ? contexto() : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -225,12 +289,20 @@ export default function CircuitoPanel({
               {aceptacion && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">Sobre Quirúrgico</h4>
+                  <p className="text-[11px] text-gray-500 mb-2">
+                    Trazabilidad y consentimiento salen en hoja propia al final, para desprenderlos y archivarlos en quirófano.
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {DOCS.filter((d) => !d.condicional || aceptacion.requiere_analisis_ecg).map((d) => (
                       <button
                         key={d.clave}
                         onClick={() => generarUno(d.clave)}
-                        className="text-xs border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                        className={`text-xs border px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                          d.quirofano
+                            ? "border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
+                            : "border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                        }`}
+                        title={d.quirofano ? "Se archiva en quirófano" : "Se lo lleva el paciente"}
                       >
                         {d.label}
                       </button>
@@ -254,6 +326,17 @@ export default function CircuitoPanel({
           </button>
         </div>
       </div>
+
+      {/* Datos que carga el operador para el comprobante de caja */}
+      {pendienteCaja && ctxCaja && (
+        <CajaIngresoModal
+          ctx={ctxCaja}
+          titulo="Ingreso de caja"
+          confirmLabel={pendienteCaja.modo === "sobre" ? "Generar Sobre completo" : "Generar comprobante"}
+          onClose={() => setPendienteCaja(null)}
+          onConfirm={confirmarCaja}
+        />
+      )}
     </div>
   );
 }
