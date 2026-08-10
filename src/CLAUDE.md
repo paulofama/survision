@@ -121,6 +121,10 @@ Alias de imports (ver `vite.config.ts`): `@modules` → `src/modules`, `@shared`
 ### Módulos en producción
 - **Análisis Marginal**: `DashboardMarginalPage`, `PorPrestacionPage`, `EvolucionTemporalPage`.
 - **Presupuestador**: `Presupuestador.tsx`, `BusquedaPresupuestosPage`. Base secundaria.
+  Incluye el **circuito quirúrgico** post-aceptación (rama de cobertura, checklist,
+  Sobre Quirúrgico en jsPDF, ingreso de caja). **Reglas de negocio por cobertura,
+  configuración y gotchas de jsPDF: `docs/CIRCUITO_QUIRURGICO.md`** — leerlo antes
+  de tocar `utils/sobre/` o el modal de aceptación.
 - **Liquidaciones de honorarios**: `LiqHonorariosForm`, `LiqHonorariosList`, `LiqHonorariosReport`.
 - **Tesorería/Caja**: implementado. Caja (`MovValoresEnca`: FAC/IC/NC/EC/...) + sección **Pagos a Proveedores** (OP/PV desde `MovProv`, egresos a proveedores, aparte del saldo de caja). Resuelto 2026-06-15.
 - **Derivaciones**: con compartir por WhatsApp.
