@@ -17,7 +17,7 @@ import {
 import {
   armarContexto, docsDelSobre, armarSobreCompleto,
   nombreArchivoSobre, nombreArchivoDocumento, DOCS,
-  conceptoCompleto, recetasDelSobre, recetasDeMedicacionAdicional,
+  conceptoCompleto, recetasDelSobre, recetasDeMedicacionAdicional, fmtFechaISO,
 } from "../modules/presupuestador/utils/sobre";
 import {
   lioSugerido, itemsAplicables, clavesAplicables, Lio,
@@ -176,6 +176,32 @@ describe("LIO del presupuesto", () => {
     const ctx = ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" });
     expect(ctx.lioNombre).toBe("Tórico monofocal");
     expect(textoDe(construir(docPedidoCirugia, ctx))).toContain("Tórico monofocal");
+  });
+});
+
+// ============================================================
+// 1b. Fecha de cirugía — columna `date`, sin corrimiento por zona horaria
+// ============================================================
+describe("Fecha de cirugía", () => {
+  it("no se corre un día (columna date leída como UTC en un huso negativo)", () => {
+    // new Date("2026-08-11") = medianoche UTC = 10/08 en Argentina.
+    expect(fmtFechaISO("2026-08-11")).toBe("11/08/2026");
+    expect(fmtFechaISO("2026-01-01")).toBe("01/01/2026");
+    expect(fmtFechaISO("2026-12-31")).toBe("31/12/2026");
+    expect(fmtFechaISO(null)).toBe("");
+    expect(fmtFechaISO("")).toBe("");
+  });
+
+  it("la fecha llega intacta a los documentos del sobre", () => {
+    // Fecha elegida lejos de la del membrete y cruzando fin de mes: con el bug
+    // el 01/03 se imprimía como 28/02.
+    const ctx = ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2", fecha_tentativa_cirugia: "2026-03-01" });
+    expect(ctx.fechaCirugia).toBe("01/03/2026");
+    for (const build of [docPedidoCirugia, docIndicaciones, docTrazabilidad, docCaja]) {
+      const t = textoDe(construir(build, ctx));
+      expect(t).toContain("01/03/2026");
+      expect(t).not.toContain("28/02/2026");
+    }
   });
 });
 
@@ -496,7 +522,8 @@ describe("Ingreso de caja — regla transversal de IVA", () => {
     expect(t, nombre).not.toContain("Neto");
     expect(t, nombre).not.toContain(fmtARS(montoIva));
     // La única mención admitida de "IVA" es la aclaración del descuento.
-    for (const m of t.match(/[^\n]*IVA[^\n]*/g) || []) {
+    // \b para no engancharse con "ARCHIVAR", que contiene "IVA".
+    for (const m of t.match(/[^\n]*\bIVA\b[^\n]*/g) || []) {
       expect(m, `${nombre}: "${m}"`).toContain("Exento de IVA");
     }
   });

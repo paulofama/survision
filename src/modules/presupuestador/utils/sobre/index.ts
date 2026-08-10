@@ -32,8 +32,22 @@ const fmtARS = (v: number): string => {
   return `${ent.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${dec}`;
 };
 
-const fmtFechaISO = (d: string | null | undefined): string => {
+/**
+ * Formatea a dd/mm/aaaa.
+ *
+ * OJO: `fecha_tentativa_cirugia` es una columna `date` y llega como
+ * "2026-08-11". `new Date("2026-08-11")` la interpreta como medianoche UTC, que
+ * en Argentina (UTC-3) es el DÍA ANTERIOR: la fecha de cirugía salía impresa un
+ * día antes en todo el sobre. Las fechas sin hora se formatean sin construir un
+ * Date; el resto (timestamptz) sí se convierte a hora local, que es lo correcto.
+ */
+export const fmtFechaISO = (d: string | null | undefined): string => {
   if (!d) return "";
+  const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (soloFecha) {
+    const [, a, m, dd] = soloFecha;
+    return `${dd}/${m}/${a}`;
+  }
   try {
     const dt = new Date(d);
     if (isNaN(dt.getTime())) return "";

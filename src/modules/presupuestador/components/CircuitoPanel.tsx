@@ -34,10 +34,20 @@ interface PresupuestoMin {
 /** Qué se genera después de confirmar los datos de caja. */
 type PendienteCaja = { modo: "uno" } | { modo: "sobre" };
 
+// `fecha_tentativa_cirugia` es una columna `date` ("2026-08-11"): construir un
+// Date con eso la ubica a medianoche UTC y en Argentina muestra el día
+// anterior. Las fechas sin hora se formatean tal cual; las timestamptz
+// (fecha_completado) sí pasan a hora local.
 const fmtFecha = (d: string | null | undefined): string => {
   if (!d) return "—";
+  const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (soloFecha) {
+    const [, a, m, dd] = soloFecha;
+    return `${dd}/${m}/${a}`;
+  }
   try {
     const dt = new Date(d);
+    if (isNaN(dt.getTime())) return "—";
     return `${dt.getDate().toString().padStart(2, "0")}/${(dt.getMonth() + 1).toString().padStart(2, "0")}/${dt.getFullYear()}`;
   } catch { return "—"; }
 };

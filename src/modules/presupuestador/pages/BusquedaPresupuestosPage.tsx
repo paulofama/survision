@@ -101,10 +101,20 @@ const fmtARS = (v: number): string => {
   return `${ent.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${dec}`;
 };
 
+// `fecha_entrega` / `fecha_practica` son columnas `date` ("2026-07-22"):
+// construir un Date con eso las ubica a medianoche UTC y en Argentina se
+// mostraba el DÍA ANTERIOR. Las fechas sin hora se formatean tal cual; las
+// timestamptz (fecha_resultado, fecha_creacion) sí pasan a hora local.
 const fmtFecha = (d: string | null | undefined): string => {
   if (!d) return "—";
+  const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (soloFecha) {
+    const [, a, m, dd] = soloFecha;
+    return `${dd}/${m}/${a}`;
+  }
   try {
     const dt = new Date(d);
+    if (isNaN(dt.getTime())) return "—";
     return `${dt.getDate().toString().padStart(2, "0")}/${(dt.getMonth() + 1)
       .toString()
       .padStart(2, "0")}/${dt.getFullYear()}`;
