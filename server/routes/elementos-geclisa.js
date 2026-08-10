@@ -368,16 +368,13 @@ router.post('/sync-supabase', async (req, res) => {
     }));
 
     // 4. Enviar a Supabase (upsert)
-    const { createClient } = require('@supabase/supabase-js');
-    
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-    
-    if (!supabaseKey) {
-      throw new Error('SUPABASE_ANON_KEY no configurada en el servidor');
+    // Cliente compartido: usa la SERVICE_ROLE key y bypassa RLS. Antes creaba
+    // uno propio con la ANON key, que con RLS habilitada en `insumos_variables`
+    // (migración 36) quedaría bloqueado.
+    const { supabase } = require('../config/supabase');
+    if (!supabase) {
+      throw new Error('Cliente Supabase no configurado en el servidor');
     }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Insertar todos directamente (tabla está vacía)
     let insertados = 0;

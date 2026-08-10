@@ -7,12 +7,10 @@
 const express = require('express');
 const router = express.Router();
 const { executeQuery } = require('../config/database');
-const { createClient } = require('@supabase/supabase-js');
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
-let supabase = null;
-if (SUPABASE_URL && SUPABASE_KEY) supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Cliente compartido: usa la SERVICE_ROLE key y bypassa RLS. Antes esta ruta
+// creaba su propio cliente con la ANON key, que con RLS habilitada en
+// `prestadores` (migración 36) quedaría bloqueado.
+const { supabase } = require('../config/supabase');
 
 // ============================================
 // GET /api/prestadores-geclisa

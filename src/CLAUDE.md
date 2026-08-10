@@ -146,6 +146,14 @@ Alias de imports (ver `vite.config.ts`): `@modules` → `src/modules`, `@shared`
 - **Gestión de accesos / roles**: `GestionAccesosPage`, `useRoles` (cache de 5min eliminado).
 - **PDFs de gestión**: `generarInformeGestion.ts`, `InformeGestionModal`.
 
+### Seguridad: auditar RLS al crear tablas
+
+⚠️ **La anon key está hardcodeada en `src/shared/lib/supabase.ts` y viaja en el bundle** — es pública por diseño. Con el sistema publicado en internet, **toda tabla sin RLS (o con una policy que alcance al rol `anon`) es de lectura y escritura pública.** El endurecimiento de la migración 07b cubrió sólo lo que existía en junio-2026; cada módulo nuevo puede volver a abrir el agujero.
+
+**Después de crear tablas, correr:** `cd server && node scripts/auditar-rls.cjs` (sale con código 1 si hay exposición). Hallazgos ya cerrados: migración 35 (tablas fiscales) y 36 (14 tablas que nunca tuvieron RLS habilitada, incluidas las de honorarios).
+
+Patrón correcto: `ENABLE ROW LEVEL SECURITY` + policies para `authenticated` con `public.app_tiene_permiso('<modulo>')`, y **nada** para `anon`. Antes de sacar el acceso anon, verificar quién escribe: el backend usa la SERVICE_ROLE key y bypassa RLS, pero **ojo con las rutas que arman su propio cliente con la ANON key** (pasó con `prestadores.js` y `elementos-geclisa.js`).
+
 ### Issues conocidos
 
 Ninguno de código. Los dos abiertos son **hallazgos de datos**, para que los resuelva Paulo — no son bugs a "arreglar" en el sistema:
