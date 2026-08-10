@@ -7,7 +7,6 @@
 const express = require('express');
 const router = express.Router();
 const { executeQuery, testConnection } = require('../config/database');
-const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
 
 // ============================================
@@ -35,13 +34,15 @@ function fetchJSON(url) {
 // ============================================
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 let supabase = null;
 
-// Inicializar cliente Supabase solo si hay credenciales
+// Cliente compartido: usa la SERVICE_ROLE key y bypassa RLS. Antes esta ruta
+// armaba el suyo con la ANON key, y hace `upsert` sobre `prestaciones`: con la
+// RLS de la migración 37 (escritura con permiso) habría quedado bloqueada.
 if (SUPABASE_URL && SUPABASE_KEY) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  supabase = require('../config/supabase').supabase;
   console.log('✅ Cliente Supabase inicializado para precios');
 } else {
   console.warn('⚠️ Supabase no configurado - precios no disponibles');
