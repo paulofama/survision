@@ -1,7 +1,9 @@
 # Circuito Quirúrgico — referencia
 
 > Instituto Dr. Mercado · Sistema de Gestión Integral
-> Última actualización: **2026-08-10** · Commits `97b821c` (correcciones Fases 1 y 2) y `10185ce` (fecha de cirugía).
+> Última actualización: **2026-08-10**
+> Commits: `97b821c` correcciones Fases 1 y 2 · `10185ce` fecha de cirugía · `3df139a` pie sin crédito de desarrollo.
+> Migraciones: **33** (LIOs + caja), **34** (recetas por sistema), **38** (placeholder del consentimiento).
 
 Cubre el tramo **Aceptar presupuesto → Circuito de cirugía → Sobre Quirúrgico → Ingreso de caja**, con las reglas que fijó Administración en el testeo funcional del 10-11/08/2026 sobre las tres coberturas.
 
@@ -70,7 +72,25 @@ Trazabilidad y consentimiento van últimos y separados **para poder desprenderlo
 
 Páginas resultantes: Particular 11 (con análisis), OSEP 10, Círculo Médico 11 (la receta extra de la medicación).
 
-Cada hoja lleva membrete completo (institución, lema, **dirección, teléfono y fecha de emisión**) y pie. El cronograma **no se modifica en contenido ni estructura** — Administración lo confirmó como está; lo único que cambió es el cuerpo de letra y la orientación.
+### Membrete
+
+Cada hoja lleva el membrete completo, verificado por test (la cantidad de membretes tiene que ser igual a la cantidad de páginas):
+
+| elemento | y desde arriba | cuerpo | alineación |
+|---|---|---|---|
+| INSTITUTO DR. MERCADO | 14 mm | 15 pt | centrado |
+| San Rafael, dd/mm/aaaa (emisión) | 14 mm | 8 pt | derecha |
+| Survisión S.A. | 19,5 mm | 9 pt | centrado |
+| Lema | 24 mm | 8 pt | centrado |
+| Dirección + teléfonos | 29 mm | 7,5 pt | centrado |
+| línea divisoria | 32 mm | | |
+| **contenido** | **38 mm** | | |
+
+Al pie, guardia y email. **No lleva crédito de desarrollo**: los documentos salen del instituto y los ve el paciente o la obra social (ver `src/CLAUDE.md`, sección de convenciones).
+
+**Todavía no hay logo**: el membrete es sólo texto porque no existe ningún archivo de logo en el proyecto. Cuando lo haya, se dibuja en `cabecera()` de `pdfBase.ts` y lo toman las 11 páginas de una.
+
+El cronograma **no se modifica en contenido ni estructura** — Administración lo confirmó como está; lo único que cambió es el cuerpo de letra y la orientación.
 
 ---
 
@@ -141,8 +161,22 @@ Los tests extraen el **texto real del PDF** con regex sobre los operadores `(tex
 
 ---
 
-## 8. Pendiente
+## 8. Cómo regenerar un sobre sin pasar por la UI
 
-1. **Texto legal del consentimiento.** Hoy hay un placeholder. Cuando Administración lo entregue, se carga como **nueva versión vigente** en `presupuestos_textos_legales` (clave `consentimiento_catarata`); no requiere tocar código. Confirmado que es **uno solo para todas las cataratas**, sin variantes por cobertura.
+Para verificar cambios contra datos reales, sin clics: un test temporal que lee el presupuesto y su aceptación de Supabase con la service key, arma el contexto y escribe el PDF. El patrón está en el historial (`_sobre813.test.ts`, borrado tras usarlo).
 
-2. **Decisión abierta:** el monto único de obra social viene prellenado con la base del presupuesto. Administración pidió "carga manual"; si lo quieren en blanco para forzarla, es una línea en `CajaIngresoModal`.
+Para inspeccionar el resultado **no hace falta ver la imagen**: `pdfjs-dist` (está en `server/node_modules`) extrae el texto con coordenadas, y eso alcanza para verificar el membrete, detectar solapamientos y confirmar posiciones. Sirve también el regex sobre los operadores `(texto) Tj` del stream, que es lo que usa el test.
+
+> No hay rasterizador de PDF en la máquina (ni poppler, ni ghostscript, ni ImageMagick — el `convert` que aparece en el PATH es el de Windows). No se pueden convertir páginas a imagen para revisarlas a ojo.
+
+---
+
+## 9. Pendiente
+
+1. **Texto legal del consentimiento.** Hoy hay un placeholder neutro (migración 38). Cuando Administración lo entregue, se carga como **nueva versión vigente** en `presupuestos_textos_legales` (clave `consentimiento_catarata`) — nueva fila, no editar la versión 1. No requiere tocar código. Confirmado que es **uno solo para todas las cataratas**, sin variantes por cobertura.
+
+2. **Logo institucional.** Falta el archivo. Ver la sección de membrete.
+
+3. **Decisión abierta:** el monto único de obra social viene prellenado con la base del presupuesto. Administración pidió "carga manual"; si lo quieren en blanco para forzarla, es una línea en `CajaIngresoModal`.
+
+4. **Prueba funcional pendiente** (Administración, 11/08/2026): **P-2026-813** para caja, Avastin y las 4 recetas; **P-2026-814** para el LIO de sólo lectura (tiene que preseleccionar "Multifocal PanOptix Pro" y no dejar cambiarlo); **P-2026-810** para el checklist de Particular sin "Orden autorizada".

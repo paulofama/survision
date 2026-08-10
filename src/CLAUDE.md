@@ -150,7 +150,7 @@ Alias de imports (ver `vite.config.ts`): `@modules` → `src/modules`, `@shared`
 
 ⚠️ **La anon key está hardcodeada en `src/shared/lib/supabase.ts` y viaja en el bundle** — es pública por diseño. Con el sistema publicado en internet, **toda tabla sin RLS (o con una policy que alcance al rol `anon`) es de lectura y escritura pública.** El endurecimiento de la migración 07b cubrió sólo lo que existía en junio-2026; cada módulo nuevo puede volver a abrir el agujero.
 
-**Después de crear tablas, correr:** `cd server && node scripts/auditar-rls.cjs` (sale con código 1 si hay exposición). Hallazgos ya cerrados: migración 35 (tablas fiscales) y 36 (14 tablas que nunca tuvieron RLS habilitada, incluidas las de honorarios).
+**Después de crear tablas, correr:** `cd server && node scripts/auditar-rls.cjs` (sale con código 1 si hay exposición). Hallazgos ya cerrados: migraciones 35, 36 y 37. **Detalle completo, patrón de policies y cómo probar que una tabla quedó cerrada: `docs/SEGURIDAD_RLS.md`.**
 
 Patrón correcto: `ENABLE ROW LEVEL SECURITY` + policies para `authenticated` con `public.app_tiene_permiso('<modulo>')`, y **nada** para `anon`. Antes de sacar el acceso anon, verificar quién escribe: el backend usa la SERVICE_ROLE key y bypassa RLS, pero **ojo con las rutas que arman su propio cliente con la ANON key** (pasó con `prestadores.js` y `elementos-geclisa.js`).
 
@@ -397,6 +397,8 @@ Para entornos PowerShell con restricción de scripts, usar `npm.cmd` en vez de `
 | **Presupuestador**: circuito quirúrgico post-aceptación | Completo | **`docs/CIRCUITO_QUIRURGICO.md`** |
 | **Seguimiento telefónico de presupuestos** | Completo, en `main` | Memoria `project-seguimiento-presupuestos` |
 | **Tesorería/Bancos** (extracto Santander + conciliación) | v2 completa | Memoria `project-bancos-conciliacion` |
+
+**Sesión 2026-08-10** (commits `97b821c`→`3df139a`, migraciones 33-38): correcciones del circuito quirúrgico según el testeo de Administración, endurecimiento de RLS (18 tablas que eran accesibles con la anon key pública) y limpieza del membrete de los documentos. **Al retomar, leer `00/HANDOFF.md`.**
 
 **Trabajo activo**: deploy remoto de todo el sistema (Netlify + backend on-prem + túnel). Seguridad lista (Auth + RLS + JWT), repo en GitHub. Ver memoria `project-deploy-remoto`.
 
