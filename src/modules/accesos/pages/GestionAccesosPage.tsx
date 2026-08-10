@@ -37,6 +37,7 @@ import {
   Wrench,
   CalendarClock,
   Banknote,
+  Receipt,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
@@ -111,6 +112,12 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     descripcion: 'Conciliación bancaria (Santander ↔ GECLISA)',
     icono: Banknote,
     color: 'emerald'
+  },
+  fiscal: {
+    nombre: 'Fiscal',
+    descripcion: 'Libro IVA Ventas y Compras, posición de IVA',
+    icono: Receipt,
+    color: 'orange'
   },
   liquidaciones: {
     nombre: 'Liquidaciones',
@@ -194,6 +201,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'analisis_marginal',
   'tesoreria',
   'tesoreria:bancos',
+  'fiscal',
   'liquidaciones',
   'presupuestador',
   'presupuestador:config',

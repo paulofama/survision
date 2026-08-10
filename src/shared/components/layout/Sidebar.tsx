@@ -179,12 +179,12 @@ const navItems: NavItem[] = [
 
   // ============================================
   // FISCAL (IVA Ventas / Compras / Dashboard)
-  // Sin requierePermiso: lo usa Paulo (Auditor/Contador).
   // ============================================
   {
     path: '/fiscal',
     icon: FileBarChart,
     label: 'Fiscal',
+    requierePermiso: 'fiscal',
     subItems: [
       { path: '/fiscal', label: 'Dashboard IVA', icon: LayoutDashboard },
       { path: '/fiscal/ventas', label: 'IVA Ventas', icon: FileText },

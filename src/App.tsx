@@ -293,10 +293,10 @@ const App: React.FC = () => {
                       <Route path="/tesoreria/caja/movimientos" element={<CajaMovimientosPage />} />
                       <Route path="/tesoreria/caja/saldo-historico" element={<SaldoHistoricoPage />} />
                       <Route path="/tesoreria/proveedores" element={<PagosProveedoresPage />} />
-                      <Route path="/fiscal" element={<FiscalDashboardPage />} />
-                      <Route path="/fiscal/ventas" element={<IvaVentasPage />} />
-                      <Route path="/fiscal/compras" element={<IvaComprasPage />} />
-                      <Route path="/fiscal/resumen" element={<ResumenAnualPage />} />
+                      <Route path="/fiscal" element={<ProtectedRoute modulo="fiscal"><FiscalDashboardPage /></ProtectedRoute>} />
+                      <Route path="/fiscal/ventas" element={<ProtectedRoute modulo="fiscal"><IvaVentasPage /></ProtectedRoute>} />
+                      <Route path="/fiscal/compras" element={<ProtectedRoute modulo="fiscal"><IvaComprasPage /></ProtectedRoute>} />
+                      <Route path="/fiscal/resumen" element={<ProtectedRoute modulo="fiscal"><ResumenAnualPage /></ProtectedRoute>} />
                       <Route path="/tesoreria/bancos" element={<ProtectedRoute modulo="tesoreria:bancos"><BancosPage /></ProtectedRoute>} />
                       
                       {/* ============================================ */}

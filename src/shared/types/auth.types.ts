@@ -39,6 +39,10 @@ export const MODULOS_SISTEMA = {
   herramientas: { nombre: 'Herramientas', descripcion: 'Herramientas varias (recetario médico, etc.)' },
   // Sección Turnos: agenda de turnos futuros + recordatorios por WhatsApp (secretarías).
   turnos: { nombre: 'Turnos', descripcion: 'Agenda de turnos futuros y recordatorios por WhatsApp' },
+  // Sección Fiscal: libro IVA Ventas/Compras, dashboard y resumen anual.
+  // Dato sensible (CUIT e importes de todos los comprobantes) — gatea también la
+  // RLS de las tablas fiscal_iva_* (migración 35).
+  fiscal: { nombre: 'Fiscal', descripcion: 'Libro IVA Ventas y Compras, posición de IVA' },
 } as const;
 
 export type ModuloSistema = keyof typeof MODULOS_SISTEMA;
@@ -189,6 +193,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   'sueldos:reportes': false,
   herramientas: false,
   turnos: false,
+  fiscal: false,
 };
 
 // Permisos para admin (todos en true)
@@ -212,4 +217,5 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   'sueldos:reportes': true,
   herramientas: true,
   turnos: true,
+  fiscal: true,
 };
