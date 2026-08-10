@@ -105,6 +105,14 @@ export function generarReporteSueldosPDF(d: DatosReporteMes): void {
   };
 
   // ---- 1. ENCABEZADO ----------------------------------------------------
+  // Membrete institucional: era el único PDF del sistema que no nombraba al
+  // Instituto (sólo la razón social).
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(20, 40, 90);
+  doc.text('INSTITUTO DR. MERCADO', M, y);
+  doc.setTextColor(0, 0, 0);
+  y += 18;
   doc.setFontSize(15);
   doc.setFont('helvetica', 'bold');
   doc.text('Reporte de Auditoría — Sueldos', M, y);
@@ -297,7 +305,7 @@ export function generarReporteSueldosPDF(d: DatosReporteMes): void {
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `${d.empresa.razon_social} — Reporte Sueldos ${d.periodoLabel} — Borrador, no reemplaza la contabilización oficial`,
+      `Instituto Dr. Mercado — ${d.empresa.razon_social} — Reporte Sueldos ${d.periodoLabel} — Borrador, no reemplaza la contabilización oficial`,
       M, doc.internal.pageSize.getHeight() - 16
     );
     doc.text(`${i}/${total}`, W - M - 20, doc.internal.pageSize.getHeight() - 16);
