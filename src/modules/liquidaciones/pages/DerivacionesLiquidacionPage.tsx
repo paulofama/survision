@@ -670,7 +670,7 @@ const DerivacionesLiquidacionPage = () => {
     doc.setTextColor(130, 130, 130);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text('Sistema de Gestión Integral - Desarrollo | P. Famá', m, pageH - 5);
+    doc.text('Sistema de Gestión Integral', m, pageH - 5);
     doc.text(`Instituto Dr. Mercado - ${new Date().getFullYear()}`, pageW - m, pageH - 5, { align: 'right' });
   };
 
@@ -898,7 +898,7 @@ const DerivacionesLiquidacionPage = () => {
     const footY = totalY + totalH + 18;
     ctx.fillStyle = '#cbd5e1';
     ctx.font = '9px Arial, sans-serif';
-    ctx.fillText('Instituto Dr. Mercado  |  P. Fama | Desarrollo', PAD, footY);
+    ctx.fillText('Instituto Dr. Mercado', PAD, footY);
     ctx.textAlign = 'right';
     ctx.fillText(fechaGen, W - PAD, footY);
     ctx.textAlign = 'left';

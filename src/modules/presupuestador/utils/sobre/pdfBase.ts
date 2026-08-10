@@ -4,7 +4,7 @@
 // ============================================================
 // Patrón visual del sistema (jsPDF): membrete "Instituto Dr. Mercado —
 // Survisión S.A." + lema + dirección y teléfono + fecha de emisión, y pie con
-// datos de guardia y "Desarrollo: P. Famá".
+// los datos de guardia.
 // Provee un "Lienzo" con cursor `y` que gestiona saltos de página, encabezado
 // y pie de forma consistente para todos los documentos del Sobre.
 //
@@ -104,8 +104,6 @@ function pie(L: Lienzo) {
   doc.setFontSize(7);
   doc.setTextColor(110, 110, 110);
   doc.text("Guardia: 260-4669362  ·  info@survision.com.ar", pw / 2, top + 5, { align: "center" });
-  doc.setTextColor(150, 150, 150);
-  doc.text("Desarrollo: P. Famá", pw / 2, top + 9, { align: "center" });
   doc.setTextColor(30, 30, 30);
 }
 

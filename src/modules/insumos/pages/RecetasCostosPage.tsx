@@ -236,7 +236,7 @@ const imprimirReceta = (receta: RecetaCompleta) => {
 
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral</span>
       </div>
 
       <script>window.onload = function() { window.print(); }</script>
@@ -462,7 +462,7 @@ const imprimirTodasRecetas = (recetas: PracticaRecetaConCostos[]) => {
 
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral</span>
       </div>
 
       <script>
@@ -585,7 +585,7 @@ const imprimirRecetasResumen = (recetas: PracticaRecetaConCostos[]) => {
       </div>
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral</span>
       </div>
       <script>window.onload = function() { window.print(); }</script>
     </body>
@@ -702,7 +702,7 @@ const imprimirRecetasDetalle = (recetas: RecetaCompleta[]) => {
       ${recetasSections}
       <div class="footer">
         <span>Generado: ${fechaActual}</span>
-        <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
+        <span>Sistema de Gestión Integral</span>
       </div>
       <script>window.onload = function() { window.print(); }</script>
     </body>
@@ -1730,7 +1730,7 @@ const RecetasCostosPage: React.FC = () => {
         ${recetasSections}
         <div class="footer">
           <span>Generado: ${fechaActual}</span>
-          <span>Sistema de Gestión Integral - Desarrollo | P. Famá</span>
+          <span>Sistema de Gestión Integral</span>
         </div>
         <script>window.onload = function() { window.print(); }</script>
       </body>

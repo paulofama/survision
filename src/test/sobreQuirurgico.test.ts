@@ -606,7 +606,9 @@ describe("Estructura del Sobre Quirúrgico", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const paginas = (L.doc as any).getNumberOfPages();
       expect((t.match(/INSTITUTO DR. MERCADO/g) || []).length, nombre).toBe(paginas);
-      expect((t.match(/Desarrollo: P. Famá/g) || []).length, nombre).toBe(paginas);
+      expect((t.match(/Guardia: 260-4669362/g) || []).length, nombre).toBe(paginas);
+      // El crédito de desarrollo no va en documentos que ve el paciente.
+      expect(t, nombre).not.toContain("P. Famá");
       // Ningún literal cayó en UTF-16 (pasa si se cuela un carácter fuera de
       // WinAnsi, ej. el menos tipográfico U+2212: el importe sale ilegible).
       expect(t.includes(String.fromCharCode(0)), `${nombre}: texto codificado en UTF-16`).toBe(false);

@@ -69,7 +69,7 @@ const getFechaActual = (): string => {
   });
 };
 
-const FOOTER_TEXT = 'Sistema de Gestión Integral - Desarrollo | P. Famá';
+const FOOTER_TEXT = 'Sistema de Gestión Integral';
 
 // Imprimir un pool individual con detalle
 const imprimirPool = (pool: PoolConItems) => {

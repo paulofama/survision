@@ -273,7 +273,6 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     doc.setFontSize(7);
     doc.setTextColor(...C.medium);
     doc.text('Documento confidencial — Instituto Dr. Mercado / Survisión S.A.', M, PH - 9);
-    doc.text('Desarrollo: P. Famá', PW / 2, PH - 9, { align: 'center' });
     doc.text(`Página ${pageNum}`, PW - M, PH - 9, { align: 'right' });
   };
 

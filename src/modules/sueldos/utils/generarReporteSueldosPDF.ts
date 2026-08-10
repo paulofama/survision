@@ -129,7 +129,7 @@ export function generarReporteSueldosPDF(d: DatosReporteMes): void {
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
   doc.text(
-    `Generado ${new Date(d.generadoEn).toLocaleString('es-AR')}${d.generadoPor ? '  ·  ' + d.generadoPor : ''}  ·  Desarrollo: P. Famá`,
+    `Generado ${new Date(d.generadoEn).toLocaleString('es-AR')}${d.generadoPor ? '  ·  ' + d.generadoPor : ''}`,
     M, y
   );
   doc.setTextColor(0, 0, 0);

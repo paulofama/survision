@@ -611,7 +611,6 @@ function dibujarPortada(doc: jsPDF, datos: DatosInformeGestion): void {
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.text('Sistema de Gestión Integral - Instituto Dr. Mercado', MARGIN.left, 285);
-  doc.text('P. Fama | Desarrollo', MARGIN.left + CONTENT_WIDTH, 285, { align: 'right' });
 }
 
 function dibujarHeaderPagina(doc: jsPDF, y: number, titulo: string, subtitulo: string): number {
@@ -1910,7 +1909,4 @@ function dibujarFooterPagina(doc: jsPDF, pagina: number, total: number): void {
 
   // Centro: página
   doc.text(`Pagina ${pagina} de ${total}`, 105, y, { align: 'center' });
-
-  // Derecha: desarrollador
-  doc.text('P. Fama | Desarrollo', MARGIN.left + CONTENT_WIDTH, y, { align: 'right' });
 }

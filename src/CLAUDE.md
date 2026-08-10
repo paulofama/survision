@@ -14,7 +14,7 @@
 - **Naturaleza**: Sistema de gestión financiera y operativa para clínica de oftalmología (cost análisis, rentabilidad marginal, presupuestos, clasificación de gastos, tesorería, liquidaciones de honorarios, seguimiento de pacientes, reportes de gestión).
 - **Desarrollador principal**: P. Famá (Paulo). Contador interno de la clínica y desarrollador del sistema.
 - **Branding del sistema**: "Sistema de Gestión Integral" (NUNCA "Sistema de Costos").
-- **Footer de desarrollo**: "Desarrollo: P. Famá".
+- **Crédito de desarrollo**: "P. Famá | Desarrollo" va SOLO en la UI de la app (login, sidebar, layouts). **NO va en los documentos generados** — ni PDFs ni impresiones HTML (decisión de Paulo, 2026-08-10): salen del instituto y los ve el paciente o la obra social. Los pies de documento llevan datos institucionales, no el crédito.
 
 ---
 
