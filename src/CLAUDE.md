@@ -127,6 +127,20 @@ Alias de imports (ver `vite.config.ts`): `@modules` → `src/modules`, `@shared`
   de tocar `utils/sobre/` o el modal de aceptación.
 - **Liquidaciones de honorarios**: `LiqHonorariosForm`, `LiqHonorariosList`, `LiqHonorariosReport`.
 - **Tesorería/Caja**: implementado. Caja (`MovValoresEnca`: FAC/IC/NC/EC/...) + sección **Pagos a Proveedores** (OP/PV desde `MovProv`, egresos a proveedores, aparte del saldo de caja). Resuelto 2026-06-15.
+  - ⚠️ **Sólo el EFECTIVO cuenta como caja.** El saldo del dashboard llegó a mostrar $1.041M ficticios por incluir valores no-efectivo; regla `esEfectivo` + restar OP/PV (migración 30). El título correcto es "Saldo de Caja del mes".
+- **Tesorería/Bancos** (`/tesoreria/bancos`, permiso propio **`tesoreria:bancos`**): ingesta del extracto Santander (.xlsx) + conciliación con GECLISA. Cuenta CC Santander 262-001981/7. Migraciones 31 y 32.
+  - **Core isomórfico** en `src/modules/tesoreria/bancos/core/` (`.mjs` + `.d.mts`): parser, categorización, ingesta y motor de conciliación son UNA implementación que usan **tanto el navegador como el CLI del servidor** (que la carga con `import()` dinámico). Depende sólo de `xlsx`. **No duplicar esa lógica en TS.**
+  - ⚠️ **El importe real es el delta de "Saldo en cuenta"**, no las columnas Débito/Crédito (el PDF pone créditos grandes de OS en la columna Débito). La cadena de deltas telescopa y siempre "cierra", así que la validación **debe anclar al saldo final declarado del encabezado**.
+  - Motor: auto 1:1 por importe + fecha ±3 días hábiles + nombre (Jaccard) para cobranzas; por **CUIT** para egresos; fase Getnet con tolerancia de arancel. Ambigüedad → pendiente, **nunca auto**. Reversible (`desconciliar`).
+  - CLI diario `server/scripts/banco-ingest.cjs` (tarea `Survision-BancoIngesta`, 09:30, on-prem). Ver `server/scripts/BANCO-INGESTA-README.md`.
+- **Fiscal / IVA** (`/fiscal`, `/fiscal/ventas`, `/fiscal/compras`, `/fiscal/resumen`): Libro IVA Ventas + Compras + Dashboard + Resumen Anual (meses en columnas). Módulo `src/modules/fiscal`, hook `useFiscalIva`, migración `07_fiscal_iva.sql`.
+  - **Sin permiso propio**: hoy lo ve cualquier usuario logueado (no está en `MODULOS_SISTEMA`).
+  - Arquitectura **híbrida**: lee de Supabase (foto validada) y el backend re-sincroniza desde GECLISA al abrir si el período está `stale` (`useAutoRefresh`, 1 vez por período/sesión) + botón "Actualizar". Servicio único `server/services/ivaExtractor.js`, rutas `server/routes/fiscal.js`.
+  - **Reglas cerradas, NO re-litigar**: Ventas = `MovValoresEnca` UNION `PFComp` con `TComp_sigla IN ('FAC','NC','ND')` por fecha de comprobante; Compras = `MovProv` por **fecha contable**. Los **Recibos a OS (REC, ~$33M/mes) NO van en ventas** — el módulo refleja el libro IVA fiscal de AFIP, no la facturación total. La fuente de verdad es **GECLISA en vivo**, no los Excel de `C:\FISCAL\Exportaciones` (cuyas carpetas además están mal nombradas).
+- **Turnos** (`/turnos`, permiso `turnos`): agenda de turnos futuros + recordatorios por WhatsApp, la usan las secretarías. Espejo `turnos_futuros` (migración 19), refrescado por el daemon. Distinto de `AnalisisTurnosPage` (`/analisis/turnos`), que es el dashboard analítico.
+  - **Patrón espejo, NO endpoint Express** (un Express nuevo no andaría desde Netlify).
+  - El celular sale de `Turnos.tfic_cel` (~100% de cobertura), **no** de `ttelefono` (3,6%, inservible). Se normaliza a `549`+10 dígitos y se guarda listo en `telefono_norm`; el frontend no hace lógica de teléfono.
+  - **3 tipos de recordatorio** (`inicial` / `previo` / `final`) con textos propios en `utils/recordatorios.ts`; dedup por tipo en `turnos_recordatorios` (migración 24). Es **wa.me click-to-chat**, no envío automático (decisión: "auto-mostrar + 1 clic").
 - **Derivaciones**: con compartir por WhatsApp.
 - **Seguimiento de pacientes**: `SeguimientoPacientesPage`, hook `useSeguimientoPacientes`.
 - **Gestión de accesos / roles**: `GestionAccesosPage`, `useRoles` (cache de 5min eliminado).
@@ -134,11 +148,16 @@ Alias de imports (ver `vite.config.ts`): `@modules` → `src/modules`, `@shared`
 
 ### Issues conocidos
 
-- Ninguno pendiente. (Evolución Temporal y Tesorería OP/PV resueltos el 2026-06-15.)
+Ninguno de código. Los dos abiertos son **hallazgos de datos**, para que los resuelva Paulo — no son bugs a "arreglar" en el sistema:
+
+- ⚠️ **Fiscal, jun-2025 y sep-2025**: GECLISA clasifica ~11 comprobantes como gravados que el Excel presentado muestra exentos. Diferencia de IVA débito ~$272k (jun) y ~$475k (sep). No hay campo en GECLISA que diga "exento", así que el Excel no se puede reproducir desde GECLISA. **Hay que chequear contra la DDJJ presentada.**
+- ⚠️ **Sueldos, desde jun-2025**: la contribución de seguridad social del F.931 (código 351) se desploma; la alícuota efectiva cae de ~30,5% a ~13,4%. El parseo está OK — la anomalía está en la declaración. Se resuelve con el liquidador (rectificar F.931).
+
+(Evolución Temporal y Tesorería OP/PV resueltos el 2026-06-15.)
 
 ---
 
-## Módulo en construcción: CARGA DE SUELDOS
+## Módulo SUELDOS — decisiones de alcance (completo; sección de referencia)
 
 **Estado actual**: **Las 5 fases completas (2026-06-14).** Fases 1-4 aplicadas y verificadas; 2025 cargado completo (minuta + F.931 + 12 asientos generados) + ene-2026. Fase 5 (Hallazgos + Reportes auditor con PDF de 8 secciones + indicadores comparativos) completa. Detalle en `00/SUELDOS_ESTADO_Y_CONTINUIDAD.md`.
 
@@ -358,9 +377,28 @@ Para entornos PowerShell con restricción de scripts, usar `npm.cmd` en vez de `
 
 ## Última actualización
 
-**Fecha**: 2026-06-14.
+**Fecha**: 2026-08-10.
 
-**Estado**: **Módulo Sueldos COMPLETO — las 5 fases terminadas.** 2025 cargado de punta a punta (minuta + F.931 + 12 asientos) y reportes de auditoría operativos. Detalle exhaustivo en `00/SUELDOS_ESTADO_Y_CONTINUIDAD.md` (guía operativa para retomar).
+**Qué se construyó después del cierre de Sueldos** (jun→ago 2026), en orden:
+
+| Módulo | Estado | Dónde está el detalle |
+|---|---|---|
+| **Fiscal / IVA** | Completo (4 fases) | Memoria `project-modulo-fiscal` |
+| **Turnos** (agenda + recordatorios) | Completo, en `main` | Memoria `project-modulo-turnos` |
+| **Análisis Marginal**: sueldos en costos fijos + período multi-mes | Completo | Memoria `project-analisis-marginal-sueldos-periodo` |
+| **Presupuestador**: circuito quirúrgico post-aceptación | Completo | **`docs/CIRCUITO_QUIRURGICO.md`** |
+| **Seguimiento telefónico de presupuestos** | Completo, en `main` | Memoria `project-seguimiento-presupuestos` |
+| **Tesorería/Bancos** (extracto Santander + conciliación) | v2 completa | Memoria `project-bancos-conciliacion` |
+
+**Trabajo activo**: deploy remoto de todo el sistema (Netlify + backend on-prem + túnel). Seguridad lista (Auth + RLS + JWT), repo en GitHub. Ver memoria `project-deploy-remoto`.
+
+**Deploy**: commit + push a `main` → Netlify buildea solo. El backend Express y los daemons corren **on-prem** (necesitan GECLISA y `C:\ia`); el front remoto sólo lee Supabase.
+
+---
+
+### Módulo Sueldos (cerrado 2026-06-14)
+
+**Estado**: **COMPLETO — las 5 fases terminadas.** 2025 cargado de punta a punta (minuta + F.931 + 12 asientos) y reportes de auditoría operativos. Detalle exhaustivo en `00/SUELDOS_ESTADO_Y_CONTINUIDAD.md` (guía operativa para retomar). Junio-2026 cargado; ver memoria `project-sueldos-junio-2026-facturado`.
 
 **Resumen rápido**:
 - ✅ **Fase 1** (Fundamentos): plan de cuentas + maestro empleados + ABM completo, sidebar enchufado, permiso `sueldos:reportes` creado. Aplicada en Supabase. **9 empleados cargados (plantel Dic-2025).**
