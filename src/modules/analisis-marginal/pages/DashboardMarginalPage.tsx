@@ -6,6 +6,7 @@
 // ============================================
 
 import React, { useMemo, useState } from 'react';
+import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
 import {
   TrendingUp,
   TrendingDown,
@@ -26,6 +27,8 @@ import useCostosFijosDistribucion, { getSemaforoColor, semaforoClasses, semaforo
 import useNombreMapping from '@shared/hooks/useNombreMapping';
 import InformeGestionModal from '../components/InformeGestionModal';
 import { formatearPeriodo } from '../utils/periodo';
+import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 // ============================================
 // TIPOS
@@ -71,23 +74,6 @@ const formatNumber = (num: number): string => {
 const formatPercent = (value: number): string => {
   return `${value.toFixed(1)}%`;
 };
-
-// Detectar segmento de prestación
-const detectarSegmento = (nombrePrestacion: string): 'Consultas' | 'Estudios' | 'Cirugias' => {
-  const nombre = nombrePrestacion.toUpperCase();
-  if (nombre.includes('CONSULTA') || nombre.includes('CONTROL') || nombre.includes('PRIMERA VEZ') ||
-      nombre.includes('VISITA') || nombre.includes('URGENCIA') || nombre.includes('GUARDIA') ||
-      nombre.includes('RECETA') || nombre.includes('VER ESTUDIO')) return 'Consultas';
-  if (nombre.includes('CIRUGIA') || nombre.includes('QUIRURGIC') || nombre.includes('FACO') ||
-      nombre.includes('VITRECTOMIA') || nombre.includes('TRABECULECTOMIA') || nombre.includes('IMPLANTE') ||
-      nombre.includes('EXTRACCION') || nombre.includes('TRASPLANTE') || nombre.includes('INYECCION') ||
-      nombre.includes('LASER') || nombre.includes('PTERIGION') || nombre.includes('CHALAZION') ||
-      nombre.includes('NEEDLING') || nombre.includes('CROSS LINKING')) return 'Cirugias';
-  return 'Estudios';
-};
-
-const normalizarNombre = (s: string): string =>
-  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 
 // ============================================
 // COMPONENTES
@@ -185,7 +171,7 @@ const DashboardMarginalContent: React.FC = () => {
 
   // Costos fijos del PERÍODO (suma real mes a mes; switch sueldos por mes).
   const { resumen: resumenCF } = useCostosFijosDistribucion(rango);
-  const { agregarAliases } = useNombreMapping();
+  const { mappings } = useNombreMapping();
 
   const [mostrarInforme, setMostrarInforme] = useState(false);
 
@@ -217,10 +203,7 @@ const DashboardMarginalContent: React.FC = () => {
     }
 
     // Crear mapa de recetas por nombre normalizado (matching fuzzy, igual que las demás páginas)
-    const recetasMap = new Map(
-      recetasConPools.map(r => [normalizarNombre(r.nombre_practica), r])
-    );
-    agregarAliases(recetasMap);
+    const indiceRecetas = crearIndiceRecetas(recetasConPools, mappings);
 
     // Crear mapa de prestadores para verificar si es socio
     const prestadoresMap = new Map(
@@ -267,11 +250,10 @@ const DashboardMarginalContent: React.FC = () => {
     // Procesar cada prestación
     prestaciones.forEach(prest => {
       const facturado = prest.total || 0;
-      const segmento = detectarSegmento(prest.prestacion);
+      const segmento = detectarSegmento(prest.prestacion, prest.codigo_prestacion);
       
       // Buscar receta de costos por nombre normalizado (igual que las demás páginas)
-      const claveNombre = normalizarNombre(prest.prestacion);
-      const receta = recetasMap.get(claveNombre) ?? null;
+            const receta = indiceRecetas.buscar(prest.codigo_prestacion, prest.prestacion);
       const costoPools = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
       const costoReceta = costoPools + costoInsumos;
@@ -284,12 +266,7 @@ const DashboardMarginalContent: React.FC = () => {
         
         // Buscar configuración de honorarios por segmento
         const configSegmento = configHonorarios.find(c => c.segmento === segmento);
-        if (configSegmento) {
-          const porcentaje = esSocio 
-            ? configSegmento.porcentaje_socio 
-            : configSegmento.porcentaje_no_socio;
-          honorario = facturado * (porcentaje / 100);
-        }
+        honorario = calcularHonorarioPrestacion(facturado, prest.prestador, esSocio, configSegmento, prest.codigo_prestacion);
       }
 
       // Acumular totales
@@ -425,7 +402,7 @@ const DashboardMarginalContent: React.FC = () => {
       topPrestadores,
       topObrasSociales,
     };
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings]);
 
   // ============================================
   // RENDER

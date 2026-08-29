@@ -10,6 +10,7 @@
 // ============================================
 
 import React, { useMemo, useState } from 'react';
+import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
 import {
   Search,
   ArrowUpDown,
@@ -31,6 +32,8 @@ import useCostosFijosDistribucion, {
   semaforoDot,
 } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
+import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 // ============================================
 // TIPOS
@@ -74,22 +77,6 @@ const formatNumber = (num: number): string =>
 const formatPercent = (value: number): string =>
   `${value.toFixed(1)}%`;
 
-const detectarSegmento = (nombrePrestacion: string): 'Consultas' | 'Estudios' | 'Cirugias' => {
-  const nombre = nombrePrestacion.toUpperCase();
-  if (nombre.includes('CONSULTA') || nombre.includes('CONTROL') || nombre.includes('PRIMERA VEZ') ||
-      nombre.includes('VISITA') || nombre.includes('URGENCIA') || nombre.includes('GUARDIA') ||
-      nombre.includes('RECETA') || nombre.includes('VER ESTUDIO')) return 'Consultas';
-  if (nombre.includes('CIRUGIA') || nombre.includes('QUIRURGIC') || nombre.includes('FACO') ||
-      nombre.includes('VITRECTOMIA') || nombre.includes('TRABECULECTOMIA') || nombre.includes('IMPLANTE') ||
-      nombre.includes('EXTRACCION') || nombre.includes('TRASPLANTE') || nombre.includes('INYECCION') ||
-      nombre.includes('LASER') || nombre.includes('PTERIGION') || nombre.includes('CHALAZION') ||
-      nombre.includes('NEEDLING') || nombre.includes('CROSS LINKING')) return 'Cirugias';
-  return 'Estudios';
-};
-
-const normalizarNombre = (s: string): string =>
-  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-
 // ============================================
 // BADGE SEMÁFORO
 // ============================================
@@ -119,7 +106,7 @@ const PorPrestadorContent: React.FC = () => {
   const { resumen: resumenCF, loading: loadingCF, calcularAsignacion } = useCostosFijosDistribucion(anioActual, mesActual);
 
   // Mapeo de nombres GECLISA → Receta
-  const { agregarAliases } = useNombreMapping();
+  const { mappings } = useNombreMapping();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('facturado');
@@ -133,8 +120,7 @@ const PorPrestadorContent: React.FC = () => {
   const prestadoresBase = useMemo(() => {
     if (prestaciones.length === 0) return [];
 
-    const recetasMap = new Map(recetasConPools.map(r => [normalizarNombre(r.nombre_practica), r]));
-    agregarAliases(recetasMap);
+    const indiceRecetas = crearIndiceRecetas(recetasConPools, mappings);
     const prestadoresInfoMap = new Map(prestadoresHonorarios.map(p => [p.nombre.toUpperCase(), p]));
 
     const agrupado = new Map<string, {
@@ -147,11 +133,10 @@ const PorPrestadorContent: React.FC = () => {
     prestaciones.forEach(prest => {
       const prestadorNombre = prest.prestador || 'SIN PRESTADOR';
       const facturado = prest.total || 0;
-      const segmento = detectarSegmento(prest.prestacion);
+      const segmento = detectarSegmento(prest.prestacion, prest.codigo_prestacion);
 
       // Receta fuzzy
-      const claveNombre = normalizarNombre(prest.prestacion);
-      const receta = recetasMap.get(claveNombre) ?? null;
+            const receta = indiceRecetas.buscar(prest.codigo_prestacion, prest.prestacion);
       const costoPools = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
 
@@ -160,10 +145,7 @@ const PorPrestadorContent: React.FC = () => {
       const esSocio = prestadorInfo?.es_socio || false;
       let honorario = 0;
       const configSeg = configHonorarios.find(c => c.segmento === segmento);
-      if (configSeg) {
-        const pct = esSocio ? configSeg.porcentaje_socio : configSeg.porcentaje_no_socio;
-        honorario = facturado * (pct / 100);
-      }
+      honorario = calcularHonorarioPrestacion(facturado, prestadorNombre, esSocio, configSeg, prest.codigo_prestacion);
 
       const existing = agrupado.get(prestadorNombre);
       if (existing) {
@@ -194,7 +176,7 @@ const PorPrestadorContent: React.FC = () => {
       const ticketPromedio = item.cantidad > 0 ? item.facturado / item.cantidad : 0;
       return { ...item, costoTotal, margenContrib, margenContribPct, ticketPromedio };
     });
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings]);
 
   // Total facturado para distribución CF
   const totalFacturadoGlobal = useMemo(

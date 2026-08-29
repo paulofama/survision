@@ -12,19 +12,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { normalizarNombre } from '@shared/utils/nombresPrestaciones';
 
 interface NombreMapping {
   nombre_geclisa: string;
   nombre_receta: string;
 }
-
-// Misma función de normalización que usan las páginas
-const normalizarNombre = (s: string): string =>
-  s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
 
 /**
  * Hook que carga los mapeos de nombres y provee una función

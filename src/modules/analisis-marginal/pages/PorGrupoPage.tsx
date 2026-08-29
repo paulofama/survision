@@ -10,6 +10,7 @@
 // ============================================
 
 import React, { useMemo, useState } from 'react';
+import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
 import {
   Search,
   ArrowUpDown,
@@ -33,12 +34,14 @@ import useCostosFijosDistribucion, {
   semaforoDot,
 } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
+import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 // ============================================
 // TIPOS
 // ============================================
 
-type Segmento = 'Consultas' | 'Estudios' | 'Cirugias';
+import type { Segmento } from '@shared/utils/nombresPrestaciones';
 
 interface PrestacionPorGrupo {
   nombre: string;
@@ -92,22 +95,6 @@ const formatNumber = (num: number): string =>
 const formatPercent = (value: number): string =>
   `${value.toFixed(1)}%`;
 
-const detectarSegmento = (nombrePrestacion: string): Segmento => {
-  const nombre = nombrePrestacion.toUpperCase();
-  if (nombre.includes('CONSULTA') || nombre.includes('CONTROL') || nombre.includes('PRIMERA VEZ') ||
-      nombre.includes('VISITA') || nombre.includes('URGENCIA') || nombre.includes('GUARDIA') ||
-      nombre.includes('RECETA') || nombre.includes('VER ESTUDIO')) return 'Consultas';
-  if (nombre.includes('CIRUGIA') || nombre.includes('QUIRURGIC') || nombre.includes('FACO') ||
-      nombre.includes('VITRECTOMIA') || nombre.includes('TRABECULECTOMIA') || nombre.includes('IMPLANTE') ||
-      nombre.includes('EXTRACCION') || nombre.includes('TRASPLANTE') || nombre.includes('INYECCION') ||
-      nombre.includes('LASER') || nombre.includes('PTERIGION') || nombre.includes('CHALAZION') ||
-      nombre.includes('NEEDLING') || nombre.includes('CROSS LINKING')) return 'Cirugias';
-  return 'Estudios';
-};
-
-const normalizarNombre = (s: string): string =>
-  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-
 const getSegmentoIcon = (seg: Segmento) => {
   switch (seg) { case 'Consultas': return Stethoscope; case 'Estudios': return Microscope; case 'Cirugias': return Scissors; }
 };
@@ -144,7 +131,7 @@ const PorGrupoContent: React.FC = () => {
 
   const { resumen: resumenCF, loading: loadingCF, calcularAsignacion } = useCostosFijosDistribucion(anioActual, mesActual);
 
-  const { agregarAliases } = useNombreMapping();
+  const { mappings } = useNombreMapping();
 
   const [segmentoSeleccionado, setSegmentoSeleccionado] = useState<Segmento | 'todos'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,8 +145,7 @@ const PorGrupoContent: React.FC = () => {
   const { gruposStats, prestacionesPorGrupo, totalFacturadoGlobal } = useMemo(() => {
     if (prestaciones.length === 0) return { gruposStats: [] as GrupoStats[], prestacionesPorGrupo: new Map<Segmento, PrestacionPorGrupo[]>(), totalFacturadoGlobal: 0 };
 
-    const recetasMap = new Map(recetasConPools.map(r => [normalizarNombre(r.nombre_practica), r]));
-    agregarAliases(recetasMap);
+    const indiceRecetas = crearIndiceRecetas(recetasConPools, mappings);
     const prestadoresMap = new Map(prestadoresHonorarios.map(p => [p.nombre.toUpperCase(), p]));
 
     const acumulado = new Map<Segmento, {
@@ -172,11 +158,10 @@ const PorGrupoContent: React.FC = () => {
     });
 
     prestaciones.forEach(prest => {
-      const segmento = detectarSegmento(prest.prestacion);
+      const segmento = detectarSegmento(prest.prestacion, prest.codigo_prestacion);
       const facturado = prest.total || 0;
 
-      const claveNombre = normalizarNombre(prest.prestacion);
-      const receta = recetasMap.get(claveNombre) ?? null;
+            const receta = indiceRecetas.buscar(prest.codigo_prestacion, prest.prestacion);
       const costoPools = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
 
@@ -185,10 +170,7 @@ const PorGrupoContent: React.FC = () => {
         const prestadorInfo = prestadoresMap.get(prest.prestador.toUpperCase());
         const esSocio = prestadorInfo?.es_socio || false;
         const configSeg = configHonorarios.find(c => c.segmento === segmento);
-        if (configSeg) {
-          const pct = esSocio ? configSeg.porcentaje_socio : configSeg.porcentaje_no_socio;
-          honorario = facturado * (pct / 100);
-        }
+        honorario = calcularHonorarioPrestacion(facturado, prest.prestador, esSocio, configSeg, prest.codigo_prestacion);
       }
 
       const segData = acumulado.get(segmento)!;
@@ -248,7 +230,7 @@ const PorGrupoContent: React.FC = () => {
     });
 
     return { gruposStats, prestacionesPorGrupo, totalFacturadoGlobal: totalFact };
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings]);
 
   // Agregar CF a grupos y prestaciones
   const gruposConCF = useMemo((): GrupoStats[] => {

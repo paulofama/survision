@@ -11,6 +11,7 @@
 // ============================================
 
 import React, { useMemo, useState } from 'react';
+import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
 import {
   Search,
   ArrowUpDown,
@@ -30,6 +31,8 @@ import useCostosFijosDistribucion, {
   semaforoDot,
 } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
+import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 // ============================================
 // TIPOS
@@ -80,33 +83,10 @@ const formatNumber = (num: number): string =>
 const formatPercent = (value: number): string =>
   `${value.toFixed(1)}%`;
 
-const detectarSegmento = (nombre: string): 'Consultas' | 'Estudios' | 'Cirugias' => {
-  const n = nombre.toUpperCase();
-  if (n.includes('CONSULTA') || n.includes('CONTROL') || n.includes('PRIMERA VEZ') ||
-      n.includes('VISITA') || n.includes('URGENCIA') || n.includes('GUARDIA') ||
-      n.includes('RECETA') || n.includes('VER ESTUDIO')) return 'Consultas';
-  if (n.includes('CIRUGIA') || n.includes('QUIRURGIC') || n.includes('FACO') ||
-      n.includes('VITRECTOMIA') || n.includes('TRABECULECTOMIA') || n.includes('IMPLANTE') ||
-      n.includes('EXTRACCION') || n.includes('TRASPLANTE') || n.includes('INYECCION') ||
-      n.includes('LASER') || n.includes('PTERIGION') || n.includes('CHALAZION') ||
-      n.includes('NEEDLING') || n.includes('CROSS LINKING')) return 'Cirugias';
-  return 'Estudios';
-};
-
 const extraerCodigo = (nombre: string): string => {
   const match = nombre.match(/\((\d{5,6})\)/);
   return match ? match[1].padStart(6, '0') : '';
 };
-
-// Normaliza un nombre para matching fuzzy:
-// "EXO OFTALMOLOGÍA" → "exoftalmologia"
-// "Exoftalmologia"   → "exoftalmologia"  ✓ coinciden
-const normalizarNombre = (s: string): string =>
-  s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // quitar tildes
-    .replace(/[^a-z0-9]/g, '');      // quitar espacios y especiales
 
 // ============================================
 // COMPONENTE TOOLTIP DE COSTOS FIJOS
@@ -176,7 +156,7 @@ const PorPrestacionContent: React.FC = () => {
   } = useCostosFijosDistribucion(anioActual, mesActual);
 
   // Mapeo de nombres GECLISA → Receta
-  const { agregarAliases } = useNombreMapping();
+  const { mappings } = useNombreMapping();
 
   // Estados locales
   const [searchTerm, setSearchTerm]         = useState('');
@@ -193,10 +173,7 @@ const PorPrestacionContent: React.FC = () => {
 
     // Mapa de recetas por nombre normalizado (matching fuzzy)
     // Clave: "exoftalmologia", "guardiaFueraDeHorario", etc.
-    const recetasMap = new Map(
-      recetasConPools.map(r => [normalizarNombre(r.nombre_practica), r])
-    );
-    agregarAliases(recetasMap); // Agregar aliases de prestaciones_nombre_mapping
+    const indiceRecetas = crearIndiceRecetas(recetasConPools, mappings);
     const prestadoresMap = new Map(prestadoresHonorarios.map(p => [p.nombre.toUpperCase(), p]));
 
     const agrupado = new Map<string, {
@@ -208,11 +185,12 @@ const PorPrestacionContent: React.FC = () => {
     prestaciones.forEach(prest => {
       const nombre   = prest.prestacion;
       const facturado = prest.total || 0;
-      const codigo   = extraerCodigo(nombre);
-      const segmento = detectarSegmento(nombre);
+      // El código real de GECLISA; extraerCodigo() solo pesca el que algunos
+      // nombres traen entre paréntesis, y es el que menos confianza merece.
+      const codigo   = prest.codigo_prestacion || extraerCodigo(nombre);
+      const segmento = detectarSegmento(nombre, codigo);
 
-      const claveNombre = normalizarNombre(nombre);
-      const receta      = recetasMap.get(claveNombre) ?? null;
+            const receta = indiceRecetas.buscar(codigo, nombre);
       const costoPools  = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
 
@@ -221,10 +199,7 @@ const PorPrestacionContent: React.FC = () => {
         const prestadorInfo = prestadoresMap.get(prest.prestador.toUpperCase());
         const esSocio = prestadorInfo?.es_socio || false;
         const configSeg = configHonorarios.find(c => c.segmento === segmento);
-        if (configSeg) {
-          const pct = esSocio ? configSeg.porcentaje_socio : configSeg.porcentaje_no_socio;
-          honorario = facturado * (pct / 100);
-        }
+        honorario = calcularHonorarioPrestacion(facturado, prest.prestador, esSocio, configSeg, codigo);
       }
 
       const existing = agrupado.get(nombre);
@@ -250,7 +225,7 @@ const PorPrestacionContent: React.FC = () => {
       const margenContribPct = item.facturado > 0 ? (margenContrib / item.facturado) * 100 : 0;
       return { ...item, costoTotal, margenContrib, margenContribPct };
     });
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, agregarAliases]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings]);
 
   // Total facturado para calcular ratios de distribución CF
   const totalFacturadoGlobal = useMemo(
