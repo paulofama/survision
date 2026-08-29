@@ -15,6 +15,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useAuth } from '@shared/context/AuthContext';
 import { TipoRecordatorio } from '../utils/recordatorios';
+import { traerTodo } from '@shared/lib/traerTodo';
 
 /** Columna timestamptz de cada tipo en turnos_recordatorios. */
 const COL: Record<TipoRecordatorio, string> = {
@@ -42,10 +43,17 @@ export function useRecordatorios(): UseRecordatoriosResult {
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('turnos_recordatorios')
-        .select('turno_id, aviso_inicial_at, aviso_previo_at, aviso_final_at');
-      if (error) throw new Error(error.message);
+      // PAGINADO OBLIGATORIO. Esta tabla es el registro de qué recordatorios ya
+      // se mandaron, y crece un renglón por turno avisado: 1.557 al 27/08/2026.
+      // Sin paginar, PostgREST devolvía 1.000 y los 557 restantes quedaban
+      // fuera del Set — el sistema los leía como "todavía no avisado" y volvía
+      // a ofrecer el WhatsApp. O sea, pacientes recibiendo el mismo aviso dos
+      // veces. Ver `traerTodo`.
+      const data = await traerTodo<any>((desde) =>
+        supabase
+          .from('turnos_recordatorios')
+          .select('turno_id, aviso_inicial_at, aviso_previo_at, aviso_final_at')
+          .range(desde, desde + 999));
 
       const next = vacio();
       (data || []).forEach((r: any) => {

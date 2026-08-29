@@ -18,6 +18,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { cargarCostoLaboralRango, claveMes } from '@shared/services/costoLaboral';
+import { traerTodo } from '@shared/lib/traerTodo';
 import { RangoPeriodo, mesesDelRango, rangoMesUnico } from '@modules/analisis-marginal/utils/periodo';
 
 // ============================================
@@ -125,12 +126,17 @@ export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<R
     .join(',');
 
   // Erogaciones clasificadas como fijo en el rango.
-  const { data: dataErog, error: errErog } = await supabase
-    .from('erogaciones_clasificacion')
-    .select(`anio, mes, monto, categoria_costo_fijo_id, categorias_costo_fijo ( nombre, color )`)
-    .eq('tipo_costo', 'fijo')
-    .or(filtros);
-  if (errErog) throw errErog;
+  // Paginado: hoy son ~380 filas al año y entran en la página de 1000 de
+  // PostgREST, pero eso es circunstancial — con dos años cargados se pasa y el
+  // truncado no da error, devuelve de menos en silencio. Es el bug que tuvo la
+  // Evolución Temporal hasta el 27/08/2026. Ver `traerTodo`.
+  const dataErog = await traerTodo<any>((desde) =>
+    supabase
+      .from('erogaciones_clasificacion')
+      .select(`anio, mes, monto, categoria_costo_fijo_id, categorias_costo_fijo ( nombre, color )`)
+      .eq('tipo_costo', 'fijo')
+      .or(filtros)
+      .range(desde, desde + 999));
 
   // Costo laboral del módulo (bruto + cargas) por mes disponible.
   const costoLab = await cargarCostoLaboralRango(rango.anioDesde, rango.mesDesde, rango.anioHasta, rango.mesHasta);
