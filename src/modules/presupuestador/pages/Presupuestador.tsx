@@ -310,7 +310,11 @@ const DERIVADORES: SelectOption[] = [
   { value: "dr_lopez", label: "Dr. Jorge Lopez" },
 ];
 
-const ADMINISTRATIVAS: SelectOption[] = [
+// Lista histórica de administrativas. YA NO alimenta el selector — desde
+// 2026-08-20 las opciones salen de `usuarios_sistema` — pero se conserva para
+// poder mostrar el nombre de los presupuestos viejos guardados con estos
+// valores. No agregar entradas nuevas acá: dar de alta el usuario en el sistema.
+const ADMINISTRATIVAS_LEGACY: SelectOption[] = [
   { value: "agostina_quiroga", label: "Agostina Quiroga" },
   { value: "carolina_martinez", label: "Carolina Martinez" },
   { value: "celeste_guerrero", label: "Celeste Guerrero" },
@@ -324,6 +328,14 @@ const ADMINISTRATIVAS: SelectOption[] = [
   { value: "rosa_rodriguez", label: "Rosa Rodriguez" },
   { value: "admin", label: "Admin" },
 ];
+
+/**
+ * Nombre visible de una administrativa cuando el valor no está entre los
+ * usuarios activos: presupuestos viejos con el formato de la lista histórica.
+ * Si tampoco está ahí, devuelve el valor tal cual (mejor eso que vacío).
+ */
+const etiquetaAdminLegacy = (value: string): string =>
+  ADMINISTRATIVAS_LEGACY.find((a) => a.value === value)?.label || value;
 
 const SERVICIOS = [
   { id: "honorarios", label: "Honorarios médicos" },
@@ -548,6 +560,9 @@ export default function Presupuestador() {
   const [agrupaciones, setAgrupaciones] = useState<Agrupacion[]>([]);
   const [preciosMap, setPreciosMap] = useState<Record<string, number>>({});
   const [adminTelefonoMap, setAdminTelefonoMap] = useState<Record<string, string>>({});
+  // Administrativas del selector: salen de `usuarios_sistema`, no de una lista
+  // fija en el código (ver nota sobre ADMINISTRATIVAS_LEGACY).
+  const [administrativasSistema, setAdministrativasSistema] = useState<SelectOption[]>([]);
   const cirujanos = CIRUJANOS_FALLBACK;
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -596,31 +611,36 @@ export default function Presupuestador() {
   // El nombre de la administrativa que atiende se toma del usuario logueado.
   const { usuario } = useAuth();
 
-  // Valor de administrativa que corresponde al usuario logueado: matchea por
-  // username o por nombre normalizado contra la lista; si no está, usa el username.
-  const usuarioAdminValue = useMemo(() => {
-    if (!usuario) return "";
-    const uname = (usuario.username || "").toLowerCase();
-    const nomNorm = (usuario.nombre_completo || "")
-      .toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "_");
-    const match = ADMINISTRATIVAS.find((a) => a.value.toLowerCase() === uname || a.value.toLowerCase() === nomNorm);
-    return match ? match.value : (usuario.username || "");
-  }, [usuario]);
+  // El valor guardado es el `username`, así que el usuario logueado coincide
+  // consigo mismo sin ningún matcheo por nombre. Antes se buscaba contra una
+  // lista fija en el código y bastaba una diferencia de un carácter
+  // ("nancy_narambuena" en la lista vs el usuario "nancy_narambue") para que
+  // cayera a un fallback que guardaba otro valor: la misma persona terminaba
+  // partida en dos en los reportes.
+  const usuarioAdminValue = useMemo(() => usuario?.username || "", [usuario]);
 
-  // Opciones del selector: si el usuario logueado no está en la lista fija, se
-  // agrega para poder autocompletarlo igual.
+  // Opciones: las administrativas activas del sistema. Se suman, si hace falta,
+  // el usuario logueado (por si su alta es posterior a la carga) y el valor que
+  // ya tenga el presupuesto abierto, para no perderlo al editar uno viejo.
   const administrativasOptions = useMemo(() => {
-    if (usuario && usuarioAdminValue && !ADMINISTRATIVAS.some((a) => a.value === usuarioAdminValue)) {
-      return [...ADMINISTRATIVAS, { value: usuarioAdminValue, label: usuario.nombre_completo || usuario.username }];
-    }
-    return ADMINISTRATIVAS;
-  }, [usuario, usuarioAdminValue]);
+    const opts = [...administrativasSistema];
+    const agregar = (value: string, label: string) => {
+      if (value && !opts.some((o) => o.value === value)) opts.push({ value, label });
+    };
+    if (usuario) agregar(usuarioAdminValue, usuario.nombre_completo || usuario.username);
+    agregar(form.administrativa, etiquetaAdminLegacy(form.administrativa));
+    return opts;
+  }, [administrativasSistema, usuario, usuarioAdminValue, form.administrativa]);
 
   // Autocompleta la administrativa con el usuario logueado (solo presupuesto
   // nuevo y si el campo está vacío; no pisa uno editado ni uno cargado).
   useEffect(() => {
     if (!usuario || editMode) return;
-    setForm((prev) => (prev.administrativa ? prev : { ...prev, administrativa: usuarioAdminValue }));
+    // En presupuesto nuevo el valor SIEMPRE es el usuario logueado, no solo
+    // cuando el campo está vacío: como el selector está bloqueado, un valor
+    // heredado (por ejemplo al volver de editar uno ajeno) no se podría
+    // corregir a mano y quedaría atribuido a otra persona.
+    setForm((prev) => (prev.administrativa === usuarioAdminValue ? prev : { ...prev, administrativa: usuarioAdminValue }));
   }, [usuario, usuarioAdminValue, editMode, form.administrativa]);
 
   // Mapa de precios del catálogo por descripción normalizada (para autocompletar el monto).
@@ -895,6 +915,15 @@ export default function Presupuestador() {
             telMap[nombreNorm] = u.telefono;
           });
           setAdminTelefonoMap(telMap);
+
+          // Opciones del selector de administrativa: salen de usuarios_sistema,
+          // no de una lista fija (ver ADMINISTRATIVAS_LEGACY). El value es el
+          // username, así que el usuario logueado siempre coincide consigo mismo.
+          setAdministrativasSistema(
+            (usuarios as { username: string; nombre_completo: string }[])
+              .map((u) => ({ value: u.username, label: u.nombre_completo || u.username }))
+              .sort((a, b) => a.label.localeCompare(b.label, "es")),
+          );
         }
 
         notify(`${((prest as Prestacion[]) || []).length} prestaciones cargadas`, "success");
@@ -1926,11 +1955,21 @@ export default function Presupuestador() {
                     onChange={(v) => updateField("derivador", v)}
                     options={DERIVADORES}
                   />
+                  {/* Bloqueado a propósito: la administrativa es quien está
+                      usando el sistema, no una elección. En edición conserva la
+                      que cargó el presupuesto — forzar el usuario actual le
+                      reasignaría la autoría a un presupuesto ajeno. */}
                   <FormSelect
                     label="Administrativa *"
                     value={form.administrativa}
                     onChange={(v) => updateField("administrativa", v)}
                     options={[{ value: "", label: "Seleccionar..." }, ...administrativasOptions]}
+                    disabled
+                    hint={
+                      editMode
+                        ? "Quien cargó este presupuesto."
+                        : "Se toma del usuario con el que iniciaste sesión."
+                    }
                   />
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -2669,6 +2708,7 @@ export default function Presupuestador() {
           numeroPresupuesto={presupuestoNumero ?? undefined}
           estadoPresupuesto={presupuestoEstado ?? undefined}
           adminTelefonoMap={adminTelefonoMap}
+          administrativasOptions={administrativasOptions}
           yaGuardado={yaGuardado}
           datosGuardados={datosGuardados}
           loading={loading}
@@ -2742,16 +2782,25 @@ interface FormSelectProps {
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
+  /** Bloquea el campo. El valor se sigue enviando al guardar. */
+  disabled?: boolean;
+  /** Aclaración bajo el campo (por qué está bloqueado, por ejemplo). */
+  hint?: string;
 }
 
-function FormSelect({ label, value, onChange, options }: FormSelectProps) {
+function FormSelect({ label, value, onChange, options, disabled, hint }: FormSelectProps) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        disabled={disabled}
+        className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+          disabled
+            ? "border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
+            : "border-gray-300 bg-white text-gray-900"
+        }`}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -2759,6 +2808,7 @@ function FormSelect({ label, value, onChange, options }: FormSelectProps) {
           </option>
         ))}
       </select>
+      {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
     </div>
   );
 }
@@ -2990,6 +3040,8 @@ interface PreviewModalProps {
   numeroPresupuesto?: string;
   estadoPresupuesto?: EstadoPresupuesto;
   adminTelefonoMap: Record<string, string>;
+  /** Administrativas activas del sistema, para resolver el nombre a mostrar. */
+  administrativasOptions: SelectOption[];
   yaGuardado: boolean;
   datosGuardados: DatosCompletos | null;
   loading: boolean;
@@ -2997,11 +3049,14 @@ interface PreviewModalProps {
   onClose: () => void;
 }
 
-function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, estadoPresupuesto, adminTelefonoMap, yaGuardado, datosGuardados, loading, onGuardar, onClose }: PreviewModalProps) {
+function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, estadoPresupuesto, adminTelefonoMap, administrativasOptions, yaGuardado, datosGuardados, loading, onGuardar, onClose }: PreviewModalProps) {
   const prestDesc = prestaciones.find((p) => p.codigo === form.prestacionCodigo)?.practica || "";
   const cirujanoLabel = CIRUJANOS_FALLBACK.find((c) => c.value === form.cirujano)?.label || form.cirujano;
-  const adminLabel =
-    ADMINISTRATIVAS.find((a) => a.value === form.administrativa)?.label || form.administrativa;
+  // Nombre a mostrar: primero entre los usuarios del sistema; si no está, es un
+  // presupuesto viejo guardado con el formato de la lista histórica.
+  const nombreAdmin = (value: string): string =>
+    administrativasOptions.find((a) => a.value === value)?.label || etiquetaAdminLegacy(value);
+  const adminLabel = nombreAdmin(form.administrativa);
 
   // Buscar teléfono: primero por value exacto, luego por nombre normalizado
   const adminNombreNorm = adminLabel
@@ -3056,7 +3111,7 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, estadoPres
     const pdfCirujanoValue = (srcTratamiento as any).cirujano || form.cirujano;
     const pdfCirujanoLabel = CIRUJANOS_FALLBACK.find((c) => c.value === pdfCirujanoValue)?.label || pdfCirujanoValue;
     const pdfAdminValue = (srcTratamiento as any).administrativa || form.administrativa;
-    const pdfAdminLabel = ADMINISTRATIVAS.find((a) => a.value === pdfAdminValue)?.label || pdfAdminValue;
+    const pdfAdminLabel = nombreAdmin(pdfAdminValue);
     const pdfAdminNormKey = pdfAdminLabel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
     const pdfAdminTel = adminTelefonoMap[pdfAdminValue] ?? adminTelefonoMap[pdfAdminNormKey] ?? "";
     const pdfDerivadorValue = (srcTratamiento as any).derivador || form.derivador;
