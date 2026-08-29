@@ -33,7 +33,11 @@ export type TipoFila =
   | 'resultado_operativo'
   // Niveles de detalle (sin banda)
   | 'subgrupo'       // Nivel 1 — ej: "Consultas", "Honorarios", "Sueldos y Cargas"
-  | 'detalle';       // Nivel 2 — ej: prestación específica, categoría CF
+  | 'detalle'        // Nivel 2 — ej: prestación específica, categoría CF
+  // Último nivel: el dato atómico. Se carga bajo demanda (lazy).
+  | 'comprobante'    // un comprobante / atención / prestación individual
+  | 'nota'           // fila informativa (ej: "esto viene del módulo Sueldos")
+  | 'diferencia';    // fila de descuadre entre el detalle y su total
 
 // ============================================
 // FILA (unidad de render de la tabla)
@@ -45,10 +49,22 @@ export interface FilaEvolucion {
   tipo: TipoFila;
   /** Etiqueta que se muestra en la columna de concepto */
   label: string;
-  /** Nivel jerárquico. 0 = banda principal, 1 = subgrupo, 2 = detalle */
-  nivel: 0 | 1 | 2;
+  /** Nivel jerárquico. 0 = banda, 1 = subgrupo, 2 = detalle, 3 = agrupación, 4 = atención individual */
+  nivel: 0 | 1 | 2 | 3 | 4;
   /** Si tiene hijos y se puede colapsar */
   expandible: boolean;
+  /**
+   * La fila se abre cargando sus hijos bajo demanda (no vienen en `hijos`).
+   * Lo consume la página para disparar `useEvolucionDetalle` al expandir.
+   */
+  detalleLazy?: {
+    /** Bloque al que pertenece — determina de dónde salen los hijos. */
+    bloque: BloqueDetalle;
+    /** Clave estable de la agrupación (categoría, segmento+prestación, etc.). */
+    clave: string;
+    /** Etiqueta, para mensajes de error y de cuadratura. */
+    label: string;
+  };
   /** Montos indexados por mes. Si el mes no existe, se renderiza 0 */
   valores: Record<Mes, number>;
   /** Suma de todos los meses visibles */
@@ -69,8 +85,33 @@ export interface FilaEvolucion {
     esSubtotal?: boolean;
     /** Segmento al que pertenece la fila (si aplica) */
     segmento?: 'Consultas' | 'Estudios' | 'Cirugias';
+    /** Texto completo para el tooltip, cuando el label se trunca. */
+    tituloCompleto?: string;
+    /** Proveedor / obra social — se usa para el separador visual por grupo. */
+    grupo?: string;
+    /** True si el importe es negativo (nota de crédito, devolución). */
+    esNegativo?: boolean;
   };
 }
+
+/**
+ * Bloques que admiten apertura al detalle atómico. El nivel donde aparece ese
+ * detalle NO es el mismo en todos: en costos fijos la categoría es nivel 1 y el
+ * comprobante nivel 2; en facturación hay un nivel más (segmento → prestación →
+ * obra social). Por eso se identifica por bloque y no por profundidad.
+ */
+export type BloqueDetalle =
+  | 'costos_fijos'          // → comprobantes de erogaciones_clasificacion
+  | 'costos_variables'      // → prestaciones (costo calculado, no hay comprobante)
+  | 'facturacion'           // → obras sociales de una prestación
+  | 'no_identificados'      // → prestaciones sin receta
+  | 'modulo_sueldos'        // → no tiene detalle: se muestra una nota
+  /**
+   * Nivel 4: las atenciones una por una (paciente, fecha, importe). Es el
+   * fondo del pozo — abajo de una atención ya no hay nada que abrir.
+   * La clave viene compuesta: `práctica␟obra social` (ver SEP_CLAVE).
+   */
+  | 'atenciones';
 
 // ============================================
 // ADVERTENCIAS (banner superior)

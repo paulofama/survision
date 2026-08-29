@@ -30,6 +30,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
 import { supabase } from '../lib/supabase';
 import useRecetasCostos from './useRecetasCostos';
 import useHonorariosConfig from './useHonorariosConfig';
@@ -43,6 +44,9 @@ import type {
 } from '../types/evolucionTemporal';
 import { toMesKey, generarRangoMeses, parseMesKey } from '../types/evolucionTemporal';
 import { cargarCostoLaboralRango, claveMes } from '@shared/services/costoLaboral';
+import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import { traerTodo } from '@shared/lib/traerTodo';
 
 // ============================================
 // CONFIGURACIÓN
@@ -69,6 +73,7 @@ const NOMBRE_HC = 'HC empleados';
 interface AtencionRaw {
   fecha: string;                 // 'YYYY-MM-DD' o ISO
   prestacion: string;            // nombre (puede traer código entre paréntesis)
+  codigo: string;                // practica_codigo: define el segmento (01/02/03)
   prestador: string | null;
   os_sigla: string | null;
   os_nombre: string | null;
@@ -78,22 +83,6 @@ interface AtencionRaw {
 // ============================================
 // HELPERS DE CLASIFICACIÓN (replicados del módulo)
 // ============================================
-
-const detectarSegmento = (nombrePrestacion: string): 'Consultas' | 'Estudios' | 'Cirugias' => {
-  const n = nombrePrestacion.toUpperCase();
-  if (n.includes('CONSULTA') || n.includes('CONTROL') || n.includes('PRIMERA VEZ') ||
-      n.includes('VISITA') || n.includes('URGENCIA') || n.includes('GUARDIA') ||
-      n.includes('RECETA') || n.includes('VER ESTUDIO')) return 'Consultas';
-  if (n.includes('CIRUGIA') || n.includes('QUIRURGIC') || n.includes('FACO') ||
-      n.includes('VITRECTOMIA') || n.includes('TRABECULECTOMIA') || n.includes('IMPLANTE') ||
-      n.includes('EXTRACCION') || n.includes('TRASPLANTE') || n.includes('INYECCION') ||
-      n.includes('LASER') || n.includes('PTERIGION') || n.includes('CHALAZION') ||
-      n.includes('NEEDLING') || n.includes('CROSS LINKING')) return 'Cirugias';
-  return 'Estudios';
-};
-
-const normalizarNombre = (s: string): string =>
-  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 
 /**
  * Extrae el mes 'YYYY-MM' de una fecha en string.
@@ -172,7 +161,7 @@ const useEvolucionMensual = (
     for (;;) {
       const { data, error } = await supabase
         .from('movimientos_geclisa')
-        .select('fecha, practica_nombre, prestador_nombre, os_sigla, os_nombre, total')
+        .select('fecha, practica_codigo, practica_nombre, prestador_nombre, os_sigla, os_nombre, total')
         .eq('anio', anio)
         .eq('mes', mesN)
         .eq('es_principal', true)
@@ -182,6 +171,7 @@ const useEvolucionMensual = (
         filas.push({
           fecha: (r as any).fecha ?? '',
           prestacion: (r as any).practica_nombre ?? '',
+          codigo: (r as any).practica_codigo ?? '',
           prestador: (r as any).prestador_nombre ?? null,
           os_sigla: (r as any).os_sigla ?? null,
           os_nombre: (r as any).os_nombre ?? null,
@@ -223,12 +213,18 @@ const useEvolucionMensual = (
       })
       .join(',');
 
-    // 1. Erogaciones clasificadas
-    const { data: dataFijos, error: errFijos } = await supabase
-      .from('erogaciones_clasificacion')
-      .select('anio, mes, monto, tipo_costo, categorias_costo_fijo(nombre)')
-      .or(filtroOR);
-    if (errFijos) throw errFijos;
+    // 1. Erogaciones clasificadas.
+    // PAGINADO OBLIGATORIO: acá se piden los tres tipos (fijo, variable y sin
+    // clasificar), así que son ~1.200 filas en lo que va de 2026 y sigue
+    // creciendo. Sin paginar, PostgREST devolvía 1.000 y descartaba el resto
+    // sin error: el costo fijo salía menos de lo real y el resultado operativo
+    // más, con un desvío que cambiaba entre cargas. Ver `traerTodo`.
+    const dataFijos = await traerTodo<any>((desde) =>
+      supabase
+        .from('erogaciones_clasificacion')
+        .select('anio, mes, monto, tipo_costo, categorias_costo_fijo(nombre)')
+        .or(filtroOR)
+        .range(desde, desde + 999));
 
     // 2. Costo laboral del módulo (bruto + cargas) por mes disponible.
     const idxs = meses.map(m => { const p = parseMesKey(m); return p.anio * 12 + p.mes; });
@@ -361,9 +357,29 @@ const useEvolucionMensual = (
       // 2. PROCESAMIENTO DE ATENCIONES — montos por fila
       // ============================================
 
-      // Mapas auxiliares
-      const recetasMap = new Map(recetas.map(r => [normalizarNombre(r.nombre_practica), r]));
+      // Mapas auxiliares. Los alias de nombre siguen haciendo falta como
+      // respaldo para lo que no tiene código utilizable (nomencladores 2024).
+      const mapeosNombre = await traerTodo<any>((desde) =>
+        supabase
+          .from('prestaciones_nombre_mapping')
+          .select('nombre_geclisa, nombre_receta')
+          .range(desde, desde + 999));
+      // Las recetas salen de la MISMA vista que usan las pantallas del módulo
+      // (`v_recetas_costos_por_pool`), no de `v_recetas_costos_completos`.
+      // Las dos traen los mismos costos, pero `completos` redondea los pools a
+      // dos decimales (4787.71 contra 4787.714312): 86 recetas con diferencias
+      // de milésimas que, acumuladas sobre las ~1.500 prestaciones de un mes,
+      // hacían que el margen de contribución de julio difiriera en $3 contra
+      // Por Prestación. Una sola fuente, un solo número.
+      const recetasVista = await traerTodo<any>((desde) =>
+        supabase
+          .from('v_recetas_costos_por_pool')
+          .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos')
+          .range(desde, desde + 999));
+      const recetasMap = crearIndiceRecetas(recetasVista, mapeosNombre);
       const prestadoresMap = new Map(prestadoresHonorarios.map(p => [p.nombre.toUpperCase(), p]));
+      /** nombre de prestación → su código, para el detalle que agrupa por nombre. */
+      const codigoPorNombre = new Map<string, string>();
 
       // Acumuladores por fila
       const makeEmpty = (): Record<Mes, number> =>
@@ -394,15 +410,14 @@ const useEvolucionMensual = (
         const atenciones = atencionesPorMes[m] || [];
         atenciones.forEach(a => {
           // Filtros opcionales
-          const seg = detectarSegmento(a.prestacion);
+          const seg = detectarSegmento(a.prestacion, a.codigo);
           if (segmento && seg !== segmento) return;
           if (osSigla && a.os_sigla !== osSigla) return;
           if (prestador && a.prestador !== prestador) return;
 
           const facturado = a.total || 0;
-          const claveNombre = normalizarNombre(a.prestacion);
-          const receta = recetasMap.get(claveNombre) ?? null;
-          const costoPools = Number(receta?.costo_pools) || 0;
+          const receta = recetasMap.buscar(a.codigo, a.prestacion);
+          const costoPools = Number(receta?.costo_total_pools) || 0;
           const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
 
           // Honorarios (se calculan siempre, no dependen de receta)
@@ -411,10 +426,7 @@ const useEvolucionMensual = (
             const prestInfo = prestadoresMap.get(a.prestador.toUpperCase());
             const esSocio = prestInfo?.es_socio || false;
             const configSeg = configHonorarios.find(c => c.segmento === seg);
-            if (configSeg) {
-              const pct = esSocio ? configSeg.porcentaje_socio : configSeg.porcentaje_no_socio;
-              honorario = facturado * (pct / 100);
-            }
+            honorario = calcularHonorarioPrestacion(facturado, a.prestador, esSocio, configSeg, a.codigo);
           }
 
           // Acumular
@@ -430,6 +442,7 @@ const useEvolucionMensual = (
           }
 
           // Detalle por prestación
+          if (a.codigo) codigoPorNombre.set(a.prestacion, a.codigo);
           const detalleMap = facturacionDetalle[seg];
           const prev = detalleMap.get(a.prestacion);
           if (prev) {
@@ -457,8 +470,13 @@ const useEvolucionMensual = (
 
       const filaBase = (
         id: string, label: string, tipo: FilaEvolucion['tipo'],
-        nivel: 0 | 1 | 2, valores: Record<Mes, number>,
-        opts: { expandible?: boolean; hijos?: FilaEvolucion[]; metadata?: FilaEvolucion['metadata'] } = {}
+        nivel: 0 | 1 | 2 | 3, valores: Record<Mes, number>,
+        opts: {
+          expandible?: boolean;
+          hijos?: FilaEvolucion[];
+          metadata?: FilaEvolucion['metadata'];
+          detalleLazy?: FilaEvolucion['detalleLazy'];
+        } = {}
       ): FilaEvolucion => ({
         id, label, tipo, nivel,
         expandible: opts.expandible ?? false,
@@ -467,6 +485,7 @@ const useEvolucionMensual = (
         promedioMensual: promedio(valores),
         hijos: opts.hijos,
         metadata: opts.metadata,
+        detalleLazy: opts.detalleLazy,
       });
 
       // Derivadas
@@ -532,7 +551,7 @@ const useEvolucionMensual = (
             nombre,
             valores,
             total: sumar(valores),
-            tieneReceta: recetasMap.has(normalizarNombre(nombre)),
+            tieneReceta: recetasMap.tiene(codigoPorNombre.get(nombre), nombre),
           }))
           .sort((a, b) => b.total - a.total);
 
@@ -544,7 +563,14 @@ const useEvolucionMensual = (
             `facturacion.${seg.toLowerCase()}.top${i}`,
             p.nombre,
             'detalle', 2, p.valores,
-            { metadata: { sinReceta: !p.tieneReceta, segmento: seg } }
+            {
+              metadata: { sinReceta: !p.tieneReceta, segmento: seg },
+              // Nivel 3 de facturación = obras sociales de esa prestación.
+              // No se baja hasta la atención individual: son ~1.500 por mes y
+              // el detalle útil para comparar mes a mes es el financiador.
+              expandible: true,
+              detalleLazy: { bloque: 'facturacion', clave: p.nombre, label: p.nombre },
+            }
           )
         );
 
@@ -589,13 +615,16 @@ const useEvolucionMensual = (
 
       // --- Costos Variables: 3 subgrupos (honorarios / pools / insumos) ---
       const filaHonorarios = filaBase(
-        'cv.honorarios', 'Honorarios prestadores', 'subgrupo', 1, honorariosPorMes
+        'cv.honorarios', 'Honorarios prestadores', 'subgrupo', 1, honorariosPorMes,
+        { expandible: true, detalleLazy: { bloque: 'costos_variables', clave: 'honorarios', label: 'Honorarios prestadores' } }
       );
       const filaPools = filaBase(
-        'cv.pools', 'Costos de pools', 'subgrupo', 1, poolsPorMes
+        'cv.pools', 'Costos de pools', 'subgrupo', 1, poolsPorMes,
+        { expandible: true, detalleLazy: { bloque: 'costos_variables', clave: 'pools', label: 'Costos de pools' } }
       );
       const filaInsumos = filaBase(
-        'cv.insumos', 'Insumos directos', 'subgrupo', 1, insumosPorMes
+        'cv.insumos', 'Insumos directos', 'subgrupo', 1, insumosPorMes,
+        { expandible: true, detalleLazy: { bloque: 'costos_variables', clave: 'insumos', label: 'Insumos directos' } }
       );
 
       const filaCostosVariables = filaBase(
@@ -615,8 +644,23 @@ const useEvolucionMensual = (
         const totB = sumar(cfPorCategoriaMes[b]);
         return totB - totA;
       });
-      const filasCF: FilaEvolucion[] = categoriasCF.map((cat, i) =>
-        filaBase(`cf.${i}`, cat, 'subgrupo', 1, cfPorCategoriaMes[cat])
+      // Las tres categorías que alimenta el módulo Sueldos no tienen comprobante
+      // detrás: al expandirlas se muestra una nota, no un detalle.
+      const CATS_DEL_MODULO = new Set([NOMBRE_SUELDOS, NOMBRE_CARGAS, NOMBRE_HC]);
+
+      const filasCF: FilaEvolucion[] = categoriasCF.map((cat) =>
+        // OJO: el id sale del NOMBRE normalizado, no del índice del array. El
+        // array está ordenado por total descendente, así que con `cf.${i}` un
+        // cambio de datos movía las categorías de posición y el id pasaba a
+        // apuntar a otra: rompía el estado de expansión y el cache del detalle.
+        filaBase(`cf.${normalizarNombre(cat)}`, cat, 'subgrupo', 1, cfPorCategoriaMes[cat], {
+          expandible: true,
+          detalleLazy: {
+            bloque: CATS_DEL_MODULO.has(cat) ? 'modulo_sueldos' : 'costos_fijos',
+            clave: cat,
+            label: cat,
+          },
+        })
       );
       const filaCostosFijos = filaBase(
         'costos_fijos', 'COSTOS FIJOS', 'costos_fijos', 0, costosFijosPorMes,
@@ -629,7 +673,11 @@ const useEvolucionMensual = (
         'Variables — facturación sin receta',
         'subgrupo', 1,
         noIdentificadosVariables,
-        { metadata: { sinReceta: true, esEstimado: true } }
+        {
+          metadata: { sinReceta: true, esEstimado: true },
+          expandible: true,
+          detalleLazy: { bloque: 'no_identificados', clave: 'sin_receta', label: 'Facturación sin receta' },
+        }
       );
       const filaNoIdFijos = filaBase(
         'noid.fijos',
@@ -728,6 +776,11 @@ const useEvolucionMensual = (
     anioDesde, mesDesde, anioFin, mesFin,
     segmento, osSigla, prestador, topPrestacionesPorSegmento,
     loadingRecetas, loadingHonorarios,
+    // `recetas` ya no alimenta el cálculo —los costos salen de
+    // v_recetas_costos_por_pool, cargada adentro del efecto— pero sigue como
+    // dependencia a propósito: es la señal de que alguien editó una receta y
+    // hay que recalcular. Sacarla dejaría la grilla mostrando costos viejos
+    // hasta el próximo cambio de período.
     recetas, configHonorarios, prestadoresHonorarios,
     fetchAtencionesMes, fetchCostosFijosMes,
     mesHoyKey,
