@@ -3,8 +3,18 @@
 // ============================================================
 // USO:
 //   cd server
-//   node scripts/cargar-minuta-2026.js            -> DRY-RUN
+//   node scripts/cargar-minuta-2026.js            -> DRY-RUN (todas las hojas)
 //   node scripts/cargar-minuta-2026.js --write     -> escribe
+//
+// OPCIONALES (agregados 2026-08-18, para la carga mensual):
+//   --archivo="C:\ruta\Minuta contable 2026.xlsx"  -> otro Excel de origen
+//   --mes=7                                        -> procesa SOLO ese mes
+//
+// El filtro de mes importa: el script hace UPSERT sobre todas las hojas que
+// encuentra, sin saltear los meses ya cerrados o con asiento generado. Al cargar
+// un mes nuevo conviene acotar con --mes para no reescribir meses anteriores si
+// el liquidador retocó alguna hoja vieja (pasó en jun-2026: cambió un centavo
+// del sindicato al entregar la minuta de julio).
 //
 // Procesa TODAS las hojas mensuales MM-2026 presentes en
 // 'C:\FISCAL\Minuta contable 2026.xlsx' (hoy solo 01-2026). Para cada mes:
@@ -20,7 +30,13 @@ const path = require('path');
 const XLSX = require(path.join(__dirname, '..', '..', 'node_modules', 'xlsx'));
 const { supabase, mensajeError } = require('../config/supabase');
 
-const ARCHIVO = 'C:\\FISCAL\\Minuta contable 2026 (2).xlsx';
+const argVal = (nombre) => {
+  const a = process.argv.find((x) => x.startsWith(`--${nombre}=`));
+  return a ? a.slice(nombre.length + 3).replace(/^["']|["']$/g, '') : null;
+};
+
+const ARCHIVO = argVal('archivo') || 'C:\\FISCAL\\Minuta contable 2026 (2).xlsx';
+const MES_FILTRO = argVal('mes') ? parseInt(argVal('mes'), 10) : null;
 const WRITE = process.argv.includes('--write');
 const ANIO = 2026;
 const CTA_BANCO = '1.1.1.03';
@@ -93,9 +109,17 @@ async function inicializarMes(mes) {
   log(`CARGA MINUTA ${ANIO} — ${WRITE ? 'MODO ESCRITURA' : 'DRY-RUN'}`);
   log('='.repeat(66));
 
+  log('Archivo: ' + ARCHIVO);
   const wb = XLSX.readFile(ARCHIVO);
-  const hojasMes = wb.SheetNames.filter((s) => /^\d{2}-2026$/.test(s)).sort();
-  log('Hojas mensuales encontradas: ' + (hojasMes.join(', ') || '(ninguna)'));
+  const todas = wb.SheetNames.filter((s) => /^\d{2}-2026$/.test(s)).sort();
+  const hojasMes = MES_FILTRO
+    ? todas.filter((s) => parseInt(s.split('-')[0], 10) === MES_FILTRO)
+    : todas;
+  log('Hojas mensuales en el Excel: ' + (todas.join(', ') || '(ninguna)'));
+  if (MES_FILTRO) {
+    log(`Filtro --mes=${MES_FILTRO} -> se procesa: ${hojasMes.join(', ') || '(ninguna, revisá el número de mes)'}`);
+    if (!hojasMes.length) { log('Nada que hacer.'); process.exit(0); }
+  }
 
   const { data: emps, error: eEmp } = await supabase.from('empleados').select('id, apellido, nombre, area, cuenta_contable');
   if (eEmp) throw new Error(mensajeError(eEmp));

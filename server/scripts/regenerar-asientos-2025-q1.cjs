@@ -1,8 +1,11 @@
 // Regenera los asientos de ene/feb/mar 2025 tras agregar a Castillo Romina.
-// Misma logica de criterio que generar-asientos-2025.js. Backend en :3001.
+// Misma logica de criterio que generar-asientos-2025.js.
+// No necesita el backend levantado (corregido 2026-08-24): llama al servicio
+// de orquestacion directo, porque la ruta HTTP exige JWT desde que hay auth.
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), quiet: true });
 const { supabase } = require('../config/supabase');
-const ANIO = 2025, BASE = 'http://localhost:3001', NOMBRE = 'P. Famá (re-gen Castillo)';
+const { generarYPersistirAsiento, ErrorAsiento } = require('../services/asientoPersistencia');
+const ANIO = 2025, NOMBRE = 'P. Famá (re-gen Castillo)';
 const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 });
 const $ = (n) => fmt.format(Number(n) || 0);
 const r2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
@@ -28,15 +31,16 @@ async function inputsMes(mes) {
     const inp = await inputsMes(mes);
     if (!inp) { console.log(`${mes}/2025: sin datos suficientes, salteo`); continue; }
     const criterio = inp.rem_1 >= inp.reconc ? 'REM1_AJUSTE' : 'RECONCILIABLE';
-    const resp = await fetch(`${BASE}/api/asientos/${ANIO}/${mes}/generar`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ criterio, generado_por_nombre: NOMBRE }),
-    });
-    const j = await resp.json();
-    if (!resp.ok) { console.log(`${mes}/2025 | ${criterio} | ERROR: ${j.error}`); continue; }
-    const c = j.cabecera;
+    let r;
+    try {
+      r = await generarYPersistirAsiento(ANIO, mes, { criterio, generadoPorNombre: NOMBRE });
+    } catch (e) {
+      if (e instanceof ErrorAsiento) { console.log(`${mes}/2025 | ${criterio} | ${e.codigo}: ${e.message}`); continue; }
+      throw e;
+    }
+    const c = r.cabecera;
     const cuadra = Math.abs(Number(c.total_debe) - Number(c.total_haber)) < 0.01;
-    console.log(`${mes}/2025 | ${criterio.padEnd(13)} | neto $ ${$(c.total_neto).padStart(13)} | bruto $ ${$(c.bruto_total).padStart(13)} | ajuste $ ${$(c.monto_ajuste).padStart(11)} | cuadra=${cuadra ? 'SI' : 'NO'} | warns=${(j.warnings || []).length}`);
+    console.log(`${mes}/2025 | ${criterio.padEnd(13)} | neto $ ${$(c.total_neto).padStart(13)} | bruto $ ${$(c.bruto_total).padStart(13)} | ajuste $ ${$(c.monto_ajuste).padStart(11)} | cuadra=${cuadra ? 'SI' : 'NO'} | warns=${(r.warnings || []).length}`);
   }
   process.exit(0);
 })();

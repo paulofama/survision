@@ -8,16 +8,19 @@
 //     (ajuste positivo = retenciones reales no capturadas en la minuta)
 //   - Si no (Rem.1 topeado por debajo del bruto, p.ej. aguinaldo/tope) ->
 //     RECONCILIABLE (cuadra sin linea-plug negativa)
-// y llama al endpoint POST /api/asientos/:anio/:mes/generar (persiste todo).
+// y llama a generarYPersistirAsiento() del servicio de orquestacion, que es la
+// misma logica que corre detras de POST /api/asientos/:anio/:mes/generar.
 //
-// Requiere el backend corriendo en localhost:3001.
+// NO requiere el backend levantado.
 // ============================================================
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), quiet: true });
 const { supabase, mensajeError } = require('../config/supabase');
+// Llama al servicio directo, no por HTTP: la ruta exige JWT desde que se agrego
+// autenticacion y este script es anterior (corregido 2026-08-24).
+const { generarYPersistirAsiento, ErrorAsiento } = require('../services/asientoPersistencia');
 
 const ANIO = 2025;
-const BASE = 'http://localhost:3001';
 const NOMBRE = 'P. Famá (carga masiva)';
 const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 });
 const $ = (n) => fmt.format(Number(n) || 0);
@@ -52,16 +55,20 @@ async function inputsMes(mes) {
 
     const criterio = inp.rem_1 >= inp.reconc ? 'REM1_AJUSTE' : 'RECONCILIABLE';
 
-    const resp = await fetch(`${BASE}/api/asientos/${ANIO}/${mes}/generar`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ criterio, generado_por_nombre: NOMBRE }),
-    });
-    const j = await resp.json();
-    if (!resp.ok) { log(`${String(mes).padStart(2)}/${ANIO} | ${criterio.padEnd(15)} | ERROR: ${j.error}`); continue; }
+    let r;
+    try {
+      r = await generarYPersistirAsiento(ANIO, mes, { criterio, generadoPorNombre: NOMBRE });
+    } catch (e) {
+      if (e instanceof ErrorAsiento) {
+        log(`${String(mes).padStart(2)}/${ANIO} | ${criterio.padEnd(15)} | ${e.codigo}: ${e.message}`);
+        continue;
+      }
+      throw e;
+    }
 
-    const c = j.cabecera;
+    const c = r.cabecera;
     const cuadra = Math.abs(Number(c.total_debe) - Number(c.total_haber)) < 0.01;
-    log(`${String(mes).padStart(2)}/${ANIO} | ${criterio.padEnd(15)} | $ ${$(c.total_neto).padStart(12)} | $ ${$(c.bruto_total).padStart(12)} | $ ${$(c.monto_ajuste).padStart(12)} | ${cuadra ? '  SI ' : ' NO '} | ${(j.warnings || []).length}`);
+    log(`${String(mes).padStart(2)}/${ANIO} | ${criterio.padEnd(15)} | $ ${$(c.total_neto).padStart(12)} | $ ${$(c.bruto_total).padStart(12)} | $ ${$(c.monto_ajuste).padStart(12)} | ${cuadra ? '  SI ' : ' NO '} | ${(r.warnings || []).length}`);
   }
 
   log('-'.repeat(92));

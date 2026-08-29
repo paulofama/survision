@@ -26,10 +26,15 @@ const fs = require('fs');
 const { supabase, mensajeError } = require('../config/supabase');
 const { parsearF931, SURVISION_CUIT } = require('../services/f931Parser');
 
+// --mes=7 procesa solo ese mes (agregado 2026-08-18 para la carga mensual);
+// sin el flag se procesan los de MESES, como siempre.
+const argMes = process.argv.find((x) => x.startsWith('--mes='));
+const MES_FILTRO = argMes ? parseInt(argMes.slice(6), 10) : null;
+
 const DIR = 'C:\\FISCAL\\931\\931\\';
 const WRITE = process.argv.includes('--write');
 const ANIO = 2026;
-const MESES = [1, 2, 3, 4, 5];
+const MESES = MES_FILTRO ? [MES_FILTRO] : [1, 2, 3, 4, 5];
 const BUCKET = 'sueldos-adjuntos';
 const NOMBRE_USUARIO = 'P. Famá (carga masiva)';
 const CTA_BANCO = '1.1.1.03';
