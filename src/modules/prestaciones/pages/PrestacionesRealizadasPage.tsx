@@ -23,10 +23,13 @@ import {
   TrendingUp,
   Wifi,
   WifiOff,
-  LayoutList
+  LayoutList,
+  ChevronRight
 } from 'lucide-react';
 import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { FiltroSelect, StatCard } from '@shared/components/ui';
+import { useAuth } from '@shared/context/AuthContext';
+import PanelCostoPrestacion from '../components/PanelCostoPrestacion';
 
 // ============================================
 // COMPONENTE PRINCIPAL
@@ -51,6 +54,17 @@ const PrestacionesRealizadasPage: React.FC = () => {
   // Estados locales
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [busquedaLocal, setBusquedaLocal] = useState('');
+  /**
+   * Fila con el detalle de costos abierto. Una sola por vez: cada apertura
+   * consulta la receta, y esta tabla lista miles de atenciones.
+   */
+  const [expandida, setExpandida] = useState<string | null>(null);
+
+  // El desglose de costos se gatea con `insumos`, el mismo permiso que da
+  // acceso a /recetas-costos: quien lo tiene ya puede ver esos números. Los
+  // honorarios y el margen NO se muestran acá — eso es `analisis_marginal`.
+  const { tienePermiso, esAdmin } = useAuth();
+  const puedeVerCostos = esAdmin() || tienePermiso('insumos');
 
   // Inicializar filtros con año y mes actual al cargar
   useEffect(() => {
@@ -578,12 +592,22 @@ const PrestacionesRealizadasPage: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  prestacionesFiltradas.map((p, idx) => (
-                    <tr 
-                      key={`${p.id}-${idx}`}
-                      className="hover:bg-blue-50/50 transition-colors"
+                  prestacionesFiltradas.map((p, idx) => {
+                    const filaId = `${p.id}-${idx}`;
+                    const abierta = expandida === filaId;
+                    return (
+                    <React.Fragment key={filaId}>
+                    <tr
+                      onClick={() => setExpandida(abierta ? null : filaId)}
+                      title={abierta ? 'Cerrar el detalle de costos' : 'Ver qué costos consume esta práctica'}
+                      className={`cursor-pointer transition-colors ${abierta ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}
                     >
-                      <td className="px-2 py-2 text-slate-400 font-mono text-xs">{p.id}</td>
+                      <td className="px-2 py-2 text-slate-400 font-mono text-xs">
+                        <span className="inline-flex items-center gap-1">
+                          <ChevronRight className={`w-3 h-3 shrink-0 transition-transform ${abierta ? 'rotate-90 text-blue-600' : 'text-slate-300'}`} />
+                          {p.id}
+                        </span>
+                      </td>
                       <td className="px-2 py-2 text-slate-700 whitespace-nowrap text-xs">{formatFecha(p.fecha)}</td>
                       <td className="px-2 py-2 text-slate-500 whitespace-nowrap text-xs text-center">{p.hora}</td>
                       <td className="px-2 py-2 text-slate-900 font-medium text-xs">{p.paciente}</td>
@@ -606,7 +630,18 @@ const PrestacionesRealizadasPage: React.FC = () => {
                       </td>
                       <td className="px-2 py-2 text-slate-500 text-xs truncate max-w-[80px]" title={p.atendio}>{p.atendio}</td>
                     </tr>
-                  ))
+                    {abierta && (
+                      <PanelCostoPrestacion
+                        codigo={p.codigo_prestacion}
+                        nombre={p.prestacion}
+                        facturado={p.total}
+                        colSpan={12}
+                        puedeVerCostos={puedeVerCostos}
+                      />
+                    )}
+                    </React.Fragment>
+                    );
+                  })
                 )}
               </tbody>
             </table>
