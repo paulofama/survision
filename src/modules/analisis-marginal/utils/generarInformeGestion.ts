@@ -64,6 +64,27 @@ export interface DatosInforme {
   // el título dinámico y la cantidad de meses. rangoAnterior = comparativo.
   rango?: RangoPeriodo;
   rangoAnterior?: RangoPeriodo;
+  // Sello de portada cuando el período se generó con datos parciales. Lo arma
+  // la validación de integridad (integridadPeriodo.ts). null/undefined = completo.
+  leyendaIntegridad?: string | null;
+  // Serie mes a mes del período. Solo se dibuja si hay 2 o más meses: un
+  // agregado semestral esconde la tendencia — seis meses estables y una caída
+  // sostenida dan el mismo promedio y son situaciones opuestas.
+  mensual?: SerieMes[];
+}
+
+export interface SerieMes {
+  anio: number;
+  mes: number;
+  /** "Ene 26" */
+  etiqueta: string;
+  facturado: number;
+  cantidad: number;
+  margenContrib: number;
+  margenContribPct: number;
+  costosFijos: number;
+  resultadoOp: number;
+  resultadoOpPct: number;
 }
 
 // ============================================
@@ -210,10 +231,21 @@ function generarConclusiones(d: DatosInforme): string[] {
     }
   }
 
-  // 4. Productividad
-  if (a.prestadoresActivos > 0) {
-    const prod = a.cantidad / a.prestadoresActivos;
-    if (prod > 300) cc.push(`La productividad de ${Math.round(prod)} prestaciones por profesional es elevada. Evaluar la posibilidad de incorporar recurso humano para mantener la calidad de atención.`);
+  // 4. Apalancamiento operativo — cuánto amplifica la estructura de costos fijos.
+  //    Reemplaza a la vieja regla de "productividad por profesional", que
+  //    disparaba con más de 300 prestaciones por prestador: con ~1.300 en un
+  //    semestre se cumplía siempre y recomendaba contratar personal sin ninguna
+  //    base de análisis.
+  if (a.resultadoOp > 0 && a.margenContrib > 0) {
+    const gao = a.margenContrib / a.resultadoOp;
+    const caidaLimite = 100 / gao;
+    if (gao >= 3) {
+      cc.push(`El apalancamiento operativo es alto (${gao.toFixed(2)}): cada punto de variación en la facturación mueve el resultado operativo ${gao.toFixed(2)} puntos. Una caída del ${caidaLimite.toFixed(0)}% en la facturación llevaría el resultado a cero. Conviene ser prudente al incorporar costos fijos y priorizar esquemas variables mientras el margen de seguridad no mejore.`);
+    } else if (gao >= 1.8) {
+      cc.push(`El apalancamiento operativo es moderado (${gao.toFixed(2)}): cada punto de crecimiento en la facturación se traduce en ${gao.toFixed(2)} puntos de resultado operativo, y lo mismo ocurre en sentido inverso. La estructura acompaña el crecimiento sin exponer en exceso ante una baja de actividad.`);
+    } else {
+      cc.push(`El apalancamiento operativo es bajo (${gao.toFixed(2)}), lo que indica una estructura de costos fijos liviana en relación al margen generado. La operación es resistente a caídas de facturación, aunque el crecimiento tampoco se amplifica demasiado.`);
+    }
   }
 
   // 5. Facturación
@@ -385,6 +417,24 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   doc.setFontSize(8); doc.setTextColor(...C.medium); doc.setFont('helvetica', 'normal');
   doc.text(`${fmtNum(a.cantidad)} prestaciones  ·  Ticket promedio ${fmt(a.ticketPromedio)}`, PW / 2, boxY + 40, { align: 'center' });
 
+  // Sello de período parcial (solo si el modal detectó datos incompletos).
+  // Va en la portada a propósito: si el informe circula, esto tiene que verse
+  // antes que cualquier número.
+  if (datos.leyendaIntegridad) {
+    const texto = doc.splitTextToSize(datos.leyendaIntegridad, CW - 12);
+    const altura = texto.length * 4 + 12;
+    const selloY = 205;
+    doc.setFillColor(254, 243, 199);          // amber-100
+    doc.setDrawColor(217, 119, 6);            // amber-600
+    doc.setLineWidth(0.6);
+    doc.roundedRect(M, selloY, CW, altura, 2, 2, 'FD');
+    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
+    doc.setTextColor(146, 64, 14);            // amber-800
+    doc.text('ATENCIÓN — DATOS INCOMPLETOS', M + 6, selloY + 6);
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+    doc.text(texto, M + 6, selloY + 11.5);
+  }
+
   // Footer portada
   doc.setDrawColor(...C.primary);
   doc.setLineWidth(0.5);
@@ -458,6 +508,114 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     });
   }
 
+  // ── 2.b EVOLUCIÓN MENSUAL ────────────────────────────────────────────────
+  // Un período agregado promedia y esconde la trayectoria. Esta sección abre el
+  // total mes a mes para que se vea si el resultado viene mejorando, cayendo o
+  // se sostiene. Solo tiene sentido con 2+ meses.
+  const serie = datos.mensual || [];
+  if (serie.length >= 2) {
+    y = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 10 : y + 10;
+    if (y > PH - 105) { doc.addPage(); addHeader('Evolución Mensual'); addFooter(); y = 32; }
+    y = addSection(y, '2.b Evolución Mensual del Período');
+
+    // ── gráfico: barras de facturación + línea de resultado operativo ──
+    const gX = M + 20, gY = y + 2, gW = CW - 24, gH = 52;
+    const gB = gY + gH;
+    const maxV = Math.max(...serie.map((s) => s.facturado), 1);
+    const minV = Math.min(0, ...serie.map((s) => s.resultadoOp));
+    const rango01 = maxV - minV || 1;
+    const escY = (v: number) => gB - ((v - minV) / rango01) * gH;
+
+    doc.setFillColor(250, 251, 252);
+    doc.roundedRect(gX - 1, gY - 1, gW + 2, gH + 2, 1, 1, 'F');
+    doc.setDrawColor(230, 230, 230); doc.setLineWidth(0.15);
+    for (let i = 0; i <= 4; i++) {
+      const yy = gY + (gH / 4) * i;
+      doc.line(gX, yy, gX + gW, yy);
+      doc.setFontSize(5.5); doc.setTextColor(...C.medium);
+      doc.text(fmt(maxV - ((maxV - minV) / 4) * i).replace(/\s/g, ''), gX - 2, yy + 1.2, { align: 'right' });
+    }
+    // línea del cero, si hay resultados negativos
+    if (minV < 0) {
+      doc.setDrawColor(...C.red); doc.setLineWidth(0.3);
+      doc.line(gX, escY(0), gX + gW, escY(0));
+    }
+
+    const paso = gW / serie.length;
+    const anchoBarra = Math.min(paso * 0.5, 12);
+    serie.forEach((s, i) => {
+      const cx = gX + paso * i + paso / 2;
+      // barra de facturación
+      doc.setFillColor(...C.primaryLight);
+      doc.rect(cx - anchoBarra / 2, escY(s.facturado), anchoBarra, gB - escY(s.facturado), 'F');
+      // etiqueta del mes
+      doc.setFontSize(5.5); doc.setTextColor(...C.medium);
+      doc.text(s.etiqueta, cx, gB + 4, { align: 'center' });
+    });
+    // línea de resultado operativo
+    doc.setDrawColor(...C.primary); doc.setLineWidth(0.7);
+    serie.forEach((s, i) => {
+      if (i === 0) return;
+      const x1 = gX + paso * (i - 1) + paso / 2, x2 = gX + paso * i + paso / 2;
+      doc.line(x1, escY(serie[i - 1].resultadoOp), x2, escY(s.resultadoOp));
+    });
+    serie.forEach((s, i) => {
+      const cx = gX + paso * i + paso / 2;
+      const col = s.resultadoOp >= 0 ? C.primary : C.red;
+      doc.setFillColor(col[0], col[1], col[2]);
+      doc.circle(cx, escY(s.resultadoOp), 1.1, 'F');
+    });
+
+    // referencias
+    y = gB + 8;
+    doc.setFillColor(...C.primaryLight); doc.rect(M, y - 2.2, 4, 2.6, 'F');
+    doc.setFontSize(6.5); doc.setTextColor(...C.dark);
+    doc.text('Facturación', M + 6, y);
+    doc.setDrawColor(...C.primary); doc.setLineWidth(0.7);
+    doc.line(M + 32, y - 1, M + 36, y - 1);
+    doc.text('Resultado operativo', M + 38, y);
+    y += 6;
+
+    // ── tabla ──
+    const filasMes = serie.map((s) => [
+      s.etiqueta, fmtNum(s.cantidad), fmt(s.facturado), fmt(s.margenContrib),
+      fmtPct(s.margenContribPct), fmt(s.costosFijos), fmt(s.resultadoOp), fmtPct(s.resultadoOpPct),
+    ]);
+    autoTable(doc, { startY: y, margin: { left: M, right: M },
+      head: [['Mes', 'Prest.', 'Facturado', 'M.Contrib.', 'MC %', 'Costos Fijos', 'Res.Op.', 'RO %']],
+      body: filasMes,
+      headStyles: { fillColor: C.primary, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7 },
+      columnStyles: { 0: { cellWidth: 18, fontStyle: 'bold' }, 1: { cellWidth: 14, halign: 'right' }, 2: { cellWidth: 27, halign: 'right' }, 3: { cellWidth: 27, halign: 'right' }, 4: { cellWidth: 15, halign: 'right' }, 5: { cellWidth: 27, halign: 'right' }, 6: { cellWidth: 27, halign: 'right' }, 7: { cellWidth: 15, halign: 'right' } },
+      alternateRowStyles: { fillColor: C.tableAlt },
+      didParseCell: (d: any) => {
+        alinear(d, { 0: 'left', 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right', 6: 'right', 7: 'right' });
+        if (d.section === 'body' && (d.column.index === 6 || d.column.index === 7)) {
+          const s = serie[d.row.index];
+          if (s && s.resultadoOp < 0) { d.cell.styles.textColor = C.red; d.cell.styles.fontStyle = 'bold'; }
+        }
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 4;
+
+    // ── lectura de la tendencia (compara primera y segunda mitad) ──
+    const mitad = Math.floor(serie.length / 2);
+    const prim = serie.slice(0, mitad), seg = serie.slice(mitad);
+    const promRO = (arr: SerieMes[]) => arr.length ? arr.reduce((s, x) => s + x.resultadoOpPct, 0) / arr.length : 0;
+    const dRO = promRO(seg) - promRO(prim);
+    const mejor = serie.reduce((b, s) => (s.resultadoOpPct > b.resultadoOpPct ? s : b), serie[0]);
+    const peor = serie.reduce((b, s) => (s.resultadoOpPct < b.resultadoOpPct ? s : b), serie[0]);
+    const negativos = serie.filter((s) => s.resultadoOp < 0);
+
+    let lectura = `El resultado operativo osciló entre ${fmtPct(peor.resultadoOpPct)} en ${peor.etiqueta} y ${fmtPct(mejor.resultadoOpPct)} en ${mejor.etiqueta}. `;
+    lectura += Math.abs(dRO) < 1.5
+      ? 'La trayectoria del período es estable: la segunda mitad se mantiene en línea con la primera.'
+      : dRO > 0
+        ? `La segunda mitad del período mejora ${dRO.toFixed(1)} puntos respecto de la primera, lo que indica una tendencia positiva que el promedio del período no refleja.`
+        : `La segunda mitad del período cae ${Math.abs(dRO).toFixed(1)} puntos respecto de la primera. El promedio del período disimula ese deterioro y conviene analizar las causas.`;
+    if (negativos.length) lectura += ` ${negativos.length === 1 ? `El mes de ${negativos[0].etiqueta} cerró` : `${negativos.length} meses cerraron`} con resultado operativo negativo.`;
+    y = addNarrativa(y, lectura);
+  }
+
   // ══════════════════════════════════════════
   // PÁGINA 3: SEGMENTOS + TOP PRESTACIONES
   // ══════════════════════════════════════════
@@ -484,6 +642,11 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   y = (doc as any).lastAutoTable.finalY + 10;
   y = addSection(y, '4. Top Prestaciones por Facturación');
 
+  // Posición de cada prestación en el ranking por CONTRIBUCIÓN, para poder
+  // mostrar el salto contra el ranking por facturación (tabla 4.b).
+  const posPorContrib = new Map<string, number>();
+  [...a.topPrestaciones].sort((x, z) => z.mc - x.mc).forEach((p, i) => posPorContrib.set(p.nombre, i + 1));
+
   autoTable(doc, { startY: y, margin: { left: M, right: M },
     head: [['#', 'Prestación', 'Seg.', 'Cant.', 'Facturado', 'MC %']],
     body: a.topPrestaciones.slice(0, 10).map((p, i) => [`${i + 1}`, p.nombre.length > 45 ? p.nombre.substring(0, 42) + '...' : p.nombre, p.segmento, fmtNum(p.cantidad), fmt(p.facturado), fmtPct(p.mcPct)]),
@@ -493,6 +656,52 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     didParseCell: (d: any) => { alinear(d, { 0: 'center', 1: 'left', 2: 'left', 3: 'right', 4: 'right', 5: 'right' }); },
   });
 
+  // ── 4.b — el MISMO universo ordenado por contribución ──────────────────
+  // Facturar mucho y contribuir mucho no son lo mismo: una práctica de alto
+  // volumen y margen bajo encabeza el ranking comercial y puede caer varios
+  // puestos en el que realmente paga la estructura. La columna "Pos. fact."
+  // muestra ese salto, que es donde está la información.
+  y = (doc as any).lastAutoTable.finalY + 8;
+  if (y > PH - 70) { doc.addPage(); addHeader('Actividad Operativa (cont.)'); addFooter(); y = 32; }
+  y = addSection(y, '4.b Top Prestaciones por Contribución Marginal');
+
+  const posPorFact = new Map<string, number>();
+  a.topPrestaciones.forEach((p, i) => posPorFact.set(p.nombre, i + 1));
+  const topContrib = [...a.topPrestaciones].sort((x, z) => z.mc - x.mc).slice(0, 10);
+
+  autoTable(doc, { startY: y, margin: { left: M, right: M },
+    head: [['#', 'Prestación', 'Cant.', 'Facturado', 'M.Contrib.', 'MC %', 'Pos. fact.']],
+    body: topContrib.map((p, i) => {
+      const pf = posPorFact.get(p.nombre) || 0;
+      const salto = pf - (i + 1);
+      return [
+        `${i + 1}`,
+        p.nombre.length > 40 ? p.nombre.substring(0, 37) + '...' : p.nombre,
+        fmtNum(p.cantidad), fmt(p.facturado), fmt(p.mc), fmtPct(p.mcPct),
+        salto === 0 ? `#${pf}` : `#${pf} (${salto > 0 ? '+' : ''}${salto})`,
+      ];
+    }),
+    headStyles: { fillColor: C.primary, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7 },
+    columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 56 }, 2: { cellWidth: 14, halign: 'right' }, 3: { cellWidth: 28, halign: 'right' }, 4: { cellWidth: 28, halign: 'right' }, 5: { cellWidth: 16, halign: 'right' }, 6: { cellWidth: 22, halign: 'right' } },
+    alternateRowStyles: { fillColor: C.tableAlt },
+    didParseCell: (d: any) => {
+      alinear(d, { 0: 'center', 1: 'left', 2: 'right', 3: 'right', 4: 'right', 5: 'right', 6: 'right' });
+      if (d.section === 'body' && d.column.index === 6) {
+        const p = topContrib[d.row.index];
+        if (p) {
+          const salto = (posPorFact.get(p.nombre) || 0) - (d.row.index + 1);
+          if (salto > 0) { d.cell.styles.textColor = C.green; d.cell.styles.fontStyle = 'bold'; }
+          else if (salto < 0) { d.cell.styles.textColor = C.red; }
+        }
+      }
+    },
+  });
+  y = (doc as any).lastAutoTable.finalY + 4;
+  doc.setFontSize(7); doc.setTextColor(...C.medium); doc.setFont('helvetica', 'normal');
+  doc.text(doc.splitTextToSize(
+    'La última columna indica qué posición ocupa la prestación en el ranking por facturación. Un número verde significa que aporta más margen de lo que su facturación sugiere; uno rojo, lo contrario: factura mucho y contribuye comparativamente poco.',
+    CW), M, y);
+
   // ══════════════════════════════════════════
   // PÁGINA 4: PRESTADORES
   // ══════════════════════════════════════════
@@ -501,22 +710,37 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   y = 32;
   y = addSection(y, '5. Rentabilidad por Prestador');
 
-  const preRows = a.prestadores.sort((x, z) => z.facturado - x.facturado)
-    .map(p => [p.nombre + (p.esSocio ? ' *' : ''), fmtNum(p.cantidad), fmt(p.facturado), fmt(p.honorarios), fmt(p.mc), fmtPct(p.mcPct), fmt(p.ro), fmtPct(p.roPct)]);
+  // NOTA METODOLÓGICA: esta tabla llega hasta el margen de contribución y NO
+  // muestra "resultado operativo por prestador". Hacerlo exigiría prorratear los
+  // costos fijos entre profesionales (antes se hacía en proporción a su
+  // facturación), y ese reparto es arbitrario: el alquiler no baja si un
+  // prestador opera menos. Mezclar costeo por absorción dentro de un análisis
+  // marginal lleva al error clásico de dar de baja una línea con contribución
+  // positiva — se pierde la contribución y los costos fijos quedan igual.
+  // Lo que aporta cada profesional a cubrir la estructura ES su contribución
+  // marginal; el resultado operativo solo tiene sentido a nivel institución.
+  const preRows = a.prestadores.sort((x, z) => z.mc - x.mc)
+    .map(p => [p.nombre + (p.esSocio ? ' *' : ''), fmtNum(p.cantidad), fmt(p.facturado), fmt(p.honorarios), fmt(p.mc), fmtPct(p.mcPct)]);
 
-  const totP = a.prestadores.reduce((ac, p) => ({ c: ac.c + p.cantidad, f: ac.f + p.facturado, h: ac.h + p.honorarios, m: ac.m + p.mc, r: ac.r + p.ro }), { c: 0, f: 0, h: 0, m: 0, r: 0 });
-  preRows.push(['TOTAL', fmtNum(totP.c), fmt(totP.f), fmt(totP.h), fmt(totP.m), fmtPct(totP.f > 0 ? (totP.m / totP.f) * 100 : 0), fmt(totP.r), fmtPct(totP.f > 0 ? (totP.r / totP.f) * 100 : 0)]);
+  const totP = a.prestadores.reduce((ac, p) => ({ c: ac.c + p.cantidad, f: ac.f + p.facturado, h: ac.h + p.honorarios, m: ac.m + p.mc }), { c: 0, f: 0, h: 0, m: 0 });
+  preRows.push(['TOTAL', fmtNum(totP.c), fmt(totP.f), fmt(totP.h), fmt(totP.m), fmtPct(totP.f > 0 ? (totP.m / totP.f) * 100 : 0)]);
 
   autoTable(doc, { startY: y, margin: { left: M, right: M },
-    head: [['Prestador', 'Cant.', 'Facturado', 'Honorarios', 'M.Contrib.', 'MC%', 'Res.Op.', 'RO%']],
+    head: [['Prestador', 'Cant.', 'Facturado', 'Honorarios', 'M.Contrib.', 'MC%']],
     body: preRows,
     headStyles: { fillColor: C.primary, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7 },
-    columnStyles: { 0: { cellWidth: 36 }, 1: { cellWidth: 14, halign: 'right' }, 2: { cellWidth: 24, halign: 'right' }, 3: { cellWidth: 24, halign: 'right' }, 4: { cellWidth: 24, halign: 'right' }, 5: { cellWidth: 14, halign: 'right' }, 6: { cellWidth: 24, halign: 'right' }, 7: { cellWidth: 14, halign: 'right' } },
+    columnStyles: { 0: { cellWidth: 48 }, 1: { cellWidth: 18, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' }, 3: { cellWidth: 30, halign: 'right' }, 4: { cellWidth: 30, halign: 'right' }, 5: { cellWidth: 18, halign: 'right' } },
     alternateRowStyles: { fillColor: C.tableAlt },
-    didParseCell: (d: any) => { alinear(d, { 0: 'left', 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right', 6: 'right', 7: 'right' }); if (d.row.index === preRows.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = C.primaryLight; } },
+    didParseCell: (d: any) => { alinear(d, { 0: 'left', 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right' }); if (d.row.index === preRows.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = C.primaryLight; } },
   });
   y = (doc as any).lastAutoTable.finalY + 5;
-  doc.setFontSize(7); doc.setTextColor(...C.medium); doc.text('* Socio de la institución', M, y);
+  doc.setFontSize(7); doc.setTextColor(...C.medium);
+  doc.text('* Socio de la institución', M, y);
+  y += 4;
+  const notaPre = doc.splitTextToSize(
+    'Ordenado por contribución marginal, que es el aporte de cada profesional a cubrir los costos fijos de la institución. No se asigna resultado operativo por prestador: los costos fijos no son atribuibles individualmente y cualquier prorrateo distorsionaría la lectura.',
+    CW);
+  doc.text(notaPre, M, y);
 
   // ══════════════════════════════════════════
   // PÁGINA 5: OBRAS SOCIALES
@@ -535,11 +759,53 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
     didParseCell: (d: any) => { alinear(d, { 0: 'center', 1: 'left', 2: 'right', 3: 'right', 4: 'right', 5: 'right' }); },
   });
 
+  // ── 6.b — obras sociales por contribución ──────────────────────────────
+  // El financiador que más factura no siempre es el que más deja. Con aranceles
+  // distintos por convenio, el orden puede cambiar bastante — y es el orden que
+  // importa a la hora de renegociar o priorizar.
+  y = (doc as any).lastAutoTable.finalY + 8;
+  if (y > PH - 75) { doc.addPage(); addHeader('Obras Sociales (cont.)'); addFooter(); y = 32; }
+  y = addSection(y, '6.b Top Obras Sociales por Contribución Marginal');
+
+  const posOSFact = new Map<string, number>();
+  a.topObrasSociales.forEach((os, i) => posOSFact.set(os.sigla, i + 1));
+  const topOSContrib = [...a.topObrasSociales].sort((x, z) => z.mc - x.mc).slice(0, 10);
+  const totalMC = a.topObrasSociales.reduce((s, os) => s + os.mc, 0);
+
+  autoTable(doc, { startY: y, margin: { left: M, right: M },
+    head: [['#', 'Obra Social', 'Cant.', 'Facturado', 'M.Contrib.', '% Contrib.', 'MC %', 'Pos. fact.']],
+    body: topOSContrib.map((os, i) => {
+      const pf = posOSFact.get(os.sigla) || 0;
+      const salto = pf - (i + 1);
+      return [
+        `${i + 1}`, os.sigla, fmtNum(os.cantidad), fmt(os.facturado), fmt(os.mc),
+        fmtPct(totalMC > 0 ? (os.mc / totalMC) * 100 : 0), fmtPct(os.mcPct),
+        salto === 0 ? `#${pf}` : `#${pf} (${salto > 0 ? '+' : ''}${salto})`,
+      ];
+    }),
+    headStyles: { fillColor: C.primary, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7 },
+    columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 32 }, 2: { cellWidth: 14, halign: 'right' }, 3: { cellWidth: 28, halign: 'right' }, 4: { cellWidth: 28, halign: 'right' }, 5: { cellWidth: 18, halign: 'right' }, 6: { cellWidth: 14, halign: 'right' }, 7: { cellWidth: 20, halign: 'right' } },
+    alternateRowStyles: { fillColor: C.tableAlt },
+    didParseCell: (d: any) => {
+      alinear(d, { 0: 'center', 1: 'left', 2: 'right', 3: 'right', 4: 'right', 5: 'right', 6: 'right', 7: 'right' });
+      if (d.section === 'body' && d.column.index === 7) {
+        const os = topOSContrib[d.row.index];
+        if (os) {
+          const salto = (posOSFact.get(os.sigla) || 0) - (d.row.index + 1);
+          if (salto > 0) { d.cell.styles.textColor = C.green; d.cell.styles.fontStyle = 'bold'; }
+          else if (salto < 0) { d.cell.styles.textColor = C.red; }
+        }
+      }
+    },
+  });
+
   y = (doc as any).lastAutoTable.finalY + 8;
   if (a.topObrasSociales.length >= 3) {
     const t3F = a.topObrasSociales.slice(0, 3).reduce((s, os) => s + os.facturado, 0);
     const t3P = (t3F / a.facturado) * 100;
-    y = addNarrativa(y, `Las tres principales obras sociales (${a.topObrasSociales.slice(0, 3).map(o => o.sigla).join(', ')}) concentran el ${fmtPct(t3P)} de la facturación total. ${t3P > 70 ? 'Este nivel de concentración representa un riesgo significativo de dependencia.' : t3P > 50 ? 'La concentración es moderada, pero se recomienda diversificar.' : 'La diversificación es adecuada.'}`);
+    const top3MC = [...a.topObrasSociales].sort((x, z) => z.mc - x.mc).slice(0, 3);
+    const t3MCp = totalMC > 0 ? (top3MC.reduce((s, os) => s + os.mc, 0) / totalMC) * 100 : 0;
+    y = addNarrativa(y, `Las tres principales obras sociales por facturación (${a.topObrasSociales.slice(0, 3).map(o => o.sigla).join(', ')}) concentran el ${fmtPct(t3P)} de la facturación total. ${t3P > 70 ? 'Este nivel de concentración representa un riesgo significativo de dependencia.' : t3P > 50 ? 'La concentración es moderada, pero se recomienda diversificar.' : 'La diversificación es adecuada.'} Medido por contribución marginal, las tres primeras (${top3MC.map(o => o.sigla).join(', ')}) aportan el ${fmtPct(t3MCp)} del margen: ese es el orden relevante para priorizar una renegociación de aranceles.`);
   }
 
   // ══════════════════════════════════════════
@@ -860,12 +1126,95 @@ export function generarInformeGestionPDF(datos: DatosInforme): void {
   y = addNarrativa(y, peNarrativa);
 
   // ══════════════════════════════════════════
-  // PÁGINA 7: CONCLUSIONES
+  // PÁGINA 7: APALANCAMIENTO OPERATIVO
+  // ══════════════════════════════════════════
+  // Es el complemento del punto de equilibrio: el margen de seguridad dice
+  // cuánto se aguanta una caída, el apalancamiento dice cuánto amplifica la
+  // estructura en los dos sentidos. Son recíprocos (GAO = 100 / margen de
+  // seguridad %), pero la forma "amplifica" es la que sirve para decidir sobre
+  // incorporar costos fijos.
+
+  doc.addPage(); addHeader('Apalancamiento Operativo'); addFooter();
+  y = 32;
+  y = addSection(y, '10. Apalancamiento Operativo');
+
+  const gao = a.resultadoOp !== 0 ? a.margenContrib / a.resultadoOp : 0;
+  const gaoValido = a.resultadoOp > 0 && a.margenContrib > 0;
+
+  y = addNarrativa(y, gaoValido
+    ? `El grado de apalancamiento operativo mide cuánto amplifica la estructura de costos fijos una variación en la facturación. Se calcula como el cociente entre el margen de contribución y el resultado operativo del período.`
+    : `El grado de apalancamiento operativo no es interpretable en este período porque el resultado operativo no es positivo. Cuando la operación no cubre los costos fijos, el indicador pierde sentido económico y debe leerse el punto de equilibrio de la sección anterior.`);
+
+  if (gaoValido) {
+    // ── Recuadro con el indicador ──
+    const boxH = 26;
+    doc.setFillColor(...C.primaryLight);
+    doc.setDrawColor(...C.primary);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(M, y, CW, boxH, 2, 2, 'FD');
+    doc.setFontSize(8); doc.setTextColor(...C.medium); doc.setFont('helvetica', 'normal');
+    doc.text('GRADO DE APALANCAMIENTO OPERATIVO (GAO)', M + 6, y + 8);
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+    const gaoCol = gao >= 3 ? C.amber : C.primary;
+    doc.setTextColor(gaoCol[0], gaoCol[1], gaoCol[2]);
+    doc.text(gao.toFixed(2), M + 6, y + 20);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...C.dark);
+    doc.text(`${fmt(a.margenContrib)}  /  ${fmt(a.resultadoOp)}`, M + 34, y + 15);
+    doc.setFontSize(7.5); doc.setTextColor(...C.medium);
+    doc.text(`Margen de contribución dividido resultado operativo`, M + 34, y + 20);
+    y += boxH + 7;
+
+    y = addNarrativa(y, `Cada 1% de variación en la facturación produce una variación de ${gao.toFixed(2)}% en el resultado operativo, en el mismo sentido. La amplificación opera igual hacia arriba que hacia abajo: una caída del ${(100 / gao).toFixed(1)}% en la facturación dejaría el resultado operativo en cero, que es exactamente el margen de seguridad calculado en la sección anterior.`);
+
+    // ── Tabla de sensibilidad ──
+    y = addSection(y, 'Sensibilidad del resultado ante cambios en la facturación');
+    const escenarios = [-20, -10, -5, 0, 5, 10, 20];
+    const sensRows = escenarios.map((pc) => {
+      const factEsc = a.facturado * (1 + pc / 100);
+      const mcEsc = factEsc * mcRatio;
+      const roEsc = mcEsc - a.costosFijos;
+      const varRO = a.resultadoOp !== 0 ? ((roEsc - a.resultadoOp) / a.resultadoOp) * 100 : 0;
+      return [
+        pc === 0 ? 'Situación actual' : `${pc > 0 ? '+' : ''}${pc}%`,
+        fmt(factEsc),
+        fmt(roEsc),
+        pc === 0 ? '—' : `${varRO > 0 ? '+' : ''}${varRO.toFixed(1)}%`,
+      ];
+    });
+
+    autoTable(doc, { startY: y, margin: { left: M, right: M },
+      head: [['Variación de facturación', 'Facturación', 'Resultado Operativo', 'Variación del resultado']],
+      body: sensRows,
+      headStyles: { fillColor: C.primary, fontSize: 8, fontStyle: 'bold' }, bodyStyles: { fontSize: 8 },
+      columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 38, halign: 'right' }, 2: { cellWidth: 40, halign: 'right' }, 3: { cellWidth: 40, halign: 'right' } },
+      alternateRowStyles: { fillColor: C.tableAlt },
+      didParseCell: (d: any) => {
+        alinear(d, { 0: 'left', 1: 'right', 2: 'right', 3: 'right' });
+        const esc = escenarios[d.row.index];
+        if (d.section === 'body' && esc === 0) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = C.primaryLight; }
+        if (d.section === 'body' && d.column.index === 2 && esc !== undefined) {
+          const roEsc = a.facturado * (1 + esc / 100) * mcRatio - a.costosFijos;
+          if (roEsc < 0) { d.cell.styles.textColor = C.red; d.cell.styles.fontStyle = 'bold'; }
+        }
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 5;
+
+    const lectura = gao >= 3
+      ? `Con un apalancamiento de ${gao.toFixed(2)} la estructura es sensible: conviene ser prudente antes de incorporar nuevos costos fijos y privilegiar esquemas de costo variable hasta que el margen de seguridad mejore.`
+      : gao >= 1.8
+        ? `Con un apalancamiento de ${gao.toFixed(2)} la estructura acompaña el crecimiento sin exponer en exceso a una baja de actividad. Hay margen para absorber costos fijos adicionales si vienen acompañados de mayor volumen.`
+        : `Con un apalancamiento de ${gao.toFixed(2)} la estructura de costos fijos es liviana frente al margen generado: la operación resiste bien las caídas, aunque el crecimiento tampoco se amplifica demasiado.`;
+    y = addNarrativa(y, `${lectura} El indicador debe leerse junto al margen de seguridad: cuanto más alto el apalancamiento, más chico el colchón antes de entrar en pérdidas.`);
+  }
+
+  // ══════════════════════════════════════════
+  // PÁGINA 8: CONCLUSIONES
   // ══════════════════════════════════════════
 
   doc.addPage(); addHeader('Conclusiones'); addFooter();
   y = 32;
-  y = addSection(y, '10. Conclusiones y Recomendaciones');
+  y = addSection(y, '11. Conclusiones y Recomendaciones');
 
   const conclusiones = generarConclusiones(datos);
 
