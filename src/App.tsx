@@ -62,7 +62,6 @@ import {
   AnalisisPorPrestacionPage,
   AnalisisPorGrupoPage
 } from '@modules/analisis';
-import EvolucionTemporalPage from '@modules/analisis/pages/EvolucionTemporalPage';
 import AnalisisTurnosPage from '@modules/turnos/pages/AnalisisTurnosPage';
 import AgendaTurnosPage from '@modules/turnos/pages/AgendaTurnosPage';
 
@@ -279,7 +278,6 @@ const App: React.FC = () => {
                       <Route path="/analisis/por-prestador" element={<AnalisisPorPrestadorPage />} />
                       <Route path="/analisis/por-obra-social" element={<AnalisisPorObraSocialPage />} />
                       <Route path="/analisis/por-grupo" element={<AnalisisPorGrupoPage />} />
-                      <Route path="/analisis/evolucion" element={<EvolucionTemporalPage />} />
                       
                       {/* Rutas legacy (por compatibilidad) */}
                       <Route path="/analisis/obra-social" element={<AnalisisPorObraSocialPage />} />

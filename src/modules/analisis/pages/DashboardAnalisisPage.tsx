@@ -686,13 +686,6 @@ const DashboardAnalisisPage: React.FC = () => {
           <Users className="h-5 w-5 text-blue-600" />
           <span className="font-medium text-gray-700">Por Prestador</span>
         </Link>
-        <Link 
-          to="/analisis/evolucion"
-          className="flex items-center justify-center space-x-2 bg-white border border-gray-200 rounded-lg p-4 hover:bg-blue-50 hover:border-blue-200 transition-colors"
-        >
-          <TrendingUp className="h-5 w-5 text-blue-600" />
-          <span className="font-medium text-gray-700">Evolución</span>
-        </Link>
       </div>
 
       {/* Timestamp */}

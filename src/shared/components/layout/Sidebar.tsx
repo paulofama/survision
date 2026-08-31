@@ -137,8 +137,11 @@ const navItems: NavItem[] = [
       { path: '/analisis/por-prestacion', label: 'Por Prestación', icon: Activity },
       { path: '/analisis/por-prestador', label: 'Por Prestador', icon: UserCheck },
       { path: '/analisis/por-obra-social', label: 'Por Obra Social', icon: Building2 },
-      { path: '/analisis/por-grupo', label: 'Por Grupo', icon: PieChart },
-      { path: '/analisis/evolucion', label: 'Evolución Temporal', icon: Clock }
+      { path: '/analisis/por-grupo', label: 'Por Grupo', icon: PieChart }
+      // La Evolución Temporal de este módulo se dio de baja (30/08/2026): era la
+      // única pantalla del front que pegaba al backend on-prem, y el proxy de
+      // Netlify nunca tuvo la URL del túnel. La vigente es la del Análisis
+      // Marginal (/analisis-marginal/evolucion), que lee Supabase directo.
     ]
   },
 
