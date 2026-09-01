@@ -98,6 +98,14 @@ export interface Lio {
   descripcion: string | null;
   /** Código de `prestaciones` que implica este LIO (migración 33). */
   codigo_practica: string | null;
+  /**
+   * Frase de resultado visual del comprobante de caja (migración 44). Cargada
+   * SÓLO en el LIO Básico: en los demás lentes el objetivo refractivo lo elige
+   * el paciente y cambia caso por caso, así que una frase fija sería
+   * clínicamente incorrecta. Es dato del catálogo, no constante del código,
+   * para que Administración pueda agregar una frase sin tocar el render.
+   */
+  leyenda_resultado: string | null;
   activo: boolean;
   orden: number;
 }
@@ -125,6 +133,42 @@ export interface Aceptacion {
   caja_registrado_por: string | null;
   caja_registrado_en: string | null;
 }
+
+/**
+ * Entrega de dinero contra un presupuesto aceptado (migración 44).
+ *
+ * POR QUÉ ES UNA TABLA Y NO UN CAMPO. El comprobante de caja registra un PAGO
+ * PARCIAL: el paciente entrega una parte y queda un saldo. Los campos de caja
+ * de `presupuestos_aceptacion` guardan UN solo importe y el panel los graba con
+ * upsert, así que una segunda entrega pisaba la primera y el saldo se perdía.
+ * Cada entrega es una fila; el saldo es `valor_total - SUMA(monto)`.
+ */
+export interface CajaEntrega {
+  id: string;
+  presupuesto_id: string;
+  /** Fecha de la ENTREGA DEL DINERO, no la de la cirugía. */
+  fecha: string;
+  monto: number | string;
+  /** Valor total al momento de la entrega: congelado para que reimprimir cuadre. */
+  valor_total: number | string | null;
+  /** Foto de la regla de facturación: true = se imprimió "C/IVA". */
+  requiere_factura: boolean;
+  /** NULL mientras el presupuesto sea de una sola práctica. */
+  practica_codigo: string | null;
+  registrado_por: string | null;
+  observaciones: string | null;
+  created_at: string;
+}
+
+/** Entregas ya registradas, de la más vieja a la más nueva. */
+export async function cargarEntregas(presupuestoId: string): Promise<CajaEntrega[]> {
+  return sbGet<CajaEntrega>(
+    `presupuestos_caja_entregas?presupuesto_id=eq.${presupuestoId}&order=fecha,created_at&select=*`,
+  );
+}
+
+export const sumaEntregas = (entregas: CajaEntrega[]): number =>
+  entregas.reduce((s, e) => s + (Number(e.monto) || 0), 0);
 
 export interface ChecklistRow {
   id: string;

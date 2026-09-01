@@ -18,10 +18,14 @@ import {
 } from "./documentos";
 import { Aceptacion, Convenio, Lio, sbGet } from "../circuito";
 
-export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef } from "./documentos";
+export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef, CopiaCaja } from "./documentos";
 export {
   calcularDeposito, totalObraSocial, baseDeposito,
   conceptoCompleto, recetasDelSobre, recetasDeMedicacionAdicional,
+  // Caja: valor total, entrega y regla de facturación (FASE 3).
+  valorTotalCaja, entregaActual, restaPagar,
+  requiereFactura, leyendaIva, UMBRAL_DESCUENTO_SIN_FACTURA,
+  LEYENDA_A_CARGO_PACIENTE, LEYENDA_RECETA_POR_SISTEMA, DX_RECETAS,
 } from "./documentos";
 
 // ── Formato / helpers ─────────────────────────────────────────────────────────
@@ -98,15 +102,24 @@ export const CAJA_VACIA: CajaOpts = {
   depositoModalidad: null,
   depositoValor: null,
   montoUnico: null,
+  entrega: null,
 };
 
-/** Lee los datos de caja ya persistidos en la aceptación (migración 33). */
+/**
+ * Lee los parámetros de caja ya persistidos en la aceptación (migración 33).
+ *
+ * `entrega` arranca SIEMPRE en null, a propósito: cada comprobante documenta un
+ * pago nuevo, así que el operador tiene que tipear cuánto se recibe ahora. Lo
+ * que se conserva de la aceptación es el marco —la modalidad y, en obra social,
+ * el importe a cargo del paciente— no el dinero entregado.
+ */
 export function cajaDesdeAceptacion(a: Aceptacion | null): CajaOpts {
   if (!a) return { ...CAJA_VACIA };
   return {
     depositoModalidad: a.deposito_modalidad ?? null,
     depositoValor: a.deposito_valor == null ? null : num(a.deposito_valor),
     montoUnico: a.caja_monto_unico == null ? null : num(a.caja_monto_unico),
+    entrega: null,
   };
 }
 
@@ -119,6 +132,12 @@ export function armarContexto(args: {
   consentimiento: { titulo: string; cuerpo: string }[];
   /** Datos de caja del operador. Si se omite, se usan los persistidos. */
   caja?: CajaOpts;
+  /**
+   * Suma de las entregas YA registradas (migración 44). El comprobante que se
+   * está por emitir descuenta ésas más la entrega actual, así el saldo del
+   * segundo pago sale correcto.
+   */
+  entregasPrevias?: number;
 }): SobreCtx {
   const { presupuesto: p, aceptacion: a, convenios, lios, consentimiento } = args;
   const datos = p?.datos_completos || {};
@@ -131,14 +150,16 @@ export function armarContexto(args: {
 
   const esObraSocial = a?.rama_cobertura === "OBRA_SOCIAL";
 
-  // OSEP carga las recetas por su propio sistema (electrónicas): no se emite en
-  // papel la receta de la medicación adicional. Se resuelve por config del
-  // convenio (`recetas_por_sistema`, migración 34) para que sea configurable
-  // sin tocar código; el match por nombre queda de respaldo.
+  // OSEP carga las recetas por su propio sistema (electrónicas). Se resuelve
+  // por config del convenio (`recetas_por_sistema`, migración 34) para que sea
+  // configurable sin tocar código; el match por nombre queda de respaldo.
+  //
+  // Se mira SÓLO el convenio, nunca `dp.obraSocial`: ese campo es texto libre
+  // copiado de la ficha del paciente y puede decir cualquier cosa (ver el
+  // bloque de `coberturaLabel`).
   const recetasPorSistema = esObraSocial && (
     convenio?.config?.recetas_por_sistema === true ||
-    /osep/i.test(convenio?.nombre || "") ||
-    /osep/i.test(dp.obraSocial || "")
+    /osep/i.test(convenio?.nombre || "")
   );
 
   // Importes. `subtotalDespuesCobertura` es la base ANTES del descuento; el
@@ -172,11 +193,30 @@ export function armarContexto(args: {
     fechaCirugia: fmtFechaISO(a?.fecha_tentativa_cirugia),
     fechaHoy: hoyTexto(),
     lioNombre: lio?.nombre || "",
+    // Sale del catálogo (migración 44), no de una constante: hoy sólo el LIO
+    // Básico tiene frase. Ver el comentario de `Lio.leyenda_resultado`.
+    lioLeyenda: lio?.leyenda_resultado || "",
     requiereAnalisisEcg: !!a?.requiere_analisis_ecg,
     esObraSocial,
     subRama: a?.sub_rama ?? null,
+    // ── FUENTE ÚNICA DE VERDAD DE LA COBERTURA ──────────────────────────────
+    // Manda el CONVENIO DE LA ACEPTACIÓN, no la obra social de la ficha.
+    //
+    // Bug relevado por Administración (31/08/2026, P-2026-813): "cargué OSEP y
+    // todo lo extiende por Ospelsym". La precedencia estaba invertida y ganaba
+    // `dp.obraSocial`, que es `datos_completos.paciente.obraSocial` — texto
+    // libre copiado de la ficha al crear el presupuesto, sin relación con el
+    // catálogo de convenios ("Ospelsym" no existe como convenio).
+    //
+    // El convenio es el que define aranceles, autorización y liquidación, y es
+    // además el snapshot que pide la regla: se fija en `convenio_id` al aceptar
+    // el presupuesto, así que editar después la ficha del paciente no altera
+    // ningún documento ya emitido.
+    //
+    // `dp.obraSocial` queda sólo como último recurso, para el caso de una
+    // aceptación vieja marcada como obra social pero sin `convenio_id`.
     coberturaLabel: esObraSocial
-      ? (dp.obraSocial || convenio?.nombre || "Obra social")
+      ? (convenio?.nombre || dp.obraSocial || "Obra social")
       : "Particular",
     convenio: convenio
       ? { nombre: convenio.nombre, subRama: convenio.sub_rama, codigo: convenio.codigo_practica || "", config: convenio.config || {} }
@@ -192,6 +232,7 @@ export function armarContexto(args: {
     itemsAdicionales,
     recetasPorSistema,
     caja: args.caja ?? cajaDesdeAceptacion(a),
+    entregasPrevias: num(args.entregasPrevias),
     consentimiento,
     fmtARS,
   };

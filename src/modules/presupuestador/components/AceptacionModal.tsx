@@ -28,6 +28,10 @@ interface PresupuestoMin {
   datos_completos?: any;
 }
 
+/** Para comparar coberturas escritas a mano: sin acentos, sin case, sin bordes. */
+const normalizarCobertura = (s: string): string =>
+  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
 function ojoDesdeSnapshot(p: PresupuestoMin): Ojo | "" {
   const o = String(p?.datos_completos?.tratamiento?.ojoTratar || "").toLowerCase();
   if (o.includes("ambos")) return "AMBOS";
@@ -79,6 +83,18 @@ export default function AceptacionModal({
 
   const esOS = rama === "OBRA_SOCIAL";
   const conveniosDeSubRama = convenios.filter((c) => c.sub_rama === subRama && c.activo);
+
+  // La obra social de la FICHA del paciente es texto libre y no tiene por qué
+  // coincidir con el catálogo de convenios. Toda la documentación se emite con
+  // el convenio (define aranceles, autorización y liquidación), así que si
+  // difieren hay que avisarlo ACÁ, antes de imprimir el sobre.
+  const obraSocialFicha = String(presupuesto?.datos_completos?.paciente?.obraSocial || "").trim();
+  const convenioElegido = convenios.find((c) => c.id === convenioId) || null;
+  const avisoCobertura =
+    esOS && convenioElegido && obraSocialFicha &&
+    normalizarCobertura(obraSocialFicha) !== normalizarCobertura(convenioElegido.nombre)
+      ? { ficha: obraSocialFicha, convenio: convenioElegido.nombre }
+      : null;
 
   const valido =
     !!rama &&
@@ -211,6 +227,19 @@ export default function AceptacionModal({
                   )}
                 </label>
               )}
+              {/*
+                Aviso NO bloqueante: el error se detecta acá y no en el papel
+                impreso. Caso real (P-2026-813): la ficha decía "Ospelsym" y se
+                aceptó con OSEP; los documentos salían con Ospelsym. Ahora manda
+                el convenio, y esto lo deja explícito antes de aceptar.
+              */}
+              {avisoCobertura && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  El paciente figura en la ficha con <strong>{avisoCobertura.ficha}</strong> y
+                  el presupuesto se emitió con <strong>{avisoCobertura.convenio}</strong>.
+                  Se usará <strong>{avisoCobertura.convenio}</strong> en toda la documentación.
+                </div>
+              )}
             </>
           )}
 
@@ -229,15 +258,27 @@ export default function AceptacionModal({
             </label>
             <label className="block text-sm">
               <span className="block text-gray-600 mb-1 font-medium">LIO *</span>
-              <select
-                value={lioId}
-                onChange={(e) => setLioId(e.target.value)}
-                disabled={lioSoloLectura}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
-              >
-                <option value="">Seleccioná…</option>
-                {lios.filter((l) => l.activo).map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-              </select>
+              {/*
+                Cuando es de sólo lectura NO se usa un <select disabled>: se
+                renderizaba en gris claro, con aspecto de control apagado, y
+                Administración lo leía como "no se cargó el LIO" (testeo del
+                31/08/2026). Va como dato legible, alto contraste, y la
+                aclaración de que no se modifica queda abajo en letra menor.
+              */}
+              {lioSoloLectura ? (
+                <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-sm font-semibold text-gray-900">
+                  {lioPresupuestoNombre}
+                </div>
+              ) : (
+                <select
+                  value={lioId}
+                  onChange={(e) => setLioId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                >
+                  <option value="">Seleccioná…</option>
+                  {lios.filter((l) => l.activo).map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                </select>
+              )}
               {lioPresupuestoNombre ? (
                 <span className="text-[11px] text-gray-500 mt-1 block">
                   {lioSoloLectura

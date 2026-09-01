@@ -9,14 +9,16 @@
 
 import { useEffect, useState } from "react";
 import {
-  Aceptacion, ChecklistRow, Convenio, Lio,
+  Aceptacion, ChecklistRow, Convenio, Lio, CajaEntrega,
   CHECKLIST_ITEMS, OJOS, SUB_RAMAS,
   clavesAplicables, listoParaCirugia, progresoChecklist,
-  sbGet, sbPatch,
+  cargarEntregas, sumaEntregas,
+  sbGet, sbPatch, sbInsert,
 } from "../utils/circuito";
 import {
   CajaOpts, SobreCtx,
   DOCS, armarContexto, cargarConsentimiento, generarDocumento, generarSobreCompleto,
+  valorTotalCaja, requiereFactura, restaPagar,
 } from "../utils/sobre";
 import CajaIngresoModal from "./CajaIngresoModal";
 
@@ -38,6 +40,10 @@ type PendienteCaja = { modo: "uno" } | { modo: "sobre" };
 // Date con eso la ubica a medianoche UTC y en Argentina muestra el día
 // anterior. Las fechas sin hora se formatean tal cual; las timestamptz
 // (fecha_completado) sí pasan a hora local.
+/** Importes en formato argentino: 1.234.567,00 (convención del proyecto). */
+const fmtImporte = (n: number): string =>
+  new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+
 const fmtFecha = (d: string | null | undefined): string => {
   if (!d) return "—";
   const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
@@ -67,6 +73,7 @@ export default function CircuitoPanel({
 }) {
   const [aceptacion, setAceptacion] = useState<Aceptacion | null>(null);
   const [rows, setRows] = useState<ChecklistRow[]>([]);
+  const [entregas, setEntregas] = useState<CajaEntrega[]>([]);
   const [consentimiento, setConsentimiento] = useState<{ titulo: string; cuerpo: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -76,13 +83,15 @@ export default function CircuitoPanel({
     setLoading(true);
     setError("");
     try {
-      const [a, ch, cons] = await Promise.all([
+      const [a, ch, ent, cons] = await Promise.all([
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&select=*`),
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
+        cargarEntregas(presupuesto.id),
         cargarConsentimiento(),
       ]);
       const acept = a[0] || null;
       setAceptacion(acept);
+      setEntregas(ent || []);
       setConsentimiento(cons);
       // Sólo los ítems que existen para esta cobertura (ej. "Orden autorizada"
       // no corresponde a un circuito Particular), en el orden fijo de la
@@ -136,7 +145,11 @@ export default function CircuitoPanel({
   // ── Generación del Sobre Quirúrgico ──
   const contexto = (caja?: CajaOpts): SobreCtx | null => {
     if (!aceptacion) return null;
-    return armarContexto({ presupuesto, aceptacion, convenios, lios, consentimiento, caja });
+    return armarContexto({
+      presupuesto, aceptacion, convenios, lios, consentimiento, caja,
+      // Lo ya entregado: el comprobante nuevo descuenta de este saldo.
+      entregasPrevias: sumaEntregas(entregas),
+    });
   };
 
   /**
@@ -159,7 +172,14 @@ export default function CircuitoPanel({
   /** Persiste lo cargado en caja y genera lo que estaba pendiente. */
   const confirmarCaja = async (caja: CajaOpts) => {
     if (!aceptacion || !pendienteCaja) return;
+
+    // El contexto se arma ANTES de registrar la entrega: `entregasPrevias` tiene
+    // que ser lo entregado hasta el comprobante anterior, no incluir el actual
+    // (que va en su propio renglón ENTREGA).
+    const ctx = contexto(caja);
+
     try {
+      // Parámetros del comprobante (modalidad, importe a cargo del paciente).
       await sbPatch(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}`, {
         deposito_modalidad: caja.depositoModalidad,
         deposito_valor: caja.depositoValor,
@@ -173,13 +193,34 @@ export default function CircuitoPanel({
         deposito_valor: caja.depositoValor,
         caja_monto_unico: caja.montoUnico,
       } : prev));
+
+      // La ENTREGA es una fila nueva, nunca un upsert: si se pisara, el segundo
+      // pago borraría el primero y el saldo quedaría mal.
+      if (ctx && caja.entrega != null && caja.entrega > 0) {
+        // `fecha` en local, no UTC: a la noche `toISOString()` da el día
+        // siguiente y el comprobante saldría fechado mañana.
+        const hoy = new Date();
+        const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+        await sbInsert("presupuestos_caja_entregas", {
+          presupuesto_id: presupuesto.id,
+          fecha,
+          monto: caja.entrega,
+          // Congelados con la entrega: reimprimir un comprobante viejo tiene que
+          // dar el mismo saldo y la misma sigla aunque después se edite el
+          // presupuesto.
+          valor_total: valorTotalCaja(ctx),
+          requiere_factura: requiereFactura(ctx),
+          registrado_por: username,
+        });
+        // `updated_at` NO se manda nunca: lo maneja el trigger (devuelve 400).
+        await cargar();
+      }
     } catch (e) {
       // Si falla el guardado, igual se emite el comprobante: la caja no puede
       // quedar bloqueada por un problema de red.
       setError((e as Error).message || "No se pudo guardar el dato de caja (el comprobante se generó igual)");
     }
 
-    const ctx = contexto(caja);
     if (ctx) {
       if (pendienteCaja.modo === "sobre") generarSobreCompleto(ctx);
       else generarDocumento("caja", ctx);
@@ -197,6 +238,17 @@ export default function CircuitoPanel({
   const prog = progresoChecklist(rows);
   // Contexto para el modal de caja (usa los valores ya persistidos como default).
   const ctxCaja = pendienteCaja ? contexto() : null;
+
+  // Saldo pendiente con las entregas ya registradas. `contexto()` no trae
+  // entrega actual (es null al cargar), así que `restaPagar` da justamente
+  // "valor total − lo entregado hasta hoy".
+  const saldoCaja = (() => {
+    if (!entregas.length) return null;
+    const c = contexto();
+    if (!c) return null;
+    const total = valorTotalCaja(c);
+    return total > 0 ? restaPagar(c) : null;
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -324,6 +376,59 @@ export default function CircuitoPanel({
                   >
                     Descargar todo el Sobre
                   </button>
+
+                  {/*
+                    Entregas registradas. Acá es donde Ivana y Flavio miran si
+                    corresponde emitir factura: la sigla C/IVA — S/IVA que salió
+                    impresa en cada comprobante, más el saldo que queda.
+                  */}
+                  {entregas.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">
+                        Entregas registradas ({entregas.length})
+                      </p>
+                      <div className="space-y-1">
+                        {entregas.map((e) => (
+                          <div key={e.id} className="flex items-center justify-between text-xs">
+                            <span className="text-gray-600">
+                              {fmtFecha(e.fecha)}
+                              <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                e.requiere_factura
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-orange-100 text-orange-700"
+                              }`}>
+                                {e.requiere_factura ? "C/IVA" : "S/IVA"}
+                              </span>
+                              {e.registrado_por && (
+                                <span className="ml-2 text-gray-400">{e.registrado_por}</span>
+                              )}
+                            </span>
+                            <span className="font-medium text-gray-800 tabular-nums">
+                              $ {fmtImporte(Number(e.monto))}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between text-xs border-t border-gray-200 pt-1 mt-1">
+                          <span className="font-semibold text-gray-700">Entregado</span>
+                          <span className="font-bold text-gray-900 tabular-nums">
+                            $ {fmtImporte(sumaEntregas(entregas))}
+                          </span>
+                        </div>
+                        {saldoCaja != null && (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-gray-700">Resta pagar</span>
+                            <span className="font-bold text-gray-900 tabular-nums">
+                              $ {fmtImporte(saldoCaja)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-2">
+                        C/IVA: corresponde emitir factura el día de la cirugía.
+                        S/IVA: no corresponde (hubo descuento).
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </>
