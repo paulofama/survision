@@ -3,11 +3,13 @@
 // Análisis Marginal · Instituto Dr. Mercado
 // ============================================================
 //
-// QUÉ CAMBIÓ (01/09/2026)
-// -----------------------
+// ES EL INFORME DE GESTIÓN DEL MÓDULO (decisión del 04/09/2026)
+// -------------------------------------------------------------
 // Antes era un volcado de la grilla: la tabla tal cual se veía en pantalla, con
-// el mes en curso incluido y un cartelito avisando que estaba incompleto. Ahora
-// es un informe:
+// el mes en curso incluido y un cartelito avisando que estaba incompleto. Hoy es
+// el informe central del Análisis Marginal, y absorbió lo único que tenía el
+// "Informe del período" y no estaba en ningún otro lado —punto de equilibrio y
+// apalancamiento operativo— antes de que ese informe se diera de baja.
 //
 //   1. EL MES EN CURSO NO SALE. Ni como columna, ni en los totales, ni en los
 //      promedios. Un mes con dos días cargados al lado de meses completos no es
@@ -17,8 +19,13 @@
 //   2. Arranca por el ÚLTIMO MES CERRADO: sus cifras, cómo cerró contra el mes
 //      anterior y contra el promedio, y la lectura por reglas.
 //
-//   3. Después el ESTADO DE RESULTADOS mes a mes, con el % sobre facturación de
-//      cada línea, y al final la evolución con su gráfico.
+//   3. ESTADO DE RESULTADOS mes a mes, con el % sobre facturación debajo de cada
+//      banda. Esa lectura vertical es la que dice si el margen se movió por
+//      precio o por costo: sin ella se ve que subió, pero no por qué.
+//
+//   4. EVOLUCIÓN con su gráfico, y PUNTO DE EQUILIBRIO planteado como serie —
+//      lo que importa no es el equilibrio de un mes suelto sino si la clínica se
+//      está acercando o alejando de él.
 //
 // SOBRE LAS CANTIDADES
 // --------------------
@@ -241,6 +248,7 @@ export function armarEvolucionPDF(datos: DatosEvolucionPDF): Lienzo {
   seccionUltimoMes(L, ult, prev, previos, cerrado!, sinLiquidacion);
   seccionEstadoResultados(L, meses, filas, expandidas, mostrarPct, facturacionPorMes, datos, sinLiquidacion);
   seccionEvolucion(L, serie, sinLiquidacion);
+  seccionEquilibrio(L, serie, sinLiquidacion);
 
   cerrar(L, LEYENDA_PIE);
   return L;
@@ -505,7 +513,25 @@ function seccionEstadoResultados(
   // decisión de excluirlo.
   const totalDe = (f: FilaEvolucion) => meses.reduce((s, m) => s + (f.valores[m] || 0), 0);
 
-  const body = visibles.map(f => {
+  const totalFacturado = meses.reduce((s, m) => s + (facturacionPorMes[m] || 0), 0);
+
+  // ── Filas del cuerpo ──
+  // Debajo de cada banda va su PESO SOBRE LA FACTURACIÓN del mes. Es la lectura
+  // vertical del estado de resultados: sin ella se ve que el margen subió, pero
+  // no si subió porque se facturó más o porque el costo pesó menos. La pantalla
+  // ya muestra esas filas bajo Margen y Resultado; acá van bajo las cinco
+  // bandas, con el mismo criterio.
+  //
+  // En modo porcentaje no se agregan: las celdas YA son porcentajes y la fila
+  // sería una repetición.
+  //
+  // `meta` mapea cada fila del cuerpo a su fila de origen —o a null si es una
+  // fila de porcentaje— porque `didParseCell` estilaba por índice y al
+  // intercalar filas ese índice deja de coincidir.
+  const body: string[][] = [];
+  const meta: (FilaEvolucion | null)[] = [];
+
+  for (const f of visibles) {
     const sangria = f.nivel === 0 ? '' : f.nivel === 1 ? '   ' : '      ';
     const celdas = meses.map(m => {
       const v = f.valores[m] || 0;
@@ -514,13 +540,28 @@ function seccionEstadoResultados(
       return mostrarPct && fact > 0 ? fmtPct((v / fact) * 100) : fmtMoneda(v);
     });
     const tot = totalDe(f);
-    return [
+    body.push([
       `${sangria}${f.label}`,
       ...celdas,
       fmtMoneda(tot),
       meses.length ? fmtMoneda(tot / meses.length) : '—',
-    ];
-  });
+    ]);
+    meta.push(f);
+
+    if (!mostrarPct && f.nivel === 0) {
+      body.push([
+        '   % s/ facturación',
+        ...meses.map(m => {
+          const fact = facturacionPorMes[m] || 0;
+          if (fact === 0) return '—';
+          return fmtPct(((f.valores[m] || 0) / fact) * 100);
+        }),
+        totalFacturado > 0 ? fmtPct((tot / totalFacturado) * 100) : '—',
+        '',
+      ]);
+      meta.push(null);
+    }
+  }
 
   // La columna de concepto cede ancho cuando hay muchos meses: con 12 meses y
   // 58 mm fijos, un total anual de nueve cifras se corta.
@@ -551,8 +592,15 @@ function seccionEstadoResultados(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (d: any) => {
       if (d.section !== 'body') return;
-      const f = visibles[d.row.index];
-      if (!f) return;
+      const f = meta[d.row.index];
+      // Fila de porcentaje: en itálica y gris, para que se lea como lo que es
+      // —una lectura de la fila de arriba— y no como una línea más del estado.
+      if (!f) {
+        d.cell.styles.fontStyle = 'italic';
+        d.cell.styles.textColor = C.medium;
+        d.cell.styles.fontSize = 6;
+        return;
+      }
       if (f.nivel === 0) {
         d.cell.styles.fillColor = FONDO_BANDA[f.tipo] || C.light;
         d.cell.styles.fontStyle = 'bold';
@@ -699,6 +747,218 @@ function seccionEvolucion(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[]) 
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   L.y = (L.doc as any).lastAutoTable.finalY + 4;
+}
+
+// ── 4 · Punto de equilibrio y apalancamiento ─────────────────────────────────
+// Viene del informe de período que se dio de baja. Se replantea como serie: lo
+// interesante no es el punto de equilibrio de un mes suelto sino si la clínica
+// se está acercando o alejando de él.
+
+/**
+ * Ratio con dos decimales y coma: el apalancamiento es un número, no un
+ * porcentaje, pero la coma decimal aplica igual.  devuelve punto.
+ */
+const fmtRatio = (n: number): string =>
+  new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+/** Escenarios de sensibilidad, en % de variación de facturación. */
+const ESCENARIOS = [-20, -10, -5, 5, 10, 20];
+
+interface Equilibrio {
+  mes: Mes;
+  /** Facturación necesaria para que el resultado operativo sea cero. */
+  punto: number;
+  /** Cuánto puede caer la facturación antes de entrar en pérdida. */
+  margenSeguridad: number;
+  margenSeguridadPct: number;
+  /** Grado de apalancamiento operativo: margen de contribución / resultado. */
+  gao: number;
+  gaoValido: boolean;
+}
+
+const equilibrioDe = (c: CifrasMes): Equilibrio => {
+  const mcRatio = c.facturacion > 0 ? c.margen / c.facturacion : 0;
+  const punto = mcRatio > 0 ? c.costosFijos / mcRatio : 0;
+  const margenSeguridad = c.facturacion - punto;
+  return {
+    mes: c.mes,
+    punto,
+    margenSeguridad,
+    margenSeguridadPct: c.facturacion > 0 ? (margenSeguridad / c.facturacion) * 100 : 0,
+    gao: c.resultado !== 0 ? c.margen / c.resultado : 0,
+    gaoValido: c.resultado > 0 && c.margen > 0,
+  };
+};
+
+function seccionEquilibrio(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[]) {
+  seccion(L, '4. Punto de equilibrio y apalancamiento', { hojaNueva: true });
+
+  const eq = serie.map(equilibrioDe);
+  const ult = serie[serie.length - 1];
+  const eqUlt = eq[eq.length - 1];
+
+  parrafo(L,
+    'El punto de equilibrio es la facturación con la que el resultado operativo da cero: ' +
+    'costos fijos divididos por el margen de contribución sobre facturación. El margen de ' +
+    'seguridad es cuánto puede caer la facturación antes de entrar en pérdida.',
+    { size: 8.5, color: C.medium });
+
+  const w = (L.cw - 16) / 3;
+  const y0 = L.y;
+  kpi(L, M, y0, w, `PUNTO DE EQUILIBRIO — ${labelMesCorto(ult.mes)}`, fmt(eqUlt.punto));
+  kpi(L, M + w + 8, y0, w, 'MARGEN DE SEGURIDAD', fmt(eqUlt.margenSeguridad),
+    [{ etiqueta: 'sobre facturación', texto: fmtPct(eqUlt.margenSeguridadPct), pos: eqUlt.margenSeguridadPct > 0 }]);
+  kpi(L, M + (w + 8) * 2, y0, w, 'APALANCAMIENTO OPERATIVO',
+    eqUlt.gaoValido ? fmtRatio(eqUlt.gao) : 'no aplica',
+    eqUlt.gaoValido ? [] : [{ etiqueta: 'resultado no positivo', texto: '', pos: false, neutro: true }]);
+  L.y = y0 + 22;
+
+  if (sinLiquidacion.includes(ult.mes)) {
+    aviso(L,
+      `${etiquetaLarga(ult.mes)} no tiene la liquidación de sueldos cargada, así que sus ` +
+      'costos fijos están subestimados. El punto de equilibrio que sale acá es más bajo que ' +
+      'el real y el margen de seguridad, más holgado. Con el dato cargado los dos empeoran.');
+  }
+
+  // ── La serie: acercarse o alejarse del equilibrio ──
+  asegurar(L, 14 + serie.length * 5.2);
+  autoTable(doc(L), {
+    startY: L.y,
+    margin: { left: M, right: M, top: 30, bottom: 20 },
+    theme: 'grid',
+    showHead: 'everyPage',
+    head: [['Mes', 'Facturación', 'Punto de equilibrio', 'Margen de seguridad', '% s/ fact.', 'Apalancamiento']],
+    body: eq.map((e, i) => {
+      const c = serie[i];
+      const marca = sinLiquidacion.includes(e.mes) ? ' *' : '';
+      return [
+        etiquetaLarga(e.mes) + marca,
+        fmt(c.facturacion),
+        fmt(e.punto),
+        fmt(e.margenSeguridad),
+        fmtPct(e.margenSeguridadPct),
+        e.gaoValido ? fmtRatio(e.gao) : 'no aplica',
+      ];
+    }),
+    styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [225, 228, 232], lineWidth: 0.1 },
+    headStyles: { fillColor: C.primary, textColor: C.white, fontSize: 7.5, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: C.tableAlt },
+    columnStyles: {
+      0: { cellWidth: 34 }, 1: { halign: 'right' }, 2: { halign: 'right' },
+      3: { halign: 'right', fontStyle: 'bold' }, 4: { halign: 'right' }, 5: { halign: 'right' },
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    didParseCell: (h: any) => {
+      if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
+      if (h.section === 'body' && (h.column.index === 3 || h.column.index === 4)) {
+        h.cell.styles.textColor = String(h.cell.raw).includes('-') ? C.red : C.green;
+      }
+    },
+    didDrawPage: (d) => { if (d.pageNumber > 1) membreteDe(L); },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  L.y = (L.doc as any).lastAutoTable.finalY + 6;
+
+  // ── Sensibilidad del resultado del último mes ──
+  if (eqUlt.gaoValido) {
+    asegurar(L, 14 + ESCENARIOS.length * 5.2 + 16);
+    parrafo(L,
+      `Sensibilidad del resultado de ${etiquetaLarga(ult.mes)} ante cambios en la facturación`,
+      { bold: true, size: 10, color: C.primary });
+    parrafo(L,
+      'Supone que el margen de contribución sobre facturación se mantiene y que los costos ' +
+      'fijos no se mueven. Es el efecto de la palanca, no una proyección.',
+      { size: 7.5, color: C.medium });
+
+    const mcRatio = ult.facturacion > 0 ? ult.margen / ult.facturacion : 0;
+    autoTable(doc(L), {
+      startY: L.y,
+      margin: { left: M, right: M, bottom: 20 },
+      theme: 'grid',
+      showHead: 'everyPage',
+      head: [['Si la facturación', 'Facturación', 'Margen de contribución', 'Resultado operativo', 'Variación del resultado']],
+      body: ESCENARIOS.map(pc => {
+        const factEsc = ult.facturacion * (1 + pc / 100);
+        const mcEsc = factEsc * mcRatio;
+        const roEsc = mcEsc - ult.costosFijos;
+        const varRO = ult.resultado !== 0 ? ((roEsc - ult.resultado) / ult.resultado) * 100 : 0;
+        return [
+          `${pc >= 0 ? 'sube' : 'baja'} ${Math.abs(pc)}%`,
+          fmt(factEsc), fmt(mcEsc), fmt(roEsc), fmtPct(varRO),
+        ];
+      }),
+      styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [225, 228, 232], lineWidth: 0.1 },
+      headStyles: { fillColor: C.primary, textColor: C.white, fontSize: 7.5, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: C.tableAlt },
+      columnStyles: {
+        0: { cellWidth: 30 }, 1: { halign: 'right' }, 2: { halign: 'right' },
+        3: { halign: 'right', fontStyle: 'bold' }, 4: { halign: 'right' },
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      didParseCell: (h: any) => {
+        if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
+        if (h.section === 'body' && (h.column.index === 3 || h.column.index === 4)) {
+          h.cell.styles.textColor = String(h.cell.raw).includes('-') ? C.red : C.green;
+        }
+      },
+      didDrawPage: (d) => { if (d.pageNumber > 1) membreteDe(L); },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L.y = (L.doc as any).lastAutoTable.finalY + 6;
+  }
+
+  // ── Lectura ──
+  asegurar(L, 30);
+  parrafo(L, 'Lectura', { bold: true, size: 10, color: C.primary });
+
+  if (!eqUlt.gaoValido) {
+    vinieta(L,
+      `El apalancamiento no es interpretable en ${etiquetaLarga(ult.mes)} porque el resultado ` +
+      'operativo no es positivo. Cuando la operación no cubre los costos fijos el indicador ' +
+      'pierde sentido: lo que hay que mirar es cuánto falta para llegar al punto de equilibrio.',
+      C.amber);
+  } else {
+    vinieta(L,
+      eqUlt.gao >= 3
+        ? `Con un apalancamiento de ${fmtRatio(eqUlt.gao)} la estructura es sensible: cada punto ` +
+          `de facturación mueve ${fmtRatio(eqUlt.gao)} puntos de resultado, para arriba y para ` +
+          'abajo. Conviene ser prudente antes de sumar costos fijos.'
+        : eqUlt.gao >= 1.8
+          ? `Con un apalancamiento de ${fmtRatio(eqUlt.gao)} la estructura acompaña el crecimiento ` +
+            'sin exponer en exceso a una caída de actividad.'
+          : `Con un apalancamiento de ${fmtRatio(eqUlt.gao)} la estructura de costos fijos es ` +
+            'liviana frente al margen: la operación resiste bien las caídas, aunque el ' +
+            'crecimiento tampoco se amplifica demasiado.',
+      eqUlt.gao >= 3 ? C.amber : C.green);
+  }
+
+  // Evolución del margen de seguridad: es la pregunta de fondo.
+  const primero = eq[0];
+  if (eq.length > 1) {
+    const d = eqUlt.margenSeguridadPct - primero.margenSeguridadPct;
+    vinieta(L,
+      `El margen de seguridad pasó de ${fmtPct(primero.margenSeguridadPct)} en ` +
+      `${etiquetaLarga(primero.mes)} a ${fmtPct(eqUlt.margenSeguridadPct)} en ` +
+      `${etiquetaLarga(ult.mes)} (${varPP(eqUlt.margenSeguridadPct, primero.margenSeguridadPct)}): ` +
+      `la operación ${d >= 0 ? 'se alejó' : 'se acercó'} del punto de equilibrio.`,
+      d >= 0 ? C.green : C.red);
+  }
+
+  const enRiesgo = eq.filter(e => e.margenSeguridadPct < 15 && e.margenSeguridadPct > -1e9);
+  if (enRiesgo.length) {
+    vinieta(L,
+      `${enRiesgo.length === 1 ? 'Un mes cerró' : `${enRiesgo.length} meses cerraron`} con menos ` +
+      `de 15% de margen de seguridad (${enRiesgo.map(e => labelMesCorto(e.mes)).join(', ')}): ` +
+      'una caída de facturación de esa magnitud los habría dejado en pérdida.',
+      C.amber);
+  }
+
+  if (sinLiquidacion.length) {
+    parrafo(L,
+      `* ${sinLiquidacion.map(labelMesCorto).join(', ')}: sin liquidación de sueldos. ` +
+      'Su punto de equilibrio está subestimado y su margen de seguridad, sobreestimado.',
+      { size: 7.5, color: C.amber, bold: true });
+  }
 }
 
 // ── Utilidades locales ───────────────────────────────────────────────────────

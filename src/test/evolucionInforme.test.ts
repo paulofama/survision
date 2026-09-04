@@ -195,6 +195,43 @@ describe('forma del informe', () => {
     expect(texto()).not.toMatch(/\d+\.\d%/);
   });
 
+  it('cada banda lleva su % sobre facturación debajo', () => {
+    const t = texto();
+    // Cinco bandas de nivel 0 en el fixture.
+    expect((t.match(/% s\/ facturación/g) || []).length).toBe(5);
+    // La de facturación contra sí misma da 100,0% en cada mes.
+    expect(t).toContain('100,0%');
+    // Margen: 49/96 = 51,0% en junio.
+    expect(t).toContain('51,0%');
+  });
+
+  it('en modo porcentaje no duplica la fila: las celdas ya son porcentajes', () => {
+    expect(texto({ mostrarPct: true })).not.toContain('% s/ facturación');
+  });
+
+  it('el punto de equilibrio se presenta como serie', () => {
+    const t = texto();
+    expect(t).toContain('4. Punto de equilibrio y apalancamiento');
+    expect(t).toContain('Margen de seguridad');
+    // Una fila por mes cerrado en la tabla de equilibrio.
+    expect(t).toContain('Punto de equilibrio');
+  });
+
+  it('el apalancamiento usa coma decimal, no punto', () => {
+    const t = texto();
+    // Junio: margen 49 / resultado (49-31) = 2,7222 -> "2,72".
+    // Julio: 54 / (54-23) = 1,7419 -> "1,74".
+    expect(t).toContain('2,72');
+    expect(t).toContain('1,74');
+    expect(t).not.toContain('2.72');
+    expect(t).not.toContain('1.74');
+  });
+
+  it('avisa que el punto de equilibrio del mes sin liquidación está subestimado', () => {
+    const t = texto();
+    expect(t).toContain('está subestimado');
+  });
+
   it('la tabla de la serie no se parte dejando meses sueltos', () => {
     // Cada mes tiene que estar en la misma hoja que los demás: si la tabla se
     // parte, la serie deja de leerse como serie.
