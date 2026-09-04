@@ -11,6 +11,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { RangoPeriodo, formatearPeriodo, slugPeriodo, cantidadMeses } from './periodo';
+import { C, PW, PH, M, CW, fmt, fmtCant, fmtPct, varPP, alinear } from './pdf/informeBase';
 
 // ============================================
 // TIPOS
@@ -93,54 +94,31 @@ export interface SerieMes {
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-const C = {
-  primary: [30, 64, 175] as [number, number, number],
-  primaryLight: [219, 234, 254] as [number, number, number],
-  dark: [31, 41, 55] as [number, number, number],
-  medium: [107, 114, 128] as [number, number, number],
-  light: [243, 244, 246] as [number, number, number],
-  white: [255, 255, 255] as [number, number, number],
-  green: [22, 163, 74] as [number, number, number],
-  red: [220, 38, 38] as [number, number, number],
-  amber: [217, 119, 6] as [number, number, number],
-  cyan: [8, 145, 178] as [number, number, number],
-  tableAlt: [248, 250, 252] as [number, number, number],
-};
-
-const PW = 210; // A4
-const PH = 297;
-const M = 18;
-const CW = PW - M * 2;
-
 // ============================================
 // HELPERS
 // ============================================
+// La paleta, la geometría A4 y los formateadores viven en `pdf/informeBase.ts`,
+// compartidos con el informe mensual: son los mismos números y los mismos
+// colores en los dos documentos, y no tiene sentido mantenerlos por duplicado.
+// Los helpers de layout de ESTE informe (addHeader/addFooter/addSection/addKPI)
+// siguen siendo locales porque están atados a su concepto de período.
 
-const fmt = (n: number): string =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+const fmtNum = fmtCant;
 
-const fmtNum = (n: number): string => new Intl.NumberFormat('es-AR').format(Math.round(n));
-const fmtPct = (n: number): string => `${n.toFixed(1)}%`;
-
+/**
+ * Variación local de este informe: devuelve 'N/A' sin base de comparación.
+ * El informe mensual usa la `vari` de informeBase, que en vez de 'N/A' explica
+ * el motivo con palabras. No se unifican para no cambiar la salida de este
+ * documento, que ya está en uso.
+ */
 const vari = (actual: number, anterior: number) => {
   if (anterior === 0) return { valor: 0, texto: 'N/A', pos: true };
   const pct = ((actual - anterior) / Math.abs(anterior)) * 100;
   return { valor: pct, texto: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`, pos: pct >= 0 };
 };
 
-const varPP = (a: number, b: number): string => { const d = a - b; return `${d >= 0 ? '+' : ''}${d.toFixed(1)} pp`; };
-
 // Extrae nombre de categoría (acepta ambos formatos)
 const getCFName = (cf: any): string => cf.nombre || cf.categoria_nombre || 'Sin categoría';
-
-// Fuerza alineación de headers para que coincidan con los datos
-type HAlign = 'left' | 'center' | 'right';
-const alinear = (d: any, aligns: Record<number, HAlign>) => {
-  if (d.section === 'head') {
-    const a = aligns[d.column.index];
-    if (a) d.cell.styles.halign = a;
-  }
-};
 
 // ============================================
 // NARRATIVA
