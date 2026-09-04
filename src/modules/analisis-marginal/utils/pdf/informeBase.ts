@@ -2,9 +2,10 @@
 // Primitivas de PDF para los informes del Análisis Marginal
 // Sistema de Gestión Integral · Survisión S.A.
 // ============================================================
-// Vivían dentro de `generarInformeGestion.ts` como closures sobre `doc`. Se
-// extrajeron acá para que el informe mensual las use sin duplicar la máquina de
-// jsPDF (paleta, membrete, pie, secciones, gráficos vectoriales). Mismo patrón
+// Las comparten el Informe Mensual y el de Evolución Temporal, para que no haya
+// dos máquinas de jsPDF (paleta, membrete, pie, secciones, gráficos
+// vectoriales). Nacieron dentro del informe de período, que se dio de baja el
+// 04/09/2026 cuando el Mensual pasó a cubrir todo lo que hacía. Mismo patrón
 // que `presupuestador/utils/sobre/pdfBase.ts`: un `Lienzo` que se pasa a cada
 // helper y lleva el cursor vertical.
 //

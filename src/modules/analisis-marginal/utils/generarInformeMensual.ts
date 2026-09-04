@@ -4,8 +4,7 @@
 // ============================================================
 // Entregable para la dirección, un PDF por mes cerrado.
 //
-// Dos cosas lo separan del informe de período que ya existía
-// (`generarInformeGestion.ts`, que sigue vivo y sin cambios de salida):
+// Dos cosas lo definen:
 //
 //   1. VOLUMEN Y PLATA JUNTOS. Cada cifra de dinero va con su cantidad de
 //      prácticas al lado, en todos los cortes. Una caída de facturación con la

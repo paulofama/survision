@@ -25,7 +25,6 @@ import {
 import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
 import useCostosFijosDistribucion, { getSemaforoColor, semaforoClasses, semaforoDot } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
-import InformeGestionModal from '../components/InformeGestionModal';
 import InformeMensualModal from '../components/InformeMensualModal';
 import { useAuth } from '@shared/context/AuthContext';
 import { formatearPeriodo } from '../utils/periodo';
@@ -175,7 +174,6 @@ const DashboardMarginalContent: React.FC = () => {
   const { resumen: resumenCF } = useCostosFijosDistribucion(rango);
   const { mappings } = useNombreMapping();
 
-  const [mostrarInforme, setMostrarInforme] = useState(false);
   const [mostrarInformeMensual, setMostrarInformeMensual] = useState(false);
   const { usuario } = useAuth();
 
@@ -428,28 +426,27 @@ const DashboardMarginalContent: React.FC = () => {
         <p className="text-sm text-gray-600">
           Período: <span className="font-semibold text-gray-900">{formatearPeriodo(rango)}</span>
         </p>
-        <div className="flex items-center gap-2">
-          {/*
-            Dos informes distintos, a propósito:
-            · "Informe Mensual" es el entregable para la dirección — un mes
-              cerrado, con las cantidades de prácticas al lado de cada cifra y
-              el puente que explica el cambio contra el mes anterior.
-            · "Informe del período" es el de siempre, que sigue el rango que se
-              haya elegido arriba (un mes o varios).
-          */}
-          <button
-            onClick={() => setMostrarInformeMensual(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm"
-          >
-            <FileText className="w-4 h-4" /> Informe Mensual
-          </button>
-          <button
-            onClick={() => setMostrarInforme(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm"
-          >
-            <FileText className="w-4 h-4" /> Informe del período
-          </button>
-        </div>
+        {/*
+          Quedan DOS informes en el módulo, y ninguno rearma los números por su
+          cuenta: los dos leen las filas de `useEvolucionMensual`.
+
+            · "Informe Mensual" (acá) — el mes cerrado, con la cantidad de
+              prácticas al lado de cada cifra y el puente que explica el cambio
+              contra el mes anterior. Es el entregable a dirección.
+            · "Evolución Temporal" (en su pantalla) — la serie: estado de
+              resultados mes a mes, tendencia y punto de equilibrio.
+
+          El "Informe del período" se dio de baja el 04/09/2026: todo lo que
+          hacía lo hace uno de estos dos, y era el único que consultaba
+          movimientos_geclisa y rehacía el costeo aparte. Dos ensamblados en
+          paralelo sobre los mismos datos terminan divergiendo.
+        */}
+        <button
+          onClick={() => setMostrarInformeMensual(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm"
+        >
+          <FileText className="w-4 h-4" /> Informe Mensual
+        </button>
       </div>
 
       {/* KPIs Principales */}
@@ -662,7 +659,6 @@ const DashboardMarginalContent: React.FC = () => {
       </div>
 
       {/* Modal Informe de Gestión */}
-      <InformeGestionModal isOpen={mostrarInforme} onClose={() => setMostrarInforme(false)} />
       <InformeMensualModal
         isOpen={mostrarInformeMensual}
         onClose={() => setMostrarInformeMensual(false)}
