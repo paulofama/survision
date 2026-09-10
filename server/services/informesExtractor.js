@@ -15,13 +15,47 @@
 //
 // La ruta /api/informes/gestion-mensual usa generarInformeGestion() -> una sola
 // fuente de verdad (sin drift entre LAN y snapshot).
+//
+// ============================================================
+// QUÉ INFORMA ESTE INFORME (y qué NO) — revisión del 10/09/2026
+// ============================================================
+// Es un informe de VOLUMEN Y FACTURACIÓN: atenciones, pacientes, prácticas,
+// obras sociales, prestadores. La RENTABILIDAD no es asunto suyo y ya no la
+// calcula: la responde el Análisis Marginal, que es el único módulo con modelo
+// de costos.
+//
+// Traía honorarios y margen bruto de SUM(MovPre.MPre_Tot), que en esta base está
+// en CERO — el instituto no carga los honorarios en GECLISA, los calcula por
+// fórmula sobre honorarios_config. El informe reportaba entonces honorarios $0 y
+// "margen bruto 100,0%" para meses en los que el Análisis Marginal calculaba
+// $40,3 M de honorarios (40,0% de la facturación) y un margen de contribución
+// del 54,2%. Dos informes del mismo mes, uno diciendo que el margen era el doble
+// del otro. Se quitaron las seis consultas de honorarios y los campos derivados.
+//
+// LA PLATA SE SUMA A GRANO ATENCIÓN
+// ---------------------------------
+// El importe vive en MovEnca (Me_Cose + Me_ValorPrac). Sumarlo sobre un JOIN a
+// MovPrac lo repite una vez por práctica: eso hacían el resumen, el acumulado y
+// el desglose por OS. Hoy hay 43 atenciones con más de una práctica desde 2024
+// (ninguna en 2026), así que el desvío existe y es histórico. Los conteos de
+// prácticas sí necesitan el join; los importes no, así que van separados.
+//
+// El desglose por prestador PRORRATEA, como `movimientosAgg.porPrestador`: una
+// atención con dos prestadores aporta la mitad a cada uno. Sin eso la columna
+// sumaba $133,0 M contra $100,7 M facturados en julio (1,32x), porque el importe
+// completo se contaba para cada prestador que participó.
+//
+// Me_Area = 'A' en todas las consultas: es el universo del espejo
+// `movimientos_geclisa`, y por lo tanto el del Análisis Marginal. Medido sobre
+// 2024-2026, hoy NO cambia ningún número (todo MovEnca del rango es 'A'); está
+// puesto para que las dos definiciones no puedan separarse en el futuro.
 // ============================================================
 
 const { executeQuery } = require('../config/database');
 const { supabase } = require('../config/supabase'); // service_role -> bypassa RLS
 
-// IDs de prestadores socios (igual que la ruta original; vacío por ahora).
-const SOCIOS_IDS = [];
+// Universo de atenciones: el mismo que espeja movimientosExtractor.js.
+const AREA = `me.Me_Area = 'A'`;
 
 function getMesNombre(mes) {
   const n = { 1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre' };
@@ -46,191 +80,132 @@ async function generarInformeGestion(mesNum, anioNum) {
   const fechaIniAcumAnterior = `${anioNum - 1}-01-01`;
   const fechaFinAcumAnterior = new Date(anioNum - 1, mesNum, 0).toISOString().split('T')[0];
 
+  // ------------------------------------------------------------
+  // Resumen de un rango: importes a grano ATENCIÓN, prácticas por separado.
+  // El SELECT de prácticas es un escalar sobre MovPrac para no arrastrar el
+  // JOIN a la suma de dinero (ver el encabezado del archivo).
+  // ------------------------------------------------------------
+  const sqlResumen = (etiqueta, pIni, pFin) => `
+    SELECT '${etiqueta}' AS periodo,
+      COUNT(*) AS totalAtenciones,
+      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS totalFacturado,
+      COUNT(DISTINCT me.Ficha_id) AS pacientesUnicos,
+      ISNULL((
+        SELECT COUNT(*) FROM MovPrac mp2
+        INNER JOIN MovEnca me2 ON mp2.Me_id = me2.Me_id
+        WHERE me2.Me_Area = 'A' AND me2.Me_Fecha BETWEEN ${pIni} AND ${pFin}
+      ), 0) AS totalPracticas
+    FROM MovEnca me
+    WHERE ${AREA} AND me.Me_Fecha BETWEEN ${pIni} AND ${pFin}
+  `;
+
   // QUERY 1: Resumen mensual (actual y anterior)
   const queryResumen = `
-    SELECT 'ACTUAL' AS periodo, COUNT(DISTINCT me.Me_id) AS totalAtenciones, COUNT(mp.Mp_id) AS totalPracticas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS totalFacturado, COUNT(DISTINCT me.Ficha_id) AS pacientesUnicos
-    FROM MovEnca me LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniActual AND @fechaFinActual
+    ${sqlResumen('ACTUAL', '@fechaIniActual', '@fechaFinActual')}
     UNION ALL
-    SELECT 'ANTERIOR' AS periodo, COUNT(DISTINCT me.Me_id) AS totalAtenciones, COUNT(mp.Mp_id) AS totalPracticas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS totalFacturado, COUNT(DISTINCT me.Ficha_id) AS pacientesUnicos
-    FROM MovEnca me LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAnterior AND @fechaFinAnterior
+    ${sqlResumen('ANTERIOR', '@fechaIniAnterior', '@fechaFinAnterior')}
   `;
   const resumenResult = await executeQuery(queryResumen, { fechaIniActual: fechaIniMesActual, fechaFinActual: fechaFinMesActual, fechaIniAnterior: fechaIniMesAnterior, fechaFinAnterior: fechaFinMesAnterior });
 
-  // QUERY 2: Honorarios mensual
-  const queryHonorarios = `
-    SELECT 'ACTUAL' AS periodo, ISNULL(SUM(mpr.MPre_Tot), 0) AS totalHonorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniActual AND @fechaFinActual
-    UNION ALL
-    SELECT 'ANTERIOR' AS periodo, ISNULL(SUM(mpr.MPre_Tot), 0) AS totalHonorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAnterior AND @fechaFinAnterior
-  `;
-  const honorariosResult = await executeQuery(queryHonorarios, { fechaIniActual: fechaIniMesActual, fechaFinActual: fechaFinMesActual, fechaIniAnterior: fechaIniMesAnterior, fechaFinAnterior: fechaFinMesAnterior });
-
-  // QUERY 3: Acumulado anual
+  // QUERY 2: Acumulado anual
   const queryAcumulado = `
-    SELECT 'ACUM_ACTUAL' AS periodo, COUNT(DISTINCT me.Me_id) AS totalAtenciones, COUNT(mp.Mp_id) AS totalPracticas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS totalFacturado, COUNT(DISTINCT me.Ficha_id) AS pacientesUnicos
-    FROM MovEnca me LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumActual AND @fechaFinAcumActual
+    ${sqlResumen('ACUM_ACTUAL', '@fechaIniAcumActual', '@fechaFinAcumActual')}
     UNION ALL
-    SELECT 'ACUM_ANTERIOR' AS periodo, COUNT(DISTINCT me.Me_id) AS totalAtenciones, COUNT(mp.Mp_id) AS totalPracticas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS totalFacturado, COUNT(DISTINCT me.Ficha_id) AS pacientesUnicos
-    FROM MovEnca me LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumAnterior AND @fechaFinAcumAnterior
+    ${sqlResumen('ACUM_ANTERIOR', '@fechaIniAcumAnterior', '@fechaFinAcumAnterior')}
   `;
   const acumuladoResult = await executeQuery(queryAcumulado, { fechaIniAcumActual, fechaFinAcumActual, fechaIniAcumAnterior, fechaFinAcumAnterior });
 
-  // QUERY 4: Honorarios acumulados
-  const queryHonorariosAcum = `
-    SELECT 'ACUM_ACTUAL' AS periodo, ISNULL(SUM(mpr.MPre_Tot), 0) AS totalHonorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumActual AND @fechaFinAcumActual
-    UNION ALL
-    SELECT 'ACUM_ANTERIOR' AS periodo, ISNULL(SUM(mpr.MPre_Tot), 0) AS totalHonorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumAnterior AND @fechaFinAcumAnterior
-  `;
-  const honorariosAcumResult = await executeQuery(queryHonorariosAcum, { fechaIniAcumActual, fechaFinAcumActual, fechaIniAcumAnterior, fechaFinAcumAnterior });
-
-  // QUERY 5: Por OS (mensual)
-  const queryPorOS = `
-    SELECT 'ACTUAL' AS periodo, os.os_id AS osId, os.os_nombre AS osNombre, os.os_sigla AS osSigla,
-      COUNT(DISTINCT me.Me_id) AS atenciones, COUNT(mp.Mp_id) AS practicas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
-    FROM MovEnca me INNER JOIN ObrasSociales os ON me.Os_id = os.os_id LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniActual AND @fechaFinActual GROUP BY os.os_id, os.os_nombre, os.os_sigla
-    UNION ALL
-    SELECT 'ANTERIOR' AS periodo, os.os_id AS osId, os.os_nombre AS osNombre, os.os_sigla AS osSigla,
-      COUNT(DISTINCT me.Me_id) AS atenciones, COUNT(mp.Mp_id) AS practicas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
-    FROM MovEnca me INNER JOIN ObrasSociales os ON me.Os_id = os.os_id LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAnterior AND @fechaFinAnterior GROUP BY os.os_id, os.os_nombre, os.os_sigla
+  // ------------------------------------------------------------
+  // Por Obra Social. La CTE acota el universo a las atenciones del rango, y el
+  // importe se suma sobre ELLA (una fila por atención). La cantidad de prácticas
+  // se cuenta aparte, contra MovPrac, que es donde vive el grano de práctica.
+  // ------------------------------------------------------------
+  const sqlPorOS = (etiqueta) => `
+    ;WITH Enc AS (
+      SELECT me.Me_id, me.Os_id, ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0) AS facturado
+      FROM MovEnca me
+      WHERE ${AREA} AND me.Me_Fecha BETWEEN @fechaIni AND @fechaFin
+    )
+    SELECT '${etiqueta}' AS periodo, os.os_id AS osId, os.os_nombre AS osNombre, os.os_sigla AS osSigla,
+      COUNT(*) AS atenciones,
+      (SELECT COUNT(*) FROM MovPrac mp INNER JOIN Enc e2 ON e2.Me_id = mp.Me_id WHERE e2.Os_id = os.os_id) AS practicas,
+      ISNULL(SUM(e.facturado), 0) AS facturado
+    FROM Enc e INNER JOIN ObrasSociales os ON e.Os_id = os.os_id
+    GROUP BY os.os_id, os.os_nombre, os.os_sigla
     ORDER BY facturado DESC
   `;
-  const porOSResult = await executeQuery(queryPorOS, { fechaIniActual: fechaIniMesActual, fechaFinActual: fechaFinMesActual, fechaIniAnterior: fechaIniMesAnterior, fechaFinAnterior: fechaFinMesAnterior });
+  const porOSResult = {
+    recordset: [
+      ...(await executeQuery(sqlPorOS('ACTUAL'), { fechaIni: fechaIniMesActual, fechaFin: fechaFinMesActual })).recordset,
+      ...(await executeQuery(sqlPorOS('ANTERIOR'), { fechaIni: fechaIniMesAnterior, fechaFin: fechaFinMesAnterior })).recordset,
+    ],
+  };
 
-  // QUERY 6: Honorarios por OS (mensual)
-  const queryHonorariosPorOS = `
-    SELECT 'ACTUAL' AS periodo, os.os_id AS osId, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN ObrasSociales os ON me.Os_id = os.os_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniActual AND @fechaFinActual GROUP BY os.os_id
-    UNION ALL
-    SELECT 'ANTERIOR' AS periodo, os.os_id AS osId, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN ObrasSociales os ON me.Os_id = os.os_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAnterior AND @fechaFinAnterior GROUP BY os.os_id
-  `;
-  const honorariosPorOSResult = await executeQuery(queryHonorariosPorOS, { fechaIniActual: fechaIniMesActual, fechaFinActual: fechaFinMesActual, fechaIniAnterior: fechaIniMesAnterior, fechaFinAnterior: fechaFinMesAnterior });
-
-  // QUERY 7: Por Prestador (CTE reutilizable; facturado prorrateado por Me_id distinto)
+  // ------------------------------------------------------------
+  // Por Prestador — PRORRATEADO, igual que `movimientosAgg.porPrestador`.
+  //
+  // Una atención con dos cirujanos aporta la MITAD a cada uno. La versión
+  // anterior le daba el importe completo a los dos: la columna sumaba 1,32x la
+  // facturación del mes y ningún porcentaje cerraba contra el total.
+  //
+  // `atenciones` sigue contando participaciones (si dos prestadores intervienen
+  // en una atención, cuenta para los dos), que es lo que corresponde a un
+  // desglose por prestador y lo mismo que muestra Análisis -> Por Prestador.
+  // Por eso esa columna sí puede sumar más que el total de atenciones del mes.
+  // ------------------------------------------------------------
   const queryPrestador = `
     ;WITH EncPre AS (
       SELECT DISTINCT mpr.Pre_id, me.Me_id, ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0) AS facturado
       FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id
-      WHERE me.Me_Fecha BETWEEN @fechaIni AND @fechaFin
+      WHERE ${AREA} AND me.Me_Fecha BETWEEN @fechaIni AND @fechaFin
+    ),
+    CantPre AS (
+      SELECT Me_id, COUNT(*) AS prestadores FROM EncPre GROUP BY Me_id
     )
-    SELECT ep.Pre_id AS preId, pre.pre_nombre AS preNombre, COUNT(ep.Me_id) AS atenciones, ISNULL(SUM(ep.facturado), 0) AS honorarios
-    FROM EncPre ep INNER JOIN Prestadores pre ON ep.Pre_id = pre.pre_id
-    GROUP BY ep.Pre_id, pre.pre_nombre ORDER BY honorarios DESC
+    SELECT ep.Pre_id AS preId, pre.pre_nombre AS preNombre,
+      COUNT(ep.Me_id) AS atenciones,
+      ISNULL(SUM(ep.facturado * 1.0 / c.prestadores), 0) AS facturado
+    FROM EncPre ep
+      INNER JOIN CantPre c ON c.Me_id = ep.Me_id
+      INNER JOIN Prestadores pre ON ep.Pre_id = pre.pre_id
+    GROUP BY ep.Pre_id, pre.pre_nombre ORDER BY facturado DESC
   `;
   const prestadorActualResult = await executeQuery(queryPrestador, { fechaIni: fechaIniMesActual, fechaFin: fechaFinMesActual });
   const prestadorAnteriorResult = await executeQuery(queryPrestador, { fechaIni: fechaIniMesAnterior, fechaFin: fechaFinMesAnterior });
 
-  // QUERY 8: Top 20 prácticas (actual / anterior)
-  const queryPorPractica = `
-    SELECT TOP 20 'ACTUAL' AS periodo, n.nom_id AS nomId, n.nom_cod AS nomCod, n.nom_nom AS nomNombre,
+  // ------------------------------------------------------------
+  // Top 20 prácticas. Acá el grano ES la práctica, así que el importe de la
+  // atención se atribuye a cada práctica que contiene — igual que
+  // `movimientosAgg.porPrestacion`, que es la vista con la que tiene que
+  // coincidir. Por eso este ranking puede sumar más que la facturación del mes.
+  // ------------------------------------------------------------
+  const sqlPorPractica = (etiqueta) => `
+    SELECT TOP 20 '${etiqueta}' AS periodo, n.nom_id AS nomId, n.nom_cod AS nomCod, n.nom_nom AS nomNombre,
       COUNT(mp.Mp_id) AS cantidad, ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
     FROM MovPrac mp INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniActual AND @fechaFinActual GROUP BY n.nom_id, n.nom_cod, n.nom_nom ORDER BY facturado DESC
+    WHERE ${AREA} AND me.Me_Fecha BETWEEN @fechaIni AND @fechaFin
+    GROUP BY n.nom_id, n.nom_cod, n.nom_nom ORDER BY facturado DESC
   `;
-  const porPracticaActualResult = await executeQuery(queryPorPractica, { fechaIniActual: fechaIniMesActual, fechaFinActual: fechaFinMesActual });
-  const queryPorPracticaAnt = `
-    SELECT TOP 20 'ANTERIOR' AS periodo, n.nom_id AS nomId, n.nom_cod AS nomCod, n.nom_nom AS nomNombre,
-      COUNT(mp.Mp_id) AS cantidad, ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
-    FROM MovPrac mp INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniAnterior AND @fechaFinAnterior GROUP BY n.nom_id, n.nom_cod, n.nom_nom ORDER BY facturado DESC
-  `;
-  const porPracticaAnteriorResult = await executeQuery(queryPorPracticaAnt, { fechaIniAnterior: fechaIniMesAnterior, fechaFinAnterior: fechaFinMesAnterior });
+  const porPracticaActualResult = await executeQuery(sqlPorPractica('ACTUAL'), { fechaIni: fechaIniMesActual, fechaFin: fechaFinMesActual });
+  const porPracticaAnteriorResult = await executeQuery(sqlPorPractica('ANTERIOR'), { fechaIni: fechaIniMesAnterior, fechaFin: fechaFinMesAnterior });
 
-  // QUERY 9: Honorarios por práctica (mensual)
-  const queryHonorariosPorPractica = `
-    SELECT 'ACTUAL' AS periodo, n.nom_id AS nomId, n.nom_cod AS nomCod, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniActual AND @fechaFinActual GROUP BY n.nom_id, n.nom_cod
-    UNION ALL
-    SELECT 'ANTERIOR' AS periodo, n.nom_id AS nomId, n.nom_cod AS nomCod, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniAnterior AND @fechaFinAnterior GROUP BY n.nom_id, n.nom_cod
-  `;
-  const honorariosPorPracticaResult = await executeQuery(queryHonorariosPorPractica, { fechaIniActual: fechaIniMesActual, fechaFinActual: fechaFinMesActual, fechaIniAnterior: fechaIniMesAnterior, fechaFinAnterior: fechaFinMesAnterior });
+  // Por OS (acumulado) — mismo criterio que el mensual.
+  const porOSAcumResult = {
+    recordset: [
+      ...(await executeQuery(sqlPorOS('ACUM_ACTUAL'), { fechaIni: fechaIniAcumActual, fechaFin: fechaFinAcumActual })).recordset,
+      ...(await executeQuery(sqlPorOS('ACUM_ANTERIOR'), { fechaIni: fechaIniAcumAnterior, fechaFin: fechaFinAcumAnterior })).recordset,
+    ],
+  };
 
-  // QUERY 10: Por OS (acumulado)
-  const queryPorOSAcum = `
-    SELECT 'ACUM_ACTUAL' AS periodo, os.os_id AS osId, os.os_nombre AS osNombre, os.os_sigla AS osSigla,
-      COUNT(DISTINCT me.Me_id) AS atenciones, COUNT(mp.Mp_id) AS practicas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
-    FROM MovEnca me INNER JOIN ObrasSociales os ON me.Os_id = os.os_id LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumActual AND @fechaFinAcumActual GROUP BY os.os_id, os.os_nombre, os.os_sigla
-    UNION ALL
-    SELECT 'ACUM_ANTERIOR' AS periodo, os.os_id AS osId, os.os_nombre AS osNombre, os.os_sigla AS osSigla,
-      COUNT(DISTINCT me.Me_id) AS atenciones, COUNT(mp.Mp_id) AS practicas,
-      ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
-    FROM MovEnca me INNER JOIN ObrasSociales os ON me.Os_id = os.os_id LEFT JOIN MovPrac mp ON me.Me_id = mp.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumAnterior AND @fechaFinAcumAnterior GROUP BY os.os_id, os.os_nombre, os.os_sigla
-    ORDER BY facturado DESC
-  `;
-  const porOSAcumResult = await executeQuery(queryPorOSAcum, { fechaIniAcumActual, fechaFinAcumActual, fechaIniAcumAnterior, fechaFinAcumAnterior });
-
-  // QUERY 11: Honorarios por OS (acumulado)
-  const queryHonorariosPorOSAcum = `
-    SELECT 'ACUM_ACTUAL' AS periodo, os.os_id AS osId, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN ObrasSociales os ON me.Os_id = os.os_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumActual AND @fechaFinAcumActual GROUP BY os.os_id
-    UNION ALL
-    SELECT 'ACUM_ANTERIOR' AS periodo, os.os_id AS osId, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN ObrasSociales os ON me.Os_id = os.os_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumAnterior AND @fechaFinAcumAnterior GROUP BY os.os_id
-  `;
-  const honorariosPorOSAcumResult = await executeQuery(queryHonorariosPorOSAcum, { fechaIniAcumActual, fechaFinAcumActual, fechaIniAcumAnterior, fechaFinAcumAnterior });
-
-  // QUERY 12: Prestadores (acumulado) — reutiliza queryPrestador
+  // Prestadores (acumulado) — reutiliza queryPrestador
   const prestadorAcumActualResult = await executeQuery(queryPrestador, { fechaIni: fechaIniAcumActual, fechaFin: fechaFinAcumActual });
   const prestadorAcumAnteriorResult = await executeQuery(queryPrestador, { fechaIni: fechaIniAcumAnterior, fechaFin: fechaFinAcumAnterior });
 
-  // QUERY 13/14: Top 20 prácticas acumulado (actual / anterior)
-  const queryPorPracticaAcumActual = `
-    SELECT TOP 20 n.nom_id AS nomId, n.nom_cod AS nomCod, n.nom_nom AS nomNombre,
-      COUNT(mp.Mp_id) AS cantidad, ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
-    FROM MovPrac mp INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumActual AND @fechaFinAcumActual GROUP BY n.nom_id, n.nom_cod, n.nom_nom ORDER BY facturado DESC
-  `;
-  const porPracticaAcumActualResult = await executeQuery(queryPorPracticaAcumActual, { fechaIniAcumActual, fechaFinAcumActual });
-  const queryPorPracticaAcumAnterior = `
-    SELECT TOP 20 n.nom_id AS nomId, n.nom_cod AS nomCod, n.nom_nom AS nomNombre,
-      COUNT(mp.Mp_id) AS cantidad, ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
-    FROM MovPrac mp INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumAnterior AND @fechaFinAcumAnterior GROUP BY n.nom_id, n.nom_cod, n.nom_nom ORDER BY facturado DESC
-  `;
-  const porPracticaAcumAnteriorResult = await executeQuery(queryPorPracticaAcumAnterior, { fechaIniAcumAnterior, fechaFinAcumAnterior });
+  // Top 20 prácticas acumulado (actual / anterior)
+  const porPracticaAcumActualResult = await executeQuery(sqlPorPractica('ACUM_ACTUAL'), { fechaIni: fechaIniAcumActual, fechaFin: fechaFinAcumActual });
+  const porPracticaAcumAnteriorResult = await executeQuery(sqlPorPractica('ACUM_ANTERIOR'), { fechaIni: fechaIniAcumAnterior, fechaFin: fechaFinAcumAnterior });
 
-  // QUERY 15: Honorarios por práctica (acumulado)
-  const queryHonorariosPorPracticaAcum = `
-    SELECT 'ACUM_ACTUAL' AS periodo, n.nom_id AS nomId, n.nom_cod AS nomCod, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumActual AND @fechaFinAcumActual GROUP BY n.nom_id, n.nom_cod
-    UNION ALL
-    SELECT 'ACUM_ANTERIOR' AS periodo, n.nom_id AS nomId, n.nom_cod AS nomCod, ISNULL(SUM(mpr.MPre_Tot), 0) AS honorarios
-    FROM MovPre mpr INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIniAcumAnterior AND @fechaFinAcumAnterior GROUP BY n.nom_id, n.nom_cod
-  `;
-  const honorariosPorPracticaAcumResult = await executeQuery(queryHonorariosPorPracticaAcum, { fechaIniAcumActual, fechaFinAcumActual, fechaIniAcumAnterior, fechaFinAcumAnterior });
-
-  // QUERIES 16-18: Evolución 12 meses
+  // Evolución 12 meses
   let mesIni12M = mesNum - 11;
   let anioIni12M = anioNum;
   while (mesIni12M < 1) { mesIni12M += 12; anioIni12M -= 1; }
@@ -240,28 +215,28 @@ async function generarInformeGestion(mesNum, anioNum) {
   const queryEvolOS = `
     SELECT YEAR(me.Me_Fecha) AS anio, MONTH(me.Me_Fecha) AS mes, os.os_id AS osId, os.os_sigla AS osSigla, os.os_nombre AS osNombre, COUNT(DISTINCT me.Me_id) AS cantidad
     FROM MovEnca me INNER JOIN ObrasSociales os ON me.Os_id = os.os_id
-    WHERE me.Me_Fecha BETWEEN @fechaIni12M AND @fechaFin12M GROUP BY YEAR(me.Me_Fecha), MONTH(me.Me_Fecha), os.os_id, os.os_sigla, os.os_nombre
+    WHERE ${AREA} AND me.Me_Fecha BETWEEN @fechaIni12M AND @fechaFin12M GROUP BY YEAR(me.Me_Fecha), MONTH(me.Me_Fecha), os.os_id, os.os_sigla, os.os_nombre
   `;
   const evolOSResult = await executeQuery(queryEvolOS, { fechaIni12M, fechaFin12M });
   const queryEvolPrestador = `
     SELECT YEAR(me.Me_Fecha) AS anio, MONTH(me.Me_Fecha) AS mes, pre.pre_id AS preId, pre.pre_nombre AS preNombre, COUNT(DISTINCT me.Me_id) AS cantidad
     FROM MovPre mpr INNER JOIN Prestadores pre ON mpr.Pre_id = pre.pre_id INNER JOIN MovPrac mp ON mpr.Mp_id = mp.Mp_id INNER JOIN MovEnca me ON mp.Me_id = me.Me_id
-    WHERE me.Me_Fecha BETWEEN @fechaIni12M AND @fechaFin12M GROUP BY YEAR(me.Me_Fecha), MONTH(me.Me_Fecha), pre.pre_id, pre.pre_nombre
+    WHERE ${AREA} AND me.Me_Fecha BETWEEN @fechaIni12M AND @fechaFin12M GROUP BY YEAR(me.Me_Fecha), MONTH(me.Me_Fecha), pre.pre_id, pre.pre_nombre
   `;
   const evolPrestadorResult = await executeQuery(queryEvolPrestador, { fechaIni12M, fechaFin12M });
   const queryEvolPractica = `
     SELECT YEAR(me.Me_Fecha) AS anio, MONTH(me.Me_Fecha) AS mes, n.nom_id AS nomId, n.nom_cod AS nomCod, n.nom_nom AS nomNombre, COUNT(mp.Mp_id) AS cantidad
     FROM MovPrac mp INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod
-    WHERE me.Me_Fecha BETWEEN @fechaIni12M AND @fechaFin12M GROUP BY YEAR(me.Me_Fecha), MONTH(me.Me_Fecha), n.nom_id, n.nom_cod, n.nom_nom
+    WHERE ${AREA} AND me.Me_Fecha BETWEEN @fechaIni12M AND @fechaFin12M GROUP BY YEAR(me.Me_Fecha), MONTH(me.Me_Fecha), n.nom_id, n.nom_cod, n.nom_nom
   `;
   const evolPracticaResult = await executeQuery(queryEvolPractica, { fechaIni12M, fechaFin12M });
 
-  // QUERY 19: Cruce OS × prácticas (mes actual)
+  // Cruce OS x prácticas (mes actual)
   const queryCruceOSPracticas = `
     SELECT n.nom_id AS nomId, n.nom_cod AS nomCod, n.nom_nom AS nomNombre, os.os_id AS osId, os.os_sigla AS osSigla, os.os_nombre AS osNombre,
       COUNT(mp.Mp_id) AS cantidad, ISNULL(SUM(ISNULL(me.Me_Cose, 0) + ISNULL(me.Me_ValorPrac, 0)), 0) AS facturado
     FROM MovPrac mp INNER JOIN MovEnca me ON mp.Me_id = me.Me_id INNER JOIN Nomenclador n ON mp.nom_id = n.nom_id AND mp.nom_cod = n.nom_cod LEFT JOIN ObrasSociales os ON me.Os_id = os.os_id
-    WHERE me.Me_Fecha BETWEEN @fechaIniMesActual AND @fechaFinMesActual GROUP BY n.nom_id, n.nom_cod, n.nom_nom, os.os_id, os.os_sigla, os.os_nombre
+    WHERE ${AREA} AND me.Me_Fecha BETWEEN @fechaIniMesActual AND @fechaFinMesActual GROUP BY n.nom_id, n.nom_cod, n.nom_nom, os.os_id, os.os_sigla, os.os_nombre
   `;
   const cruceOSPracticasResult = await executeQuery(queryCruceOSPracticas, { fechaIniMesActual, fechaFinMesActual });
 
@@ -270,18 +245,13 @@ async function generarInformeGestion(mesNum, anioNum) {
 
   const resActual = findByPeriodo(resumenResult.recordset, 'ACTUAL');
   const resAnterior = findByPeriodo(resumenResult.recordset, 'ANTERIOR');
-  const honActual = findByPeriodo(honorariosResult.recordset, 'ACTUAL');
-  const honAnterior = findByPeriodo(honorariosResult.recordset, 'ANTERIOR');
 
-  const buildMetricas = (res, hon) => {
+  const buildMetricas = (res) => {
     const totalFacturado = parseFloat(res.totalFacturado || 0);
-    const totalHonorarios = parseFloat(hon.totalHonorarios || 0);
     const totalAtenciones = parseInt(res.totalAtenciones || 0);
     const totalPracticas = parseInt(res.totalPracticas || 0);
-    const margenBruto = totalFacturado - totalHonorarios;
     return {
-      totalAtenciones, totalPracticas, totalFacturado, totalHonorarios, margenBruto,
-      margenBrutoPct: totalFacturado > 0 ? (margenBruto / totalFacturado) * 100 : 0,
+      totalAtenciones, totalPracticas, totalFacturado,
       ticketPromedio: totalAtenciones > 0 ? totalFacturado / totalAtenciones : 0,
       pacientesUnicos: parseInt(res.pacientesUnicos || 0),
       practicasPorAtencion: totalAtenciones > 0 ? totalPracticas / totalAtenciones : 0,
@@ -298,69 +268,55 @@ async function generarInformeGestion(mesNum, anioNum) {
     return r;
   };
 
-  const metricasActual = buildMetricas(resActual, honActual);
-  const metricasAnterior = buildMetricas(resAnterior, honAnterior);
+  const metricasActual = buildMetricas(resActual);
+  const metricasAnterior = buildMetricas(resAnterior);
 
   const acumActual = findByPeriodo(acumuladoResult.recordset, 'ACUM_ACTUAL');
   const acumAnterior = findByPeriodo(acumuladoResult.recordset, 'ACUM_ANTERIOR');
-  const honAcumActual = findByPeriodo(honorariosAcumResult.recordset, 'ACUM_ACTUAL');
-  const honAcumAnterior = findByPeriodo(honorariosAcumResult.recordset, 'ACUM_ANTERIOR');
-  const metricasAcumActual = buildMetricas(acumActual, honAcumActual);
-  const metricasAcumAnterior = buildMetricas(acumAnterior, honAcumAnterior);
+  const metricasAcumActual = buildMetricas(acumActual);
+  const metricasAcumAnterior = buildMetricas(acumAnterior);
 
   const osActual = porOSResult.recordset.filter((r) => r.periodo === 'ACTUAL');
   const osAnterior = porOSResult.recordset.filter((r) => r.periodo === 'ANTERIOR');
-  const honOsActual = honorariosPorOSResult.recordset.filter((r) => r.periodo === 'ACTUAL');
-  const honOsAnterior = honorariosPorOSResult.recordset.filter((r) => r.periodo === 'ANTERIOR');
   const totalFacturadoOS = osActual.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
   const totalFacturadoOSAnt = osAnterior.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
 
-  const buildOSData = (osRows, honRows, totalFact) =>
+  const buildOSData = (osRows, totalFact) =>
     osRows.map((os) => {
       const facturado = parseFloat(os.facturado || 0);
-      const hon = honRows.find((h) => h.osId === os.osId);
-      const honorarios = parseFloat(hon?.honorarios || 0);
-      const margen = facturado - honorarios;
       return {
         osId: os.osId, osNombre: os.osNombre?.trim() || '', osSigla: os.osSigla?.trim() || '',
         atenciones: parseInt(os.atenciones || 0), practicas: parseInt(os.practicas || 0),
-        facturado, honorarios, margen, margenPct: facturado > 0 ? (margen / facturado) * 100 : 0,
+        facturado,
         participacionPct: totalFact > 0 ? (facturado / totalFact) * 100 : 0,
       };
     }).sort((a, b) => b.facturado - a.facturado);
 
   const osAcumActual = porOSAcumResult.recordset.filter((r) => r.periodo === 'ACUM_ACTUAL');
   const osAcumAnterior = porOSAcumResult.recordset.filter((r) => r.periodo === 'ACUM_ANTERIOR');
-  const honOsAcumActual = honorariosPorOSAcumResult.recordset.filter((r) => r.periodo === 'ACUM_ACTUAL');
-  const honOsAcumAnterior = honorariosPorOSAcumResult.recordset.filter((r) => r.periodo === 'ACUM_ANTERIOR');
   const totalFacturadoOSAcumAct = osAcumActual.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
   const totalFacturadoOSAcumAnt = osAcumAnterior.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
 
   const buildPrestadorData = (rows) =>
     rows.map((pre) => ({
-      preId: pre.preId, preNombre: pre.preNombre?.trim() || '', atenciones: parseInt(pre.atenciones || 0),
-      practicas: parseInt(pre.practicas || 0), honorarios: parseFloat(pre.honorarios || 0),
-      facturado: parseFloat(pre.honorarios || 0), facturadoAsociado: 0, productividad: 0,
-      esSocio: SOCIOS_IDS.includes(pre.preId),
-    })).sort((a, b) => b.honorarios - a.honorarios);
+      preId: pre.preId, preNombre: pre.preNombre?.trim() || '',
+      atenciones: parseInt(pre.atenciones || 0),
+      practicas: parseInt(pre.practicas || 0),
+      facturado: parseFloat(pre.facturado || 0),
+    })).sort((a, b) => b.facturado - a.facturado);
 
   const pracActual = porPracticaActualResult.recordset;
   const pracAnterior = porPracticaAnteriorResult.recordset;
-  const honPracActual = honorariosPorPracticaResult.recordset.filter((r) => r.periodo === 'ACTUAL');
-  const honPracAnterior = honorariosPorPracticaResult.recordset.filter((r) => r.periodo === 'ANTERIOR');
   const totalFactPrac = pracActual.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
   const totalFactPracAnt = pracAnterior.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
 
-  const buildPracticaData = (pracRows, honRows, totalFact) =>
+  const buildPracticaData = (pracRows, totalFact) =>
     pracRows.map((prac) => {
       const facturado = parseFloat(prac.facturado || 0);
       const cantidad = parseInt(prac.cantidad || 0);
-      const hon = honRows.find((h) => h.nomId === prac.nomId && h.nomCod === prac.nomCod);
-      const honorarios = parseFloat(hon?.honorarios || 0);
-      const margen = facturado - honorarios;
       return {
         nomId: prac.nomId, nomCod: prac.nomCod?.trim() || '', nomNombre: prac.nomNombre?.trim() || '',
-        cantidad, facturado, honorarios, margen, margenPct: facturado > 0 ? (margen / facturado) * 100 : 0,
+        cantidad, facturado,
         participacionPct: totalFact > 0 ? (facturado / totalFact) * 100 : 0,
         ticketPromedio: cantidad > 0 ? facturado / cantidad : 0,
       };
@@ -368,8 +324,6 @@ async function generarInformeGestion(mesNum, anioNum) {
 
   const pracAcumActual = porPracticaAcumActualResult.recordset;
   const pracAcumAnterior = porPracticaAcumAnteriorResult.recordset;
-  const honPracAcumActual = honorariosPorPracticaAcumResult.recordset.filter((r) => r.periodo === 'ACUM_ACTUAL');
-  const honPracAcumAnterior = honorariosPorPracticaAcumResult.recordset.filter((r) => r.periodo === 'ACUM_ANTERIOR');
   const totalFactPracAcumAct = pracAcumActual.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
   const totalFactPracAcumAnt = pracAcumAnterior.reduce((s, r) => s + parseFloat(r.facturado || 0), 0);
 
@@ -451,10 +405,10 @@ async function generarInformeGestion(mesNum, anioNum) {
     resumenMensual: { actual: metricasActual, anterior: metricasAnterior, variacion: calcVariacion(metricasActual, metricasAnterior), variacionPct: calcVariacionPct(metricasActual, metricasAnterior) },
     resumenAcumulado: { actual: metricasAcumActual, anterior: metricasAcumAnterior, variacion: calcVariacion(metricasAcumActual, metricasAcumAnterior), variacionPct: calcVariacionPct(metricasAcumActual, metricasAcumAnterior) },
     porObraSocial: {
-      mesActual: buildOSData(osActual, honOsActual, totalFacturadoOS),
-      mesAnterior: buildOSData(osAnterior, honOsAnterior, totalFacturadoOSAnt),
-      acumActual: buildOSData(osAcumActual, honOsAcumActual, totalFacturadoOSAcumAct),
-      acumAnterior: buildOSData(osAcumAnterior, honOsAcumAnterior, totalFacturadoOSAcumAnt),
+      mesActual: buildOSData(osActual, totalFacturadoOS),
+      mesAnterior: buildOSData(osAnterior, totalFacturadoOSAnt),
+      acumActual: buildOSData(osAcumActual, totalFacturadoOSAcumAct),
+      acumAnterior: buildOSData(osAcumAnterior, totalFacturadoOSAcumAnt),
     },
     porPrestador: {
       mesActual: buildPrestadorData(prestadorActualResult.recordset),
@@ -463,10 +417,10 @@ async function generarInformeGestion(mesNum, anioNum) {
       acumAnterior: buildPrestadorData(prestadorAcumAnteriorResult.recordset),
     },
     porPractica: {
-      mesActual: buildPracticaData(pracActual, honPracActual, totalFactPrac),
-      mesAnterior: buildPracticaData(pracAnterior, honPracAnterior, totalFactPracAnt),
-      acumActual: buildPracticaData(pracAcumActual, honPracAcumActual, totalFactPracAcumAct),
-      acumAnterior: buildPracticaData(pracAcumAnterior, honPracAcumAnterior, totalFactPracAcumAnt),
+      mesActual: buildPracticaData(pracActual, totalFactPrac),
+      mesAnterior: buildPracticaData(pracAnterior, totalFactPracAnt),
+      acumActual: buildPracticaData(pracAcumActual, totalFactPracAcumAct),
+      acumAnterior: buildPracticaData(pracAcumAnterior, totalFactPracAcumAnt),
     },
     evolucion12Meses,
     cruceOSxPracticas,

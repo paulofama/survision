@@ -33,13 +33,14 @@ export interface FiltrosInforme {
 
 // ---- Métricas Base ----
 
+// Informe de VOLUMEN Y FACTURACIÓN. No lleva honorarios ni margen: GECLISA no
+// tiene cargados los honorarios (MovPre.MPre_Tot está en cero) y el informe
+// terminaba declarando un margen bruto del 100%. La rentabilidad la calcula el
+// Análisis Marginal, que es el módulo con el modelo de costos.
 export interface MetricasResumen {
   totalAtenciones: number;
   totalPracticas: number;
   totalFacturado: number;
-  totalHonorarios: number;
-  margenBruto: number;
-  margenBrutoPct: number;
   ticketPromedio: number;
   pacientesUnicos: number;
   practicasPorAtencion: number;
@@ -61,9 +62,6 @@ export interface DesglosePorOS {
   atenciones: number;
   practicas: number;
   facturado: number;
-  honorarios: number;
-  margen: number;
-  margenPct: number;
   participacionPct: number;  // % del total
 }
 
@@ -72,13 +70,11 @@ export interface DesglosePorOS {
 export interface DesglosePorPrestador {
   preId: number;
   preNombre: string;
+  /** Participaciones: una atención con dos prestadores cuenta para los dos. */
   atenciones: number;
   practicas: number;
-  honorarios: number;
-  facturado: number;          // Agregado para comparativas acumuladas
-  facturadoAsociado: number;
-  productividad: number;    // prácticas/día hábil
-  esSocio: boolean;
+  /** PRORRATEADO entre los prestadores de la atención, igual que Análisis → Por Prestador. */
+  facturado: number;
 }
 
 // ---- Desglose por Práctica ----
@@ -89,9 +85,6 @@ export interface DesglosePorPractica {
   nomNombre: string;
   cantidad: number;
   facturado: number;
-  honorarios: number;
-  margen: number;
-  margenPct: number;
   participacionPct: number;
   ticketPromedio: number;
 }
@@ -102,8 +95,6 @@ export interface DesglosePorTipo {
   tipo: 'Consulta' | 'Estudio' | 'Cirugía' | 'Otro';
   cantidad: number;
   facturado: number;
-  honorarios: number;
-  margen: number;
   participacionPct: number;
 }
 

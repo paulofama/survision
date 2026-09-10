@@ -729,7 +729,6 @@ function dibujarTablaResumenComparativo(
     ['Total Practicas', fmtNumero(actual.totalPracticas), fmtNumero(anterior.totalPracticas)],
     ['Practicas/Atencion', actual.practicasPorAtencion.toFixed(2), anterior.practicasPorAtencion.toFixed(2)],
     ['Total Facturado', fmtMoneda(actual.totalFacturado), fmtMoneda(anterior.totalFacturado)],
-    ['Total Honorarios', fmtMoneda(actual.totalHonorarios), fmtMoneda(anterior.totalHonorarios)],
     ['Ticket Promedio', fmtMoneda(actual.ticketPromedio), fmtMoneda(anterior.ticketPromedio)],
   ];
 
@@ -737,12 +736,12 @@ function dibujarTablaResumenComparativo(
   const filasConVariacion = filas.map((fila, i) => {
     const valActual = [
       actual.totalAtenciones, actual.pacientesUnicos, actual.totalPracticas,
-      actual.practicasPorAtencion, actual.totalFacturado, actual.totalHonorarios,
+      actual.practicasPorAtencion, actual.totalFacturado,
       actual.ticketPromedio,
     ][i];
     const valAnterior = [
       anterior.totalAtenciones, anterior.pacientesUnicos, anterior.totalPracticas,
-      anterior.practicasPorAtencion, anterior.totalFacturado, anterior.totalHonorarios,
+      anterior.practicasPorAtencion, anterior.totalFacturado,
       anterior.ticketPromedio,
     ][i];
     const pct = valAnterior !== 0
@@ -1057,14 +1056,17 @@ function dibujarTablaPracticas(
     prac.nomNombre.substring(0, 30),
     fmtNumero(prac.cantidad),
     fmtMoneda(prac.facturado),
-    fmtMoneda(prac.honorarios),
+    // Era "Honorarios", que salía en cero porque GECLISA no los tiene cargados.
+    // El ticket es el dato que esta tabla sí puede sostener: cuánto factura en
+    // promedio cada vez que se hace esta práctica.
+    fmtMoneda(prac.ticketPromedio),
     `${prac.participacionPct.toFixed(1)}%`,
   ]);
 
   autoTable(doc, {
     startY: y,
     margin: { left: MARGIN.left, right: MARGIN.right },
-    head: [['#', 'Practica', 'Cant.', 'Facturado', 'Honorarios', 'Part%']],
+    head: [['#', 'Practica', 'Cant.', 'Facturado', 'Ticket', 'Part%']],
     body: filas,
     styles: {
       fontSize: 8,

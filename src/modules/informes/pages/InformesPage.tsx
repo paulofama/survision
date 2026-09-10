@@ -465,9 +465,12 @@ const PreviewRapido: React.FC<{ datos: any }> = ({ datos }) => {
       variacion: varPct.totalFacturado,
     },
     {
-      label: 'Margen Bruto',
-      valor: fmtMoneda(datos.resumenMensual.actual.margenBruto),
-      variacion: varPct.margenBruto,
+      // Era "Margen Bruto", que valía siempre el 100% del facturado porque
+      // GECLISA no tiene los honorarios cargados. El margen lo informa el
+      // Análisis Marginal; acá el KPI de volumen que faltaba son las prácticas.
+      label: 'Practicas',
+      valor: datos.resumenMensual.actual.totalPracticas.toLocaleString('es-AR'),
+      variacion: varPct.totalPracticas,
     },
     {
       label: 'Ticket Promedio',
