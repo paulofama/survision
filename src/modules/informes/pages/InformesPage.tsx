@@ -37,41 +37,54 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Receipt,
 };
 
+// ============================================================
+// SÓLO MESES CERRADOS
+// ============================================================
+// El mes en curso no se informa. Un mes con unos días cargados al lado de meses
+// completos no es una comparación: se lee como un derrumbe, y ningún aviso al
+// pie alcanza para que alguien que hojea el PDF no lo lea así. Es la misma regla
+// que los informes del Análisis Marginal.
+//
+// Devuelve el último mes cerrado (mes 1-12), que además ancla los selectores: en
+// enero el último cerrado es diciembre del año anterior, así que el año en curso
+// no se ofrece —no tiene ningún mes para informar—.
+function ultimoMesCerrado(hoy: Date = new Date()): { anio: number; mes: number } {
+  const d = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  d.setMonth(d.getMonth() - 1);
+  return { anio: d.getFullYear(), mes: d.getMonth() + 1 };
+}
+
 // ---- Componente principal ----
 const InformesPage: React.FC = () => {
+  // Último mes cerrado: default y tope de los dos selectores.
+  const cerrado = useMemo(() => ultimoMesCerrado(), []);
+
   // Estado de selección
-  const [mesSeleccionado, setMesSeleccionado] = useState<number>(
-    new Date().getMonth() // Mes anterior por defecto (0-indexed, así que getMonth() da el anterior)
-  );
-  const [anioSeleccionado, setAnioSeleccionado] = useState<number>(
-    mesSeleccionado === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()
-  );
+  const [mesSeleccionado, setMesSeleccionado] = useState<number>(cerrado.mes);
+  const [anioSeleccionado, setAnioSeleccionado] = useState<number>(cerrado.anio);
   const [informeSeleccionado, setInformeSeleccionado] = useState<string>('gestion-mensual');
 
   // Hook de datos
   const { estado, datos, error, progreso, cargarInforme, limpiar } = useInformeGestion();
 
-  // Años disponibles
-  const aniosDisponibles = useMemo(() => {
-    const actual = new Date().getFullYear();
-    return [actual - 2, actual - 1, actual];
-  }, []);
+  // Años disponibles — hasta el del último mes cerrado, no hasta el corriente.
+  const aniosDisponibles = useMemo(
+    () => [cerrado.anio - 2, cerrado.anio - 1, cerrado.anio],
+    [cerrado.anio],
+  );
 
-  // Meses disponibles (no permitir futuro)
+  // Meses disponibles: en el año del último cerrado se corta ahí; el mes en
+  // curso y los futuros no se ofrecen.
   const mesesDisponibles = useMemo(() => {
-    const ahora = new Date();
-    const mesActual = ahora.getMonth() + 1;
-    const anioActual = ahora.getFullYear();
-
     return Object.entries(MESES_NOMBRE)
       .map(([num, nombre]) => ({
         valor: parseInt(num),
         nombre,
         deshabilitado:
-          anioSeleccionado === anioActual && parseInt(num) > mesActual,
+          anioSeleccionado === cerrado.anio && parseInt(num) > cerrado.mes,
       }))
       .filter((m) => !m.deshabilitado);
-  }, [anioSeleccionado]);
+  }, [anioSeleccionado, cerrado]);
 
   // Handlers
   const handleGenerarInforme = async () => {
@@ -91,10 +104,10 @@ const InformesPage: React.FC = () => {
     setAnioSeleccionado(nuevoAnio);
     limpiar();
 
-    // Ajustar mes si es necesario
-    const ahora = new Date();
-    if (nuevoAnio === ahora.getFullYear() && mesSeleccionado > ahora.getMonth() + 1) {
-      setMesSeleccionado(ahora.getMonth() + 1);
+    // Si el año elegido es el del último cerrado y el mes quedó más adelante,
+    // se cae al último cerrado: no puede quedar seleccionado un mes abierto.
+    if (nuevoAnio === cerrado.anio && mesSeleccionado > cerrado.mes) {
+      setMesSeleccionado(cerrado.mes);
     }
   };
 
@@ -239,6 +252,9 @@ const InformesPage: React.FC = () => {
                       </li>
                       <li>• Desglose por Obra Social, Prestador y Práctica</li>
                       <li>• KPIs principales con indicadores de variación</li>
+                      <li>
+                        • Sólo <strong>meses cerrados</strong>: el mes en curso no se informa
+                      </li>
                     </ul>
                   </div>
                 </div>
