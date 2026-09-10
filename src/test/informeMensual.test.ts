@@ -210,7 +210,10 @@ describe('render del PDF', () => {
     expect(t).toContain('Consultas');
     expect(t).toContain('Estudios');
     expect(t).toContain('Cirugías');
-    expect(t).toContain('PRÁCTICAS REALIZADAS');
+    // Lo que se cuenta son ATENCIONES (filas es_principal, una por atención).
+    // El rótulo decía "prácticas" hasta el 10/09/2026; ver datosInformeMensual.
+    expect(t).toContain('ATENCIONES REALIZADAS');
+    expect(t).not.toContain('PRÁCTICAS REALIZADAS');
   });
 
   it('los porcentajes usan coma decimal, no punto', () => {

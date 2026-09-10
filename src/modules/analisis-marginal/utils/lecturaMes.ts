@@ -17,7 +17,7 @@
 export const UMBRALES = {
   /** Variación de facturación que se considera relevante. */
   FACTURACION_MATERIAL: 5,
-  /** Debajo de esto, la cantidad de prácticas "se mantuvo". */
+  /** Debajo de esto, la cantidad de atenciones "se mantuvo". */
   CANTIDAD_ESTABLE: 2,
   /** Variación de cantidad que se considera relevante. */
   CANTIDAD_MATERIAL: 5,
@@ -72,9 +72,9 @@ export interface ContextoLectura {
   sinClasificar: number;
 
   /**
-   * false cuando la vista no trae cantidad de prácticas (la grilla de Evolución
+   * false cuando la vista no trae cantidad de atenciones (la grilla de Evolución
    * Temporal es sólo importes). Las reglas que separan volumen de precio se
-   * callan en vez de afirmar sobre un cero que no significa "cero prácticas"
+   * callan en vez de afirmar sobre un cero que no significa "cero atenciones"
    * sino "no lo sé".
    */
   cantidadesDisponibles?: boolean;
@@ -117,7 +117,7 @@ const REGLAS: Regla[] = [
     clave: 'caida_por_mix',
     descripcion:
       `Facturación cae más de ${UMBRALES.FACTURACION_MATERIAL}% y la cantidad de ` +
-      `prácticas se mueve menos de ${UMBRALES.CANTIDAD_ESTABLE}%.`,
+      `atenciones se mueve menos de ${UMBRALES.CANTIDAD_ESTABLE}%.`,
     evaluar: (c) => {
       if (!hayCantidades(c)) return null;
       if (c.varFacturacion >= -UMBRALES.FACTURACION_MATERIAL) return null;
@@ -126,10 +126,10 @@ const REGLAS: Regla[] = [
         regla: 'caida_por_mix',
         tono: 'negativo',
         texto:
-          `La facturación cayó ${pct(c.varFacturacion)} con la cantidad de prácticas ` +
+          `La facturación cayó ${pct(c.varFacturacion)} con la cantidad de atenciones ` +
           `prácticamente igual (${pctFirmado(c.varCantidad)}). ` +
-          `La caída es de precio o de mezcla de prestaciones, no de volumen: se hizo ` +
-          `lo mismo pero se facturó menos por práctica.`,
+          `La caída es de precio o de mezcla de prestaciones, no de volumen: se atendió ` +
+          `lo mismo pero se facturó menos por atención.`,
       };
     },
   },
@@ -146,7 +146,7 @@ const REGLAS: Regla[] = [
         regla: 'caida_por_volumen',
         tono: 'negativo',
         texto:
-          `Se hicieron ${pct(c.varCantidad)} menos prácticas con el mismo ticket promedio. ` +
+          `Se hicieron ${pct(c.varCantidad)} menos atenciones con el mismo ticket promedio. ` +
           `La caída es de volumen: el problema es de actividad, no de precios.`,
       };
     },
@@ -164,7 +164,7 @@ const REGLAS: Regla[] = [
         regla: 'crecimiento_por_volumen',
         tono: 'positivo',
         texto:
-          `Se hicieron ${pct(c.varCantidad)} más prácticas al mismo ticket promedio: ` +
+          `Se hicieron ${pct(c.varCantidad)} más atenciones al mismo ticket promedio: ` +
           `el crecimiento es de actividad real.`,
       };
     },
@@ -182,7 +182,7 @@ const REGLAS: Regla[] = [
         regla: 'crecimiento_por_precio',
         tono: 'neutro',
         texto:
-          `La facturación subió ${pct(c.varFacturacion)} sin más prácticas ` +
+          `La facturación subió ${pct(c.varFacturacion)} sin más atenciones ` +
           `(${pctFirmado(c.varCantidad)}). ` +
           `El aumento viene de precio o de mezcla, no de actividad.`,
       };
@@ -275,7 +275,7 @@ const REGLAS: Regla[] = [
   },
   {
     clave: 'segmento_cae',
-    descripcion: `Un segmento pierde más de ${UMBRALES.SEGMENTO_CAIDA}% de sus prácticas.`,
+    descripcion: `Un segmento pierde más de ${UMBRALES.SEGMENTO_CAIDA}% de sus atenciones.`,
     evaluar: (c) => {
       if (!hayCantidades(c)) return null;
       const caidos = c.segmentos
@@ -287,7 +287,7 @@ const REGLAS: Regla[] = [
         regla: 'segmento_cae',
         tono: 'negativo',
         texto:
-          `${s.nombre} hizo ${pct(s.varCantidad)} menos prácticas que en ` +
+          `${s.nombre} hizo ${pct(s.varCantidad)} menos atenciones que en ` +
           `${c.mesAnteriorEtiqueta} (${new Intl.NumberFormat('es-AR').format(s.cantidad)} en el mes).`,
       };
     },

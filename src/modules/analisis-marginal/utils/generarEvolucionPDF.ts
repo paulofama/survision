@@ -29,10 +29,10 @@
 //
 // SOBRE LAS CANTIDADES
 // --------------------
-// Esta vista es SÓLO IMPORTES: `FilaEvolucion` no tiene cantidad de prácticas.
+// Esta vista es SÓLO IMPORTES: `FilaEvolucion` no tiene cantidad de atenciones.
 // Por eso la lectura del mes corre con `cantidadesDisponibles: false` y las
 // reglas que separan volumen de precio se callan, en vez de afirmar sobre un
-// cero que no significa "cero prácticas" sino "no lo sé". El informe que sí
+// cero que no significa "cero atenciones" sino "no lo sé". El informe que sí
 // cruza volumen y plata es el Informe Mensual de Gestión.
 //
 // HASTA DÓNDE BAJA
@@ -330,7 +330,7 @@ function portada(
     );
   }
   notas.push(
-    'Esta vista es de importes. Para el cruce de volumen y plata —cantidad de prácticas ' +
+    'Esta vista es de importes. Para el cruce de volumen y plata —cantidad de atenciones ' +
     'al lado de cada cifra— está el Informe Mensual de Gestión.',
   );
   for (const n of notas) aviso(L, n, n.startsWith('Esta vista') ? 'info' : 'alerta');

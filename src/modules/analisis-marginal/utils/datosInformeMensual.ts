@@ -15,9 +15,25 @@
 // en agosto dejó $67,4 M de diferencia entre dos pantallas del mismo módulo.
 //
 // Las CANTIDADES no salen de ahí porque `FilaEvolucion` no las tiene: la grilla
-// es sólo importes. Se cuentan sobre las mismas filas de `movimientos_geclisa`
-// con `es_principal = true`, que es el universo que usa Análisis → Por
-// Prestación. Una fila, una práctica.
+// es sólo importes. Se cuentan sobre las filas de `movimientos_geclisa` con
+// `es_principal = true`.
+//
+// LO QUE SE CUENTA SON ATENCIONES, NO PRÁCTICAS (rótulo corregido 10/09/2026)
+// --------------------------------------------------------------------------
+// `es_principal` marca UNA fila por atención —su primera práctica y su primer
+// prestador—, así que contar esas filas da atenciones. El informe las rotulaba
+// "prácticas". En 2026 da lo mismo, porque no hay ninguna atención con más de
+// una práctica cargada; en 2025 no: marzo tiene 1.032 atenciones y 1.043
+// prácticas. Con el rótulo viejo, ese mes decía "1.032 prácticas" y /informes
+// decía 1.043, y las dos cifras eran correctas midiendo cosas distintas.
+//
+// Se corrigió el RÓTULO, no el cálculo: los números del informe no cambian.
+// Cada corte cuenta atenciones atribuidas a su práctica principal, y el ticket
+// es por atención — que es lo mismo que informa `/informes`.
+//
+// Si algún día hace falta el conteo de prácticas de verdad, no sale de acá:
+// hay que contar pares (atención, práctica) distintos, como
+// `movimientosAgg.porPrestacion`.
 //
 // SÓLO MESES CERRADOS. El mes en curso no entra al informe: ni como mes
 // elegible, ni en la serie, ni en los promedios.
@@ -210,10 +226,10 @@ export function filasPorMes(filas: MovGecRow[]): Map<Mes, MovGecRow[]> {
 }
 
 /**
- * Cantidad de prácticas por segmento. El segmento sale del CÓDIGO de la
- * prestación (01 consultas, 02 estudios, 03 y 04 cirugías), no del nombre:
- * por nombre, Exoftalmología —que son 900 prácticas en julio— caía en Estudios
- * siendo una consulta.
+ * Cantidad de ATENCIONES por segmento, según la práctica principal de cada una.
+ * El segmento sale del CÓDIGO de la prestación (01 consultas, 02 estudios, 03 y
+ * 04 cirugías), no del nombre: por nombre, Exoftalmología —900 atenciones en
+ * julio— caía en Estudios siendo una consulta.
  */
 function contarPorSegmento(filas: MovGecRow[]): Record<Segmento, number> {
   const acc = SEG_VACIO();

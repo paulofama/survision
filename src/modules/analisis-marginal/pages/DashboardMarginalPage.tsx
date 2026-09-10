@@ -431,7 +431,7 @@ const DashboardMarginalContent: React.FC = () => {
           cuenta: los dos leen las filas de `useEvolucionMensual`.
 
             · "Informe Mensual" (acá) — el mes cerrado, con la cantidad de
-              prácticas al lado de cada cifra y el puente que explica el cambio
+              atenciones al lado de cada cifra y el puente que explica el cambio
               contra el mes anterior. Es el entregable a dirección.
             · "Evolución Temporal" (en su pantalla) — la serie: estado de
               resultados mes a mes, tendencia y punto de equilibrio.

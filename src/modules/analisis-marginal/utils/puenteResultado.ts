@@ -10,7 +10,7 @@
 // -------------------------------------------
 // Sobre la facturación, la apertura clásica volumen / precio:
 //
-//   ticket = facturación / cantidad de prácticas
+//   ticket = facturación / cantidad de atenciones
 //
 //   efecto volumen      = (cantidad_act - cantidad_ant) x ticket_ant
 //   efecto precio/mix   = (ticket_act - ticket_ant)     x cantidad_act
@@ -127,7 +127,7 @@ export function construirPuente(anterior: MesPuente, actual: MesPuente): Puente 
       valor: efVolumen,
       peso: peso(efVolumen),
       detalle:
-        `${dCant >= 0 ? '+' : ''}${fmtCant(dCant)} prácticas al ticket de ${anterior.etiqueta} ` +
+        `${dCant >= 0 ? '+' : ''}${fmtCant(dCant)} atenciones al ticket de ${anterior.etiqueta} ` +
         `(${fmtPesos(tAnt)})`,
     },
     {
@@ -137,7 +137,7 @@ export function construirPuente(anterior: MesPuente, actual: MesPuente): Puente 
       peso: peso(efPrecioMix),
       detalle:
         `ticket promedio ${dTicket >= 0 ? '+' : ''}${fmtPesos(dTicket)} ` +
-        `sobre ${fmtCant(actual.cantidad)} prácticas`,
+        `sobre ${fmtCant(actual.cantidad)} atenciones`,
     },
     {
       clave: 'costos_variables',

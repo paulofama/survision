@@ -7,11 +7,17 @@
 // Dos cosas lo definen:
 //
 //   1. VOLUMEN Y PLATA JUNTOS. Cada cifra de dinero va con su cantidad de
-//      prácticas al lado, en todos los cortes. Una caída de facturación con la
-//      misma cantidad de prácticas y una caída por menos prácticas son dos
+//      atenciones al lado, en todos los cortes. Una caída de facturación con la
+//      misma cantidad de atenciones y una caída por menos atenciones son dos
 //      historias distintas, y el informe tiene que dejar ver cuál pasó. Por eso
 //      lo PRIMERO que se lee, antes que cualquier peso, son las tres líneas de
 //      cantidad: consultas, estudios y cirugías.
+//
+//      El volumen son ATENCIONES, no prácticas: se cuentan las filas
+//      `es_principal`, que son una por atención (ver `datosInformeMensual.ts`).
+//      El rótulo decía "prácticas" y se corrigió el 10/09/2026; los números no
+//      cambiaron. Así el ticket de este informe es por atención, igual que el
+//      que publica /informes.
 //
 //   2. SECCIÓN 4, "qué explica el cambio". El puente que descompone la
 //      variación de resultado operativo en volumen, precio/mezcla, costos
@@ -196,7 +202,7 @@ function portada(L: Lienzo, d: DatosInformeMensual) {
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...C.medium);
-  doc.text('PRÁCTICAS REALIZADAS', PW / 2, cy + 8, { align: 'center' });
+  doc.text('ATENCIONES REALIZADAS', PW / 2, cy + 8, { align: 'center' });
   doc.setFontSize(26);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.primary);
@@ -300,7 +306,7 @@ function seccionResumen(L: Lienzo, d: DatosInformeMensual) {
   autoTable(L.doc, {
     ...TABLA_BASE,
     startY: L.y,
-    head: [['Prácticas realizadas', 'Cantidad', a ? `vs ${a.etiquetaCorta}` : 'Variación', 'Participación']],
+    head: [['Atenciones realizadas', 'Cantidad', a ? `vs ${a.etiquetaCorta}` : 'Variación', 'Participación']],
     body: [
       ...segs.map(([n, act, anterior]) => {
         const v = vari(act, anterior);
@@ -369,7 +375,7 @@ function seccionResumen(L: Lienzo, d: DatosInformeMensual) {
 
   const w = (CW - 8) / 3;
   const fila1 = L.y;
-  kpi(L, M, fila1, w, 'PRÁCTICAS REALIZADAS', fmtCant(m.cantidad),
+  kpi(L, M, fila1, w, 'ATENCIONES REALIZADAS', fmtCant(m.cantidad),
     cmp(m.cantidad, a?.cantidad, p?.cantidad));
   kpi(L, M + w + 4, fila1, w, 'FACTURACIÓN', fmt(m.facturacion),
     cmp(m.facturacion, a?.facturacion, p?.facturacion));
@@ -446,12 +452,12 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
   const a = d.anterior;
   seccion(L, '2. Volumen y actividad', { hojaNueva: true });
 
-  parrafo(L, `Cantidad de prácticas por mes — últimos ${d.serie.length} meses cerrados.`, { size: 8.5, color: C.medium });
+  parrafo(L, `Cantidad de atenciones por mes — últimos ${d.serie.length} meses cerrados.`, { size: 8.5, color: C.medium });
   const serie: PuntoSerie[] = d.serie.map(s => ({ etiqueta: s.etiquetaCorta, barra: s.cantidad }));
   graficoBarrasLinea(L, serie, {
     alto: 42,
     formatoEje: (n) => fmtCant(n),
-    leyendaBarra: 'Prácticas realizadas',
+    leyendaBarra: 'Atenciones realizadas',
   });
 
   // ── Por segmento ──
@@ -475,7 +481,7 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
   autoTable(L.doc, {
     ...TABLA_BASE,
     startY: L.y,
-    head: [['Segmento', 'Prácticas', a ? `vs ${a.etiquetaCorta}` : 'Var.', 'Facturado', a ? `vs ${a.etiquetaCorta}` : 'Var.', 'Ticket prom.']],
+    head: [['Segmento', 'Atenciones', a ? `vs ${a.etiquetaCorta}` : 'Var.', 'Facturado', a ? `vs ${a.etiquetaCorta}` : 'Var.', 'Ticket prom.']],
     body: [
       ...segRows,
       ['TOTAL', fmtCant(m.cantidad), a ? vari(m.cantidad, a.cantidad).texto : '—',
@@ -509,7 +515,7 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
   autoTable(L.doc, {
     ...TABLA_BASE,
     startY: L.y,
-    head: [['Prestador', 'Prácticas', 'Participación', 'Facturado', 'Ticket prom.']],
+    head: [['Prestador', 'Atenciones', 'Participación', 'Facturado', 'Ticket prom.']],
     body: prestadores.map(p => [
       p.nombre, fmtCant(p.cantidad),
       fmtPct(m.cantidad > 0 ? (p.cantidad / m.cantidad) * 100 : 0),
@@ -575,7 +581,7 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
       ['Concepto', ...cols.flatMap(c => [c.etiquetaCorta + (c.tieneEstimados ? '*' : ''), '%'])],
     ],
     body: [
-      ['Prácticas', ...cols.flatMap(c => [fmtCant(c.cantidad), '—'])],
+      ['Atenciones', ...cols.flatMap(c => [fmtCant(c.cantidad), '—'])],
       filaEERR('Facturación', c => c.facturacion),
       filaEERR('Honorarios', c => -c.honorarios),
       filaEERR('Pools', c => -c.pools),
@@ -602,7 +608,7 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
   if (cols.some(c => c.tieneEstimados)) {
     parrafo(L, '* Mes con costo laboral estimado, no liquidado.', { size: 7.5, color: C.amber });
   }
-  parrafo(L, 'Los porcentajes son sobre la facturación de cada mes. Las prácticas son cantidad, no importe.', { size: 7.5, color: C.medium });
+  parrafo(L, 'Los porcentajes son sobre la facturación de cada mes. Las atenciones son cantidad, no importe.', { size: 7.5, color: C.medium });
 }
 
 // ============================================================
@@ -711,7 +717,7 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
   autoTable(L.doc, {
     ...TABLA_BASE,
     startY: L.y,
-    head: [['Obra social', `Prácticas ${a.etiquetaCorta}`, `Prácticas ${m.etiquetaCorta}`, 'Variación $', 'Peso s/ desvío']],
+    head: [['Obra social', `Atenc. ${a.etiquetaCorta}`, `Atenc. ${m.etiquetaCorta}`, 'Variación $', 'Peso s/ desvío']],
     body: rk.lineas.map(l => [
       l.nombre, fmtCant(l.cantidadAnterior), fmtCant(l.cantidadActual),
       fmtDelta(l.variacion), fmtPct(l.peso),
@@ -796,7 +802,7 @@ function seccionPrestaciones(L: Lienzo, d: DatosInformeMensual) {
     parrafo(L,
       `Top 10 por facturación. Las otras ${resto} prestaciones del mes suman ` +
       `${fmt(d.porPrestacion.slice(10).reduce((s, p) => s + p.facturacion, 0))} en ` +
-      `${fmtCant(d.porPrestacion.slice(10).reduce((s, p) => s + p.cantidad, 0))} prácticas.`,
+      `${fmtCant(d.porPrestacion.slice(10).reduce((s, p) => s + p.cantidad, 0))} atenciones.`,
       { size: 7.5, color: C.medium });
   }
   parrafo(L,
@@ -824,7 +830,7 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
   autoTable(L.doc, {
     ...TABLA_BASE,
     startY: L.y,
-    head: [['Obra social', 'Prácticas', a ? `Var. cant.` : 'Var.', 'Facturado', a ? 'Var. $' : 'Var.', 'Participación']],
+    head: [['Obra social', 'Atenciones', a ? `Var. cant.` : 'Var.', 'Facturado', a ? 'Var. $' : 'Var.', 'Participación']],
     body: filas.map(o => {
       const prev = antPorOS.get(o.clave);
       return [
@@ -873,7 +879,7 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
   autoTable(L.doc, {
     ...TABLA_BASE,
     startY: L.y,
-    head: [['Las que más crecieron', 'Prácticas', 'Facturación', 'Las que más cayeron', 'Prácticas', 'Facturación']],
+    head: [['Las que más crecieron', 'Atenc.', 'Facturación', 'Las que más cayeron', 'Atenc.', 'Facturación']],
     body: [0, 1, 2].map(i => {
       const s = subenFact[i];
       const b = bajanFact[i];
@@ -895,7 +901,7 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   L.y = (L.doc as any).lastAutoTable.finalY + 4;
-  parrafo(L, 'Ordenadas por variación de facturación contra el mes anterior. La columna de prácticas es la variación de cantidad, para poder distinguir si el movimiento fue de volumen.', { size: 7.5, color: C.medium });
+  parrafo(L, 'Ordenadas por variación de facturación contra el mes anterior. La columna de atenciones es la variación de cantidad, para poder distinguir si el movimiento fue de volumen.', { size: 7.5, color: C.medium });
 }
 
 // ============================================================
