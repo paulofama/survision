@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { traerTodo } from '../lib/traerTodo';
 
 // ============================================
 // TIPOS
@@ -65,15 +66,22 @@ interface ClasificacionErogacion {
   clasificado_at?: string;
 }
 
+// OJO: la tabla `proveedores_clasificacion_default` NO tiene `tipo_costo_default`.
+// El código lo leía igual y siempre caía al `|| 'fijo'`, y el alta lo INSERTABA,
+// lo que hacía fallar el insert entero contra una columna inexistente. El tipo
+// sale de `es_costo_fijo_default`, que es la única columna que existe.
 interface ProveedorDefault {
   id: string;
   prov_id_geclisa: number;
   prov_nombre: string;
-  tipo_costo_default: TipoCosto;
   es_costo_fijo_default: boolean;
   categoria_costo_fijo_id?: string | null;
   categoria?: string;
 }
+
+/** Tipo de costo que implica un proveedor default. */
+const tipoDeProveedorDefault = (p: ProveedorDefault): TipoCosto =>
+  p.es_costo_fijo_default ? 'fijo' : 'variable';
 
 interface ResumenMensual {
   mes: number;
@@ -221,7 +229,6 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         .insert([{
           prov_id_geclisa: 0, // Se actualiza después si se encuentra el ID real
           prov_nombre: provNombre,
-          tipo_costo_default: tipoCostoDefault,
           es_costo_fijo_default: tipoCostoDefault === 'fijo',
           categoria_costo_fijo_id: categoriaId || null,
           categoria: categorias.find(c => c.id === categoriaId)?.nombre || null
@@ -327,7 +334,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
           proveedor_nombre: erogacion.proveedor_nombre,
           monto: erogacion.monto,
           categoria: erogacion.categoria_sugerida,
-          tipo_costo: provDefault.tipo_costo_default || 'fijo',
+          tipo_costo: tipoDeProveedorDefault(provDefault),
           es_costo_fijo: provDefault.es_costo_fijo_default,
           categoria_costo_fijo_id: provDefault.categoria_costo_fijo_id || null,
           auto_clasificado: true,
@@ -454,7 +461,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         const cat = categorias.find(c => c.id === provDefault.categoria_costo_fijo_id);
         return {
           ...e,
-          tipo_costo: (provDefault.tipo_costo_default || 'fijo') as TipoCosto,
+          tipo_costo: tipoDeProveedorDefault(provDefault),
           es_costo_fijo: provDefault.es_costo_fijo_default,
           categoria_costo_fijo_id: provDefault.categoria_costo_fijo_id,
           categoria_costo_fijo_nombre: cat?.nombre || provDefault.categoria || null,
@@ -712,10 +719,23 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
     setLoadingClasificacion(true);
     try {
       // 1. Histórico completo de clasificaciones (todos los períodos).
-      const { data: hist, error: histErr } = await supabase
+      //
+      // PAGINADO, y no es opcional: la tabla ya pasó las 1.174 filas y sin
+      // paginar PostgREST devolvía 1.000 sin avisar. El histórico truncado no
+      // rompe nada de forma visible — simplemente sugiere PEOR, y encima de
+      // manera cambiante, porque sin ORDER BY no está garantizado qué 1.000
+      // filas llegan. Es la clase de error que se descubre meses después
+      // mirando por qué un comprobante quedó en la categoría equivocada.
+      const hist = await traerTodo<{
+        proveedor_nombre: string | null;
+        monto: number | null;
+        tipo_costo: string | null;
+        categoria_costo_fijo_id: string | null;
+        subcategoria_variable: string | null;
+      }>((desde) => supabase
         .from('erogaciones_clasificacion')
-        .select('proveedor_nombre, monto, tipo_costo, categoria_costo_fijo_id, subcategoria_variable');
-      if (histErr) throw histErr;
+        .select('proveedor_nombre, monto, tipo_costo, categoria_costo_fijo_id, subcategoria_variable')
+        .range(desde, desde + 999));
 
       // 2. Clasificación dominante por proveedor (combinación más frecuente).
       const porProv = new Map<string, Map<string, number>>();

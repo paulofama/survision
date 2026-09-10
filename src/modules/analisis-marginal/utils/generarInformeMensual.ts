@@ -36,7 +36,10 @@ import {
   type PuntoSerie, type BarraPuente,
 } from './pdf/informeBase';
 import type { DatosInformeMensual, CifrasMes } from './datosInformeMensual';
-import { construirPuente, rankearImpacto, puenteCierra, type LineaImpacto } from './puenteResultado';
+import {
+  construirPuente, rankearImpacto, puenteCierra,
+  type LineaImpacto, type Puente, type ClaveEfecto,
+} from './puenteResultado';
 import { leerMes, type ContextoLectura, type Lectura, type TonoLectura } from './lecturaMes';
 
 const LEYENDA_PIE = 'Uso interno — confidencial · Instituto Dr. Mercado / Survisión S.A.';
@@ -681,11 +684,7 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       : `Atención: la descomposición deja un residuo de ${fmt(puente.residuo)} sin explicar.`,
     { size: 7.5, color: puenteCierra(puente) ? C.medium : C.red });
 
-  parrafo(L,
-    'El efecto precio y mezcla van juntos porque desde la facturación agregada no se ' +
-    'pueden separar: un ticket más alto puede venir de aumentos o de haber hecho ' +
-    'proporcionalmente más cirugías que consultas. Las líneas de abajo muestran dónde ' +
-    'se movió.', { size: 7.5, color: C.medium });
+  explicacionEfectos(L, puente, a.etiquetaCorta, m.etiquetaCorta);
 
   // ── Las 5 líneas de mayor impacto ──
   asegurar(L, 45);
@@ -742,6 +741,66 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       `Se muestran las 5 de mayor impacto. Las otras ${rk.omitidas} obras sociales suman ` +
       `${fmtDelta(rk.montoOmitido)} entre todas.`, { size: 7.5, color: C.medium });
   }
+}
+
+// ------------------------------------------------------------
+// Qué quiere decir cada efecto, en castellano
+// ------------------------------------------------------------
+// La tabla de arriba es la parte del informe que más se malinterpreta: los
+// nombres ("efecto precio y mezcla") son de manual de costos y no dicen nada a
+// quien no trabaja con esto todos los días. Peor todavía, el signo de los dos
+// efectos de costos está DADO VUELTA respecto del movimiento del costo, y sin
+// avisarlo se lee al revés: un "-$3 M" en costos fijos parece que los costos
+// bajaron, cuando significa que subieron y por eso el resultado cayó.
+//
+// Este bloque explica cada fila con el número real del mes adentro. Se prefirió
+// una frase por efecto, con la cifra concreta, antes que una definición
+// genérica: "atendiendo 106 pacientes menos" se entiende, "variación de
+// cantidad valuada a precios del período base" no.
+function explicacionEfectos(L: Lienzo, puente: Puente, cortaAnt: string, cortaAct: string) {
+  const de = (clave: ClaveEfecto) => puente.efectos.find(e => e.clave === clave);
+  const vol = de('volumen');
+  const pm = de('precio_mix');
+  const cv = de('costos_variables');
+  const cf = de('costos_fijos');
+
+  const subeBaja = (v: number | undefined) => ((v ?? 0) >= 0 ? 'sumó' : 'restó');
+  const masMenos = (v: number | undefined) => ((v ?? 0) >= 0 ? 'más' : 'menos');
+  // El efecto de un costo viene con el signo invertido: efecto negativo = el
+  // costo subió. Para el lector hay que decirlo en términos del costo.
+  const costoSubioBajo = (v: number | undefined) => ((v ?? 0) >= 0 ? 'bajaron' : 'subieron');
+
+  asegurar(L, 46);
+  parrafo(L, 'Qué quiere decir cada efecto', { bold: true, size: 10, color: C.primary });
+
+  vinieta(L,
+    `Volumen: ${subeBaja(vol?.valor)} ${fmt(Math.abs(vol?.valor ?? 0))} porque en ${cortaAct} se ` +
+    `atendió a ${masMenos(vol?.valor)} gente que en ${cortaAnt}. Se valúa cada atención de ` +
+    `diferencia al ticket de ${cortaAnt} (${fmt(puente.ticketAnterior)}), para que este efecto ` +
+    'sea sólo cantidad y no se mezcle con lo que se cobró.');
+
+  vinieta(L,
+    `Precio y mezcla: ${subeBaja(pm?.valor)} ${fmt(Math.abs(pm?.valor ?? 0))} porque cada atención ` +
+    `facturó en promedio ${fmt(puente.ticketActual)} contra ${fmt(puente.ticketAnterior)} el mes ` +
+    'anterior. Son dos cosas que desde acá no se pueden separar: puede ser que se cobre más por ' +
+    'lo mismo (precio) o que se hayan hecho proporcionalmente más prácticas caras —cirugías en ' +
+    'vez de consultas— (mezcla). La tabla de obras sociales de abajo es donde se ve cuál de las dos fue.');
+
+  vinieta(L,
+    `Costos variables: ${subeBaja(cv?.valor)} ${fmt(Math.abs(cv?.valor ?? 0))} porque los costos que ` +
+    `acompañan a cada práctica —honorarios de los médicos, insumos, descartables— ${costoSubioBajo(cv?.valor)} ` +
+    'respecto del mes anterior. Son los que se mueven con la actividad: si se opera más, hay más.');
+
+  vinieta(L,
+    `Costos fijos: ${subeBaja(cf?.valor)} ${fmt(Math.abs(cf?.valor ?? 0))} porque los costos de ` +
+    `estructura —sueldos, alquiler, servicios, seguros— ${costoSubioBajo(cf?.valor)}. Son los que hay ` +
+    'que pagar igual, se atienda mucho o poco.');
+
+  parrafo(L,
+    'En las dos filas de costos el signo está invertido a propósito: un costo que SUBE hace ' +
+    'BAJAR el resultado, así que aparece en rojo y con signo negativo. Leído al derecho: el ' +
+    'número de la columna es cuánto aportó cada cosa al resultado, no cuánto se gastó.',
+    { size: 7.5, color: C.medium });
 }
 
 // ============================================================
