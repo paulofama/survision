@@ -16,10 +16,10 @@ import { describe, it, expect } from "vitest";
 import { nuevoLienzo, nuevaHoja, cerrar, Lienzo, Orientacion } from "../modules/presupuestador/utils/sobre/pdfBase";
 import {
   docPedidoCirugia, docIndicaciones, docCronograma, docRecetas,
-  docAnalisisEcg, docCaja, docCajaCopia, docTrazabilidad, docConsentimiento,
+  docAnalisisEcg, docCaja, docCajaCopia, docRecetaCostos, docTrazabilidad, docConsentimiento,
   calcularDeposito, totalObraSocial, valorTotalCaja, restaPagar,
   requiereFactura, leyendaIva, DX_RECETAS, LEYENDA_RECETA_POR_SISTEMA,
-  LEYENDA_A_CARGO_PACIENTE, SobreCtx,
+  LEYENDA_A_CARGO_PACIENTE, LEYENDA_RESPONSABILIDAD_RECETA, SobreCtx, RecetaDeCostos,
 } from "../modules/presupuestador/utils/sobre/documentos";
 import {
   armarContexto, docsDelSobre, armarSobreCompleto,
@@ -121,6 +121,26 @@ const aceptacionDe = (over: any) => ({
   ...over,
 });
 
+/**
+ * Receta de costos de ejemplo, con la forma que devuelve
+ * `services/costoPrestacion`: dos insumos directos y dos pools.
+ */
+const RECETA: RecetaDeCostos = {
+  nombreReceta: "Facoemulsificacion con implante de LIO",
+  codigoReceta: "030502",
+  insumos: [
+    { codigo: "CT001", descripcion: "CT LUCIA LIO plegable", cantidad: 1, precioUnitario: 126000, costo: 126000 },
+    { codigo: "VIS01", descripcion: "Viscoelastico", cantidad: 2, precioUnitario: 18500, costo: 37000 },
+  ],
+  pools: [
+    { nombre: "Quirófano", costo: 31200 },
+    { nombre: "Faco", costo: 18140 },
+  ],
+  costoInsumos: 163000,
+  costoPools: 49340,
+  costoTotal: 212340,
+};
+
 const ctxDe = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   presupuesto: any,
@@ -128,6 +148,7 @@ const ctxDe = (
   aceptacionOver: any,
   caja?: SobreCtx["caja"],
   entregasPrevias = 0,
+  receta: RecetaDeCostos | null = RECETA,
 ): SobreCtx =>
   armarContexto({
     presupuesto,
@@ -135,6 +156,7 @@ const ctxDe = (
     convenios: CONVENIOS,
     lios: LIOS,
     consentimiento: CONSENTIMIENTO,
+    receta,
     caja,
     entregasPrevias,
   });
@@ -857,8 +879,11 @@ describe("Estructura del Sobre Quirúrgico", () => {
     const orden = docsDelSobre(ctx).map((d) => d.clave);
     expect(orden.slice(-2)).toEqual(["trazabilidad", "consentimiento"]);
     expect(orden.indexOf("caja")).toBeLessThan(orden.indexOf("trazabilidad"));
-    // Ningún documento del paciente después de los de quirófano
-    expect(DOCS.filter((d) => d.quirofano).map((d) => d.clave)).toEqual(["trazabilidad", "consentimiento"]);
+    // Ningún documento del paciente después de los de quirófano. La receta de
+    // costos se archiva en quirófano igual que los otros dos, pero va PRIMERA:
+    // los dos últimos son los que se firman y se desprenden juntos.
+    expect(DOCS.filter((d) => d.quirofano).map((d) => d.clave))
+      .toEqual(["receta_costos", "trazabilidad", "consentimiento"]);
   });
 
   it("cada documento de quirófano lleva su sello y arranca en su hoja", () => {
@@ -928,6 +953,74 @@ describe("Estructura del Sobre Quirúrgico", () => {
       // WinAnsi, ej. el menos tipográfico U+2212: el importe sale ilegible).
       expect(t.includes(String.fromCharCode(0)), `${nombre}: texto codificado en UTF-16`).toBe(false);
     }
+  });
+
+  // ── Receta de costos (hoja de quirófano) ──────────────────────────────────
+  describe("receta de costos", () => {
+    const ctx = ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" }, cajaCon(400000, 1287040));
+
+    it("imprime los insumos con cantidad, precio unitario y costo", () => {
+      const t = textoDe(construir(docRecetaCostos, ctx));
+      expect(t).toContain("CT LUCIA LIO plegable");
+      expect(t).toContain("Viscoelastico");
+      expect(t).toContain("126.000,00");   // precio unitario del LIO
+      expect(t).toContain("37.000,00");    // 2 x 18.500 del viscoelástico
+    });
+
+    it("imprime los pools y el costo estándar total", () => {
+      const t = textoDe(construir(docRecetaCostos, ctx));
+      expect(t).toContain("Quirófano");
+      expect(t).toContain("Faco");
+      expect(t).toContain("212.340,00");
+      expect(t).toContain("COSTO ESTÁNDAR DE LA PRÁCTICA");
+    });
+
+    it("el desglose de pools suma el total de pools que imprime", () => {
+      // Si las partes no suman el total, el documento se vuelve sospechoso
+      // entero — y éste se firma. Ver el residuo "Otros pools" del servicio.
+      const suma = RECETA.pools.reduce((s, p) => s + p.costo, 0);
+      expect(suma).toBeCloseTo(RECETA.costoPools, 2);
+      expect(RECETA.costoInsumos + RECETA.costoPools).toBeCloseTo(RECETA.costoTotal, 2);
+    });
+
+    it("lleva la leyenda de responsabilidad, que es el motivo de la hoja", () => {
+      const t = textoDe(construir(docRecetaCostos, ctx));
+      expect(t).toContain("Es responsabilidad de la Administración");
+      expect(t).toContain("Gerencia y el personal relacionado con la cirugía");
+      expect(t).toContain("La realización de la práctica");
+      expect(t).toContain("implica que esta información está al día");
+    });
+
+    it("se archiva en quirófano, no se lo lleva el paciente", () => {
+      const t = textoDe(construir(docRecetaCostos, ctx));
+      expect(t).toContain("ARCHIVAR EN QUIRÓFANO");
+    });
+
+    it("sin receta cargada la hoja SALE IGUAL, lo declara y mantiene la leyenda", () => {
+      // Omitirla escondería justo el caso a resolver: una cirugía que se va a
+      // realizar sin que el sistema sepa qué consume.
+      const sin = ctxDe(P813, { rama_cobertura: "PARTICULAR", lio_id: "l2" }, cajaCon(100000), 0, null);
+      const t = textoDe(construir(docRecetaCostos, sin));
+      expect(t).toContain("Sin receta de costos cargada");
+      expect(t).toContain("Es responsabilidad de la Administración");
+      expect(t).not.toContain("COSTO ESTÁNDAR DE LA PRÁCTICA");
+    });
+
+    it("va en el sobre, después de los documentos del paciente", () => {
+      const claves = docsDelSobre(ctx).map((d) => d.clave);
+      expect(claves).toContain("receta_costos");
+      expect(claves.indexOf("receta_costos")).toBeGreaterThan(claves.indexOf("caja"));
+      // Y antes de trazabilidad/consentimiento, que son los que se firman.
+      expect(claves.indexOf("receta_costos")).toBeLessThan(claves.indexOf("trazabilidad"));
+    });
+
+    it("el texto de la leyenda es el que exporta el módulo, no una copia", () => {
+      const t = textoDe(construir(docRecetaCostos, ctx));
+      // La leyenda se parte en líneas al imprimirse: se verifica por fragmentos.
+      for (const frag of LEYENDA_RESPONSABILIDAD_RECETA.split(" ").slice(0, 6)) {
+        expect(t).toContain(frag);
+      }
+    });
   });
 
   it("arma el sobre completo y lo nombra con el número de presupuesto", () => {

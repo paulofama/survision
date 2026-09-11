@@ -12,12 +12,13 @@ import {
   Aceptacion, ChecklistRow, Convenio, Lio, CajaEntrega,
   CHECKLIST_ITEMS, OJOS, SUB_RAMAS,
   clavesAplicables, listoParaCirugia, progresoChecklist,
-  cargarEntregas, sumaEntregas,
+  cargarEntregas, sumaEntregas, practicaDelPresupuesto,
   sbGet, sbPatch, sbInsert,
 } from "../utils/circuito";
 import {
-  CajaOpts, SobreCtx,
-  DOCS, armarContexto, cargarConsentimiento, generarDocumento, generarSobreCompleto,
+  CajaOpts, SobreCtx, RecetaDeCostos,
+  DOCS, armarContexto, cargarConsentimiento, cargarRecetaDeCostos,
+  generarDocumento, generarSobreCompleto,
   valorTotalCaja, requiereFactura, restaPagar,
 } from "../utils/sobre";
 import CajaIngresoModal from "./CajaIngresoModal";
@@ -28,6 +29,8 @@ interface PresupuestoMin {
   paciente_apellido: string;
   paciente_nombre: string;
   paciente_documento?: string;
+  prestacion_codigo?: string;
+  prestacion_descripcion?: string;
   total_final?: number | string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   datos_completos?: any;
@@ -75,6 +78,7 @@ export default function CircuitoPanel({
   const [rows, setRows] = useState<ChecklistRow[]>([]);
   const [entregas, setEntregas] = useState<CajaEntrega[]>([]);
   const [consentimiento, setConsentimiento] = useState<{ titulo: string; cuerpo: string }[]>([]);
+  const [receta, setReceta] = useState<RecetaDeCostos | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [pendienteCaja, setPendienteCaja] = useState<PendienteCaja | null>(null);
@@ -83,16 +87,21 @@ export default function CircuitoPanel({
     setLoading(true);
     setError("");
     try {
-      const [a, ch, ent, cons] = await Promise.all([
+      const practica = practicaDelPresupuesto(presupuesto);
+      const [a, ch, ent, cons, rec] = await Promise.all([
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&select=*`),
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
         cargarEntregas(presupuesto.id),
         cargarConsentimiento(),
+        // La receta de costos de la práctica, para la hoja que se archiva en
+        // quirófano. Si no hay, la hoja lo declara en vez de omitirse.
+        cargarRecetaDeCostos(practica.codigo, practica.descripcion),
       ]);
       const acept = a[0] || null;
       setAceptacion(acept);
       setEntregas(ent || []);
       setConsentimiento(cons);
+      setReceta(rec);
       // Sólo los ítems que existen para esta cobertura (ej. "Orden autorizada"
       // no corresponde a un circuito Particular), en el orden fijo de la
       // definición. Filtrar acá corrige también los circuitos ya aceptados
@@ -146,7 +155,7 @@ export default function CircuitoPanel({
   const contexto = (caja?: CajaOpts): SobreCtx | null => {
     if (!aceptacion) return null;
     return armarContexto({
-      presupuesto, aceptacion, convenios, lios, consentimiento, caja,
+      presupuesto, aceptacion, convenios, lios, consentimiento, receta, caja,
       // Lo ya entregado: el comprobante nuevo descuenta de este saldo.
       entregasPrevias: sumaEntregas(entregas),
     });

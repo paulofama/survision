@@ -81,12 +81,25 @@ Ocho documentos independientes, cada uno arrancando en hoja propia. `docsDelSobr
 | 4 | `recetas` | Paciente | **Una por hoja**, 3 fijas + 1 por medicación adicional |
 | 5 | `analisis` | Paciente | Solo si el circuito requiere análisis/ECG |
 | 6 | `caja` | Paciente | **2 hojas**: copia paciente + copia administración |
-| 7 | `trazabilidad` | **Quirófano** | Hoja propia, sello "ARCHIVAR EN QUIRÓFANO" |
-| 8 | `consentimiento` | **Quirófano** | ídem |
+| 7 | `receta_costos` | **Quirófano** | Insumos y pools que consume la práctica + leyenda de responsabilidad |
+| 8 | `trazabilidad` | **Quirófano** | Hoja propia, sello "ARCHIVAR EN QUIRÓFANO" |
+| 9 | `consentimiento` | **Quirófano** | ídem |
 
 Trazabilidad y consentimiento van últimos y separados **para poder desprenderlos al imprimir** y archivarlos en quirófano. Antes iban embebidos al pie de las indicaciones.
 
 Páginas resultantes: Particular 11 (12 con análisis), OSEP 12 y Círculo Médico 12 (la receta extra de la medicación).
+
+### Receta de costos (10/09/2026)
+
+La hoja detalla **qué insumos consume la práctica** y qué pools la alcanzan, con cantidad y precio unitario, y cierra con el costo estándar. Va a quirófano, no al paciente.
+
+No es informativa: el costo de una práctica sale de una receta que alguien tiene que mantener, y mientras vive sólo en una pantalla nadie la mira y se desactualiza en silencio — con todo el Análisis Marginal colgando de ella. Al imprimirla en el sobre, la receta pasa por las manos de quien arma la cirugía **justo antes de realizarla**, que es el único momento en que alguien puede decir "esto ya no se usa" o "esto sale el doble". Por eso lleva la leyenda de responsabilidad (`LEYENDA_RESPONSABILIDAD_RECETA`) y dos firmas: la realización de la práctica es la declaración de que la receta está al día.
+
+**Si la práctica no tiene receta cargada, la hoja SALE IGUAL** y lo dice en su lugar. Omitirla escondería justo el caso que hay que resolver.
+
+Los datos salen de `shared/services/costoPrestacion`, el **mismo** servicio que alimenta el panel de Prestaciones Realizadas: la pantalla y el papel no pueden mostrar costos distintos para la misma práctica.
+
+⚠️ **El desglose de pools lleva una línea "Otros pools".** `costo_total_pools` suma todos los pools de la receta, pero las columnas por pool de la vista salen de un `ILIKE` por nombre que **no ignora acentos**: "Insumos Generales en Quirófano" no matchea `'%quirofano%'`. Medido el 10/09/2026: pasa en **54 de 103 recetas**, $104.288,49 acumulados. El residuo se muestra como línea propia para que el desglose sume el total; el arreglo de fondo es la vista (`migrations/42`), y no cambiaría ningún costo total, sólo repartiría mejor el detalle.
 
 ### Pedido de cirugía — renglón CUPO / fecha
 

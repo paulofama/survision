@@ -2,8 +2,12 @@
 // HOOK: useCostoPrestacion — qué consume una prestación
 // ============================================================
 //
-// Trae, bajo demanda, el desglose del costo estándar de UNA práctica: los
-// pools que la alcanzan y los insumos directos con su cantidad y precio.
+// Envoltorio de React sobre `services/costoPrestacion`: cachea por práctica y
+// maneja el ciclo de vida del pedido. La CONSULTA vive en el servicio, porque
+// el Sobre Quirúrgico imprime la misma receta y se arma fuera de React: si cada
+// uno tuviera su propia lectura, la pantalla y el papel podrían mostrar costos
+// distintos para la misma práctica.
+//
 // Lo consume el panel expandible de Prestaciones Realizadas.
 //
 // POR QUÉ "ESTÁNDAR" Y NO "LO QUE COSTÓ ESTA CIRUGÍA"
@@ -28,39 +32,12 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
-import { crearIndiceRecetas, claveCodigo } from '@shared/utils/buscadorRecetas';
-import { traerTodo } from '@shared/lib/traerTodo';
+import { claveCodigo } from '@shared/utils/buscadorRecetas';
+import { cargarCostoPrestacion, type CostoPrestacion } from '@shared/services/costoPrestacion';
 
-/** Un pool que alcanza a la práctica, con lo que le imputa. */
-export interface PoolDeLaPractica {
-  nombre: string;
-  costo: number;
-}
-
-/** Un insumo directo de la receta. */
-export interface InsumoDeLaPractica {
-  codigo: string;
-  descripcion: string;
-  cantidad: number;
-  precioUnitario: number;
-  costo: number;
-}
-
-export interface CostoPrestacion {
-  /** Nombre de la receta que matcheó (puede diferir del nombre facturado). */
-  nombreReceta: string;
-  codigoReceta: string;
-  pools: PoolDeLaPractica[];
-  insumos: InsumoDeLaPractica[];
-  costoPools: number;
-  costoInsumos: number;
-  costoTotal: number;
-  /** facturado / costo estándar. null si no hay costo o no hay facturado. */
-  ratio: number | null;
-  /** Id de la receta, para linkear a la pantalla de edición. */
-  recetaId: string | null;
-}
+export type {
+  CostoPrestacion, PoolDeLaPractica, InsumoDeLaPractica,
+} from '@shared/services/costoPrestacion';
 
 export interface ResultadoCostoPrestacion {
   costo: CostoPrestacion | null;
@@ -78,19 +55,10 @@ const cache = new Map<string, CostoPrestacion | 'sin-receta'>();
 /** La invalida la pantalla de recetas cuando se edita una. */
 export const invalidarCacheCostoPrestacion = (): void => { cache.clear(); };
 
-/** Columnas de pool de la vista, con el nombre que se le muestra al usuario. */
-const COLUMNAS_POOL: Array<[string, string]> = [
-  ['costo_pool_consultorio', 'Consultorio'],
-  ['costo_pool_quirofano', 'Quirófano'],
-  ['costo_pool_parabulbar', 'Parabulbar'],
-  ['costo_pool_rfg', 'RFG'],
-  ['costo_pool_reesterilizables', 'Reesterilizables'],
-  ['costo_pool_lavado', 'Lavado'],
-  ['costo_pool_faco', 'Faco'],
-  ['costo_pool_implante', 'Implante'],
-  ['costo_pool_medicamentos', 'Medicamentos'],
-  ['costo_pool_descartables', 'Descartables'],
-];
+const conRatio = (c: CostoPrestacion, facturado: number): CostoPrestacion => ({
+  ...c,
+  ratio: facturado > 0 && c.costoTotal > 0 ? facturado / c.costoTotal : null,
+});
 
 /**
  * @param codigo    `practica_codigo` de la prestación facturada
@@ -115,7 +83,7 @@ export function useCostoPrestacion(
     if (enCache) {
       setEstado(enCache === 'sin-receta'
         ? { ...VACIO, sinReceta: true }
-        : { costo: { ...enCache, ratio: facturado > 0 && enCache.costoTotal > 0 ? facturado / enCache.costoTotal : null }, loading: false, error: null, sinReceta: false });
+        : { costo: conRatio(enCache, facturado), loading: false, error: null, sinReceta: false });
       return;
     }
 
@@ -124,77 +92,12 @@ export function useCostoPrestacion(
 
     (async () => {
       try {
-        // 1. Encontrar la receta. Mismo criterio que el resto del módulo:
-        //    manda el código, el nombre es respaldo. Ver `buscadorRecetas`.
-        const [vista, alias] = await Promise.all([
-          traerTodo<any>((d) => supabase
-            .from('v_recetas_costos_por_pool')
-            .select('*')
-            .range(d, d + 999)),
-          traerTodo<any>((d) => supabase
-            .from('prestaciones_nombre_mapping')
-            .select('nombre_geclisa, nombre_receta')
-            .range(d, d + 999)),
-        ]);
-
-        const receta = crearIndiceRecetas(vista, alias).buscar(codigo, nombre);
-        if (!receta) {
-          cache.set(clave, 'sin-receta');
-          if (id === pedidoRef.current) setEstado({ ...VACIO, sinReceta: true });
-          return;
-        }
-
-        // 2. Insumos directos de esa receta, con precio y cantidad.
-        const { data: det, error: errDet } = await supabase
-          .from('receta_insumos_directos')
-          .select('cantidad_por_practica, insumos_variables ( codigo, descripcion, precio_unitario )')
-          .eq('receta_id', (receta as any).receta_id)
-          .eq('activo', true);
-        if (errDet) throw new Error(errDet.message);
-
-        const insumos: InsumoDeLaPractica[] = (det || []).map((d: any) => {
-          const cantidad = Number(d.cantidad_por_practica) || 0;
-          const precioUnitario = Number(d.insumos_variables?.precio_unitario) || 0;
-          return {
-            codigo: String(d.insumos_variables?.codigo ?? ''),
-            descripcion: String(d.insumos_variables?.descripcion ?? 'Sin descripción'),
-            cantidad,
-            precioUnitario,
-            costo: cantidad * precioUnitario,
-          };
-        }).sort((a, b) => b.costo - a.costo);
-
-        // 3. Pools: la vista ya trae una columna por pool.
-        const pools: PoolDeLaPractica[] = COLUMNAS_POOL
-          .map(([col, nombrePool]) => ({ nombre: nombrePool, costo: Number((receta as any)[col]) || 0 }))
-          .filter((p) => p.costo > 0)
-          .sort((a, b) => b.costo - a.costo);
-
-        const costoPools = Number((receta as any).costo_total_pools) || 0;
-        const costoInsumos = Number((receta as any).costo_insumos_directos) || 0;
-        const costoTotal = costoPools + costoInsumos;
-
-        const armado: CostoPrestacion = {
-          nombreReceta: String((receta as any).nombre_practica ?? ''),
-          codigoReceta: String((receta as any).codigo_practica ?? ''),
-          pools,
-          insumos,
-          costoPools,
-          costoInsumos,
-          costoTotal,
-          ratio: null,
-          recetaId: (receta as any).receta_id ?? null,
-        };
-        cache.set(clave, armado);
-
-        if (id === pedidoRef.current) {
-          setEstado({
-            costo: { ...armado, ratio: facturado > 0 && costoTotal > 0 ? facturado / costoTotal : null },
-            loading: false,
-            error: null,
-            sinReceta: false,
-          });
-        }
+        const armado = await cargarCostoPrestacion(codigo, nombre);
+        cache.set(clave, armado ?? 'sin-receta');
+        if (id !== pedidoRef.current) return;
+        setEstado(armado
+          ? { costo: conRatio(armado, facturado), loading: false, error: null, sinReceta: false }
+          : { ...VACIO, sinReceta: true });
       } catch (e) {
         if (id === pedidoRef.current) {
           setEstado({ ...VACIO, loading: false, error: e instanceof Error ? e.message : 'No se pudo cargar el costo' });

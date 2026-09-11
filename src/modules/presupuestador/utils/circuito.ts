@@ -210,6 +210,31 @@ const normalizar = (s: string): string =>
  * LIO que corresponde al presupuesto. Devuelve el id, o "" si no se puede
  * inferir (el operador lo elige a mano).
  */
+/**
+ * Código y descripción de la práctica del presupuesto.
+ *
+ * Están en dos lugares porque el presupuestador guarda la columna
+ * `prestacion_codigo` y además el snapshot en `datos_completos.tratamiento`.
+ * La columna manda; el snapshot es respaldo para presupuestos viejos.
+ */
+export function practicaDelPresupuesto(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  presupuesto: any,
+): { codigo: string; descripcion: string } {
+  return {
+    codigo: String(
+      presupuesto?.prestacion_codigo ||
+      presupuesto?.datos_completos?.tratamiento?.prestacionCodigo ||
+      "",
+    ).trim(),
+    descripcion: String(
+      presupuesto?.prestacion_descripcion ||
+      presupuesto?.datos_completos?.tratamiento?.prestacionDescripcion ||
+      "",
+    ).trim(),
+  };
+}
+
 export function lioSugerido(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   presupuesto: any,

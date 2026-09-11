@@ -103,7 +103,25 @@ export interface SobreCtx {
   /** Suma de las entregas ya registradas antes de ésta (migración 44). */
   entregasPrevias: number;
   consentimiento: { titulo: string; cuerpo: string }[];
+  /**
+   * Receta de costos de la práctica presupuestada: qué insumos consume y qué
+   * pools la alcanzan. `null` cuando la práctica no tiene receta cargada — la
+   * hoja se imprime igual y lo dice, porque una cirugía sin receta cargada es
+   * justamente lo que hay que detectar antes de operar.
+   */
+  receta: RecetaDeCostos | null;
   fmtARS: (n: number) => string;
+}
+
+/** Lo que la hoja de receta necesita saber. Espeja `services/costoPrestacion`. */
+export interface RecetaDeCostos {
+  nombreReceta: string;
+  codigoReceta: string;
+  pools: { nombre: string; costo: number }[];
+  insumos: { codigo: string; descripcion: string; cantidad: number; precioUnitario: number; costo: number }[];
+  costoPools: number;
+  costoInsumos: number;
+  costoTotal: number;
 }
 
 const TXT_SOLICITUD = "Cirugía de catarata con técnica de facoemulsificación implante de lio plegable.";
@@ -719,6 +737,129 @@ export function docTrazabilidad(L: Lienzo, ctx: SobreCtx) {
 
   parrafo(L, "Firmar quien se responsabiliza por el tratamiento:", { bold: true });
   firmas(L, ["Firma", "Aclaración — DNI"]);
+}
+
+// ============================================================
+// DOC — Receta de costos de la práctica (ARCHIVA QUIRÓFANO)
+// ============================================================
+// Pedido por Paulo el 10/09/2026: cuando un presupuesto se acepta y la práctica
+// se va a realizar, el sobre tiene que llevar la receta de costos — qué insumos
+// consume esa práctica y a qué precio están valuados.
+//
+// PARA QUÉ SIRVE ESTA HOJA
+// ------------------------
+// El costo de una práctica sale de una receta que alguien cargó y que hay que
+// mantener: precios de insumos, cantidades, composición de los pools. Mientras
+// vive sólo en una pantalla, nadie la mira antes de operar y se desactualiza en
+// silencio — y todo el Análisis Marginal cuelga de ella.
+//
+// Al imprimirla dentro del sobre, la receta pasa por las manos de quien arma la
+// cirugía JUSTO ANTES de realizarla, que es el único momento en que alguien
+// puede decir "esto ya no se usa" o "esto sale el doble". Por eso la leyenda no
+// es decorativa: la firma convierte la realización de la práctica en una
+// declaración de que la receta está al día.
+//
+// SIN RECETA TAMBIÉN SE IMPRIME
+// -----------------------------
+// Si la práctica no tiene receta cargada, la hoja sale igual y lo dice en un
+// recuadro. Omitirla sería esconder justo el caso que hay que resolver: una
+// cirugía que se va a realizar sin que el sistema sepa qué consume.
+export const LEYENDA_RESPONSABILIDAD_RECETA =
+  "Es responsabilidad de la Administración —Gerencia y el personal relacionado con la cirugía— " +
+  "mantener actualizados los insumos y los costos de esta receta. La realización de la práctica " +
+  "implica que esta información está al día y es correcta, y que los insumos aquí detallados son " +
+  "los que efectivamente se utilizan. Toda diferencia debe informarse ANTES de realizar la " +
+  "práctica, para su corrección en el sistema.";
+
+export function docRecetaCostos(L: Lienzo, ctx: SobreCtx) {
+  titulo(L, "Receta de costos de la práctica");
+  destino(L, "ARCHIVAR EN QUIRÓFANO — NO SE LO LLEVA EL PACIENTE", "quirofano");
+
+  campo(L, "Paciente", ctx.paciente.apellidoNombre);
+  campo2(L, "DNI", ctx.paciente.documento, "Ojo a operar", ctx.ojoTexto);
+  campo2(L, "Fecha de cirugía", ctx.fechaCirugia, "Presupuesto", ctx.numeroPresupuesto);
+  campo(L, "Práctica", ctx.receta?.nombreReceta || conceptoCompleto(ctx));
+  if (ctx.receta?.codigoReceta) campo(L, "Código de práctica", ctx.receta.codigoReceta);
+  espacio(L, 2);
+
+  const r = ctx.receta;
+
+  if (!r) {
+    subtitulo(L, "Sin receta de costos cargada");
+    parrafo(L,
+      "El sistema no tiene una receta de costos asociada a esta práctica, así que no puede " +
+      "detallar qué insumos consume ni a qué valor. Antes de realizarla, Administración debe " +
+      "cargar la receta en Insumos y Costos → Recetas.", { bold: true });
+    espacio(L, 3);
+    parrafo(L, LEYENDA_RESPONSABILIDAD_RECETA, { size: 8.5 });
+    espacio(L, 4);
+    firmas(L, ["Revisó — Administración\nAclaración", "Fecha"]);
+    return;
+  }
+
+  // ── Insumos directos ──
+  subtitulo(L, "Insumos que consume la práctica");
+  if (r.insumos.length === 0) {
+    parrafo(L, "La receta no tiene insumos directos cargados: su costo sale únicamente de los pools.", { size: 9 });
+  } else {
+    autoTable(L.doc, {
+      startY: L.y,
+      margin: { left: M, right: M, top: 38, bottom: 24 },
+      head: [["Código", "Insumo", "Cant.", "Precio unit.", "Costo"]],
+      body: r.insumos.map((i) => [
+        i.codigo,
+        i.descripcion,
+        String(i.cantidad),
+        pesos(ctx, i.precioUnitario),
+        pesos(ctx, i.costo),
+      ]),
+      styles: { fontSize: 8.5, cellPadding: 1.6, lineWidth: 0.2, lineColor: [170, 170, 170] },
+      headStyles: { fillColor: [20, 40, 90], textColor: [255, 255, 255], fontSize: 8.5, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [244, 247, 252] },
+      columnStyles: {
+        0: { cellWidth: 22 },
+        2: { cellWidth: 16, halign: "right" },
+        3: { cellWidth: 28, halign: "right" },
+        4: { cellWidth: 28, halign: "right" },
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      didParseCell: (d: any) => alinear(d, { 2: "right", 3: "right", 4: "right" }),
+      didDrawPage: (d) => { if (d.pageNumber > 1) membrete(L); },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L.y = (L.doc as any).lastAutoTable.finalY + 5;
+  }
+
+  // ── Pools ──
+  if (r.pools.length > 0) {
+    asegurar(L, 30);
+    subtitulo(L, "Pools de insumos que alcanzan a la práctica");
+    parrafo(L,
+      "Los pools son insumos de uso común —consultorio, quirófano, lavado— que no se cargan " +
+      "por práctica: su costo se reparte entre todas las que los usan.",
+      { size: 8, color: [90, 90, 90] });
+    for (const p of r.pools) importe(L, p.nombre, pesos(ctx, p.costo), { size: 9 });
+  }
+
+  // ── Totales ──
+  espacio(L, 2);
+  separador(L);
+  importe(L, "Insumos directos", pesos(ctx, r.costoInsumos), { size: 9.5 });
+  importe(L, "Pools", pesos(ctx, r.costoPools), { size: 9.5 });
+  importe(L, "COSTO ESTÁNDAR DE LA PRÁCTICA", pesos(ctx, r.costoTotal), { bold: true, size: 11 });
+  parrafo(L,
+    "Es el costo que el modelo asigna a esta práctica, no lo que costó esta cirugía en " +
+    "particular: la receta vale lo mismo para todas las prácticas del mismo código.",
+    { size: 8, color: [90, 90, 90] });
+
+  // ── La leyenda, que es el motivo de la hoja ──
+  espacio(L, 3);
+  asegurar(L, 34);
+  subtitulo(L, "Responsabilidad sobre esta receta");
+  parrafo(L, LEYENDA_RESPONSABILIDAD_RECETA, { size: 8.5 });
+
+  espacio(L, 4);
+  firmas(L, ["Revisó — Administración\nAclaración", "Fecha"]);
 }
 
 // ============================================================

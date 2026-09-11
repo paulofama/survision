@@ -12,13 +12,15 @@
 
 import { nuevoLienzo, nuevaHoja, cerrar, Lienzo, Orientacion } from "./pdfBase";
 import {
-  SobreCtx, CajaOpts,
+  SobreCtx, CajaOpts, RecetaDeCostos,
   docPedidoCirugia, docIndicaciones, docCronograma, docRecetas,
-  docAnalisisEcg, docCaja, docTrazabilidad, docConsentimiento,
+  docAnalisisEcg, docCaja, docRecetaCostos, docTrazabilidad, docConsentimiento,
 } from "./documentos";
 import { Aceptacion, Convenio, Lio, sbGet } from "../circuito";
+import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
 
-export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef, CopiaCaja } from "./documentos";
+export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef, CopiaCaja, RecetaDeCostos } from "./documentos";
+export { LEYENDA_RESPONSABILIDAD_RECETA } from "./documentos";
 export {
   calcularDeposito, totalObraSocial, baseDeposito,
   conceptoCompleto, recetasDelSobre, recetasDeMedicacionAdicional,
@@ -96,6 +98,41 @@ export async function cargarConsentimiento(): Promise<{ titulo: string; cuerpo: 
   return [{ titulo: "", cuerpo: "[Texto del consentimiento pendiente de carga — placeholder]" }];
 }
 
+// ── Receta de costos de la práctica ───────────────────────────────────────────
+
+/**
+ * Trae la receta de costos de la práctica presupuestada, para la hoja que se
+ * archiva en quirófano.
+ *
+ * Usa el MISMO servicio que el panel de Prestaciones Realizadas: la pantalla y
+ * el papel no pueden mostrar costos distintos para la misma práctica.
+ *
+ * Devuelve null si la práctica no tiene receta — no es un error, y la hoja se
+ * imprime igual diciéndolo.
+ */
+export async function cargarRecetaDeCostos(
+  codigoPractica: string | null | undefined,
+  nombrePractica: string | null | undefined,
+): Promise<RecetaDeCostos | null> {
+  try {
+    const c = await cargarCostoPrestacion(codigoPractica, nombrePractica);
+    if (!c) return null;
+    return {
+      nombreReceta: c.nombreReceta,
+      codigoReceta: c.codigoReceta,
+      pools: c.pools,
+      insumos: c.insumos,
+      costoPools: c.costoPools,
+      costoInsumos: c.costoInsumos,
+      costoTotal: c.costoTotal,
+    };
+  } catch {
+    // Que no se pueda leer la receta no puede impedir emitir el sobre: la hoja
+    // sale con el aviso de "sin receta cargada", que es visible y accionable.
+    return null;
+  }
+}
+
 // ── Armado del contexto (puro) ────────────────────────────────────────────────
 
 export const CAJA_VACIA: CajaOpts = {
@@ -130,6 +167,8 @@ export function armarContexto(args: {
   convenios: Convenio[];
   lios: Lio[];
   consentimiento: { titulo: string; cuerpo: string }[];
+  /** Receta de costos de la práctica (ver `cargarRecetaDeCostos`). */
+  receta?: RecetaDeCostos | null;
   /** Datos de caja del operador. Si se omite, se usan los persistidos. */
   caja?: CajaOpts;
   /**
@@ -234,6 +273,7 @@ export function armarContexto(args: {
     caja: args.caja ?? cajaDesdeAceptacion(a),
     entregasPrevias: num(args.entregasPrevias),
     consentimiento,
+    receta: args.receta ?? null,
     fmtARS,
   };
 }
@@ -262,6 +302,7 @@ export const DOCS: DocDef[] = [
   { clave: "analisis",       label: "Análisis y ECG",           build: docAnalisisEcg, condicional: true },
   { clave: "caja",           label: "Ingreso de caja",          build: docCaja },
   // ── Se archivan en quirófano (hoja propia, al final) ──
+  { clave: "receta_costos",  label: "Receta de costos",         build: docRecetaCostos, quirofano: true },
   { clave: "trazabilidad",   label: "Trazabilidad",             build: docTrazabilidad, quirofano: true },
   { clave: "consentimiento", label: "Consentimiento informado", build: docConsentimiento, quirofano: true },
 ];
