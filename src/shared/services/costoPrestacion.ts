@@ -133,19 +133,21 @@ export async function cargarCostoPrestacion(
 
   // EL DESGLOSE TIENE QUE SUMAR EL TOTAL
   // ------------------------------------
-  // `costo_total_pools` suma TODOS los pools de la receta, pero las columnas
-  // por pool salen de un ILIKE por nombre, y ese ILIKE NO IGNORA ACENTOS: el
-  // pool "Insumos Generales en Quirófano" no matchea el patrón '%quirofano%',
-  // así que su costo entra en el total y en ninguna columna.
+  // `costo_total_pools` suma TODOS los pools de la receta; las columnas por
+  // pool salen de un matcheo por nombre, así que un pool puede quedar en el
+  // total y en ninguna columna. Pasó: el matcheo era un ILIKE, que ignora
+  // mayúsculas pero NO acentos, y "Insumos Generales en Quirófano" no caía en
+  // '%quirofano%' — 54 de 103 recetas, $104.288,49, de los cuales $1.931,27 en
+  // la faco con LIO monofocal.
   //
-  // Medido el 10/09/2026: pasa en 54 de 103 recetas, $104.288,49 acumulados.
-  // En la faco con LIO monofocal son $1.931,27 sobre $4.741,89 de pools.
+  // Arreglado de fondo en la vista (migración 45, 15/09/2026): el nombre se
+  // normaliza —minúsculas sin acentos— en un solo lugar. Hoy las 103 recetas
+  // cierran y esta línea no aparece.
   //
-  // El arreglo de fondo es la vista (los patrones deberían contemplar el
-  // acento), y no cambia ningún costo total: sólo reparte mejor el detalle.
-  // Hasta que se aplique, el residuo se muestra como una línea propia en vez
-  // de desaparecer: un desglose que no suma el total vuelve sospechoso todo el
-  // documento, y acá encima se firma.
+  // La red se queda igual, porque el defecto vuelve solo: alcanza con que
+  // alguien cargue un pool cuyo nombre no caiga en ninguna de las diez
+  // columnas. Preferimos una línea "Otros pools" antes que un desglose que no
+  // suma su total, que vuelve sospechoso todo el documento — y acá se firma.
   const sumaDetalle = pools.reduce((s, p) => s + p.costo, 0);
   const residuo = costoPools - sumaDetalle;
   if (residuo > 0.01) pools.push({ nombre: 'Otros pools', costo: residuo });
