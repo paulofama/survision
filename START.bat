@@ -44,8 +44,15 @@ echo [OK] Dependencias listas.
 echo.
 
 :: --- Iniciar backend en su propia ventana ---
-echo [1/3] Iniciando backend  (http://localhost:3001)...
-start "Backend - Sistema de Gestion Integral" /d "%~dp0server" cmd /k npm start
+:: Si ya esta escuchando (tarea programada "Survision-Backend"), no se
+:: levanta otro: fallaria con EADDRINUSE.
+netstat -ano | findstr /R /C:":3001 .*LISTENING" >nul
+if not errorlevel 1 (
+    echo [1/3] Backend ya activo en http://localhost:3001 ^(tarea programada^).
+) else (
+    echo [1/3] Iniciando backend  ^(http://localhost:3001^)...
+    start "Backend - Sistema de Gestion Integral" /d "%~dp0server" cmd /k npm start
+)
 
 :: --- Iniciar frontend en su propia ventana ---
 echo [2/3] Iniciando frontend (http://localhost:3000)...
