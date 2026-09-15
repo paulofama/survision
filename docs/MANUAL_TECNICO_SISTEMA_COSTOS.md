@@ -30,7 +30,7 @@ Docs: Storybook
 
 ### **Configuración de Desarrollo**
 - **Puerto desarrollo**: 3000
-- **Puerto preview**: 3001  
+- **Puerto preview**: 4173 (el 3001 es del backend Express)  
 - **TypeScript**: Strict mode habilitado
 - **ESLint**: Configurado con reglas estrictas
 - **Prettier**: Auto-formatting habilitado
@@ -247,7 +247,7 @@ Enable Logger: true
 ```bash
 npm run dev          # Servidor desarrollo puerto 3000
 npm run build        # Build para producción  
-npm run preview      # Preview build puerto 3001
+npm run preview      # Preview build puerto 4173
 ```
 
 ### **Testing y Calidad**

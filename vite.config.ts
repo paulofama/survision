@@ -43,7 +43,10 @@ export default defineConfig({
     },
   },
   preview: {
-    port: 3001,
+    // 4173 = default de Vite. NO usar 3001: es el puerto del backend Express
+    // (que además arranca solo con la tarea Survision-Backend) → EADDRINUSE,
+    // y si ganara el preview se comería las llamadas a /api.
+    port: 4173,
     host: true,  // También en preview
   },
   // ============================================
