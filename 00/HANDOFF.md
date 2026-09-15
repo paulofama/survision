@@ -28,9 +28,12 @@ Si la pestaña viene abierta de antes, **Ctrl+F5**: el dev server toma los cambi
 ## 2. Cómo levantar la app
 
 ```powershell
-# Lo normal: doble clic en START.bat (levanta backend 3001 + frontend 3000).
+# El BACKEND (3001) ya arranca solo al iniciar sesión: tarea "Survision-Backend",
+# oculta, se relanza sola si se cae. Ver server/scripts/BACKEND-AUTOARRANQUE-README.md.
+# Para desarrollar: doble clic en START.bat (abre el frontend 3000; si el backend ya
+# está escuchando no levanta otro).
 
-# A mano, si hace falta:
+# A mano, si hace falta (con la tarea activa, el backend lo relanza el .vbs):
 foreach ($port in 3000,3001) {
   Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
     Select-Object -Expand OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
@@ -41,7 +44,7 @@ cd C:\IA\COSTOS\sistema-costos;        npm.cmd run dev   # frontend (otra termin
 
 - Verificación: `GET http://localhost:3001/api/health` → 200; abrir `http://localhost:3000`.
 - **Deploy**: `git push` a `main` → Netlify buildea solo. **El backend Express y los daemons corren on-prem** (necesitan GECLISA y `C:\ia`); el front remoto sólo lee Supabase.
-- ⚠️ **Después de un deploy que toque `server/`, reiniciar el backend on-prem**, si no sigue con el código viejo.
+- ⚠️ **Después de un deploy que toque `server/`, reiniciar el backend on-prem**, si no sigue con el código viejo. Alcanza con matar el `node` del 3001: la tarea `Survision-Backend` lo relanza en ~10 s con el código nuevo.
 
 ---
 
@@ -108,4 +111,4 @@ docs/         CIRCUITO_QUIRURGICO.md · SEGURIDAD_RLS.md · MANUAL_TECNICO
 
 - Aliases: `@modules/*` → src/modules/*, `@shared/*` → src/shared/*.
 - Regla: imports entre módulos / a shared SOLO vía alias; relativo sólo dentro del mismo módulo.
-- Tareas programadas on-prem: `Survision-SyncGECLISA`, `Survision-SyncTurnos`, `Survision-BancoIngesta` (arrancan un node nuevo por corrida, así que toman el código nuevo solas).
+- Tareas programadas on-prem: `Survision-SyncGECLISA`, `Survision-SyncTurnos`, `Survision-BancoIngesta` (arrancan un node nuevo por corrida, así que toman el código nuevo solas) y `Survision-Backend` (al iniciar sesión; proceso permanente → **no** toma el código nuevo sin reiniciarlo; ver `server/scripts/BACKEND-AUTOARRANQUE-README.md`).

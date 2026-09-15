@@ -21,7 +21,7 @@
 ## Stack tecnológico
 
 - **Frontend**: React 18 + TypeScript + Vite (puerto 3000).
-- **Backend**: Express.js (puerto 3001).
+- **Backend**: Express.js (puerto 3001). En la PC de la clínica arranca solo (tarea `Survision-Backend`, ver `server/scripts/BACKEND-AUTOARRANQUE-README.md`); tras cambios en `server/` hay que reiniciarlo.
 - **Base de datos (Supabase)**: proyecto `eawtvwuayahbldzjzeer` — **único en uso** (frontend y backend). Anon key en `src/shared/lib/supabase.ts`; service_role en `server/.env`. (El ID `ecraryyvngnyxusdggvj` era un fallback viejo en el backend, ya removido — NO se usa.)
 - **Base de datos operativa**: GECLISA SQL Server. Host y credenciales SOLO en `server/.env` (`DB_SERVER`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `DB_PORT`) — NUNCA hardcodear en código ni en docs.
 - **Estilos**: Tailwind CSS.

@@ -16,6 +16,12 @@ Este sistema conecta con la base de datos **SQL Server local** para obtener las 
 
 ## 🚀 Instalación Rápida
 
+> **En la PC de la clínica el backend ya arranca solo** al iniciar sesión (tarea programada
+> `Survision-Backend`, oculta y con auto-relanzado). Cómo funciona, cómo reiniciarlo/apagarlo y cómo
+> registrarlo en otra PC: [`server/scripts/BACKEND-AUTOARRANQUE-README.md`](../server/scripts/BACKEND-AUTOARRANQUE-README.md).
+> Hoy el frontend lee todo de Supabase; el backend sólo lo usa el botón "Actualizar desde GECLISA" del
+> módulo Fiscal. Los pasos de abajo son para desarrollar o para una PC sin la tarea.
+
 ### Opción 1: Script Automático (Windows)
 ```bash
 # Doble clic en START.bat o ejecutar:
