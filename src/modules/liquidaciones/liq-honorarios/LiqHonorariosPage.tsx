@@ -28,7 +28,6 @@ export default function LiqHonorariosPage() {
     guardar,
     eliminar,
     getById,
-    reload,
   } = useLiqHonorarios();
 
   // ─── Toast notifications ──────────────────────────────

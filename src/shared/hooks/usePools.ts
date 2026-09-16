@@ -9,14 +9,11 @@ import { supabase } from '../lib/supabase';
 import type { 
   Pool, 
   NuevoPool, 
-  PoolItem, 
   PoolItemConInsumo, 
   PoolConItems,
-  NuevoPoolItem,
   EstadisticasPools,
   UsePoolsReturn 
 } from '../types/types_pools';
-import type { InsumoVariable } from '../types';
 
 // ============================================
 // TIPO AUXILIAR PARA RECETA_POOLS

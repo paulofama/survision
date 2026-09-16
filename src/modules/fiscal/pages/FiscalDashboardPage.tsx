@@ -9,7 +9,7 @@ import ReactECharts from 'echarts-for-react';
 import { FileText, ShoppingCart, Scale, TrendingUp, RefreshCw } from 'lucide-react';
 import {
   useFiscalPeriodos, useAutoRefresh, getAlicuotas, sincronizarPeriodo, IvaAlicuota,
-  fmtMoneda0, fmtMoneda, fmtPeriodo,
+  fmtMoneda0, fmtPeriodo,
 } from '../hooks/useFiscalIva';
 
 const FiscalDashboardPage: React.FC = () => {

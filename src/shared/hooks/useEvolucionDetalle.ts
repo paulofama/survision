@@ -41,7 +41,7 @@ import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
 import type { BloqueDetalle, FilaEvolucion, Mes } from '../types/evolucionTemporal';
 import { parseMesKey, toMesKey } from '../types/evolucionTemporal';
 import { cuadrarDetalle } from '../utils/cuadraturaDetalle';
-import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 /** Tope de filas por agrupación. Por encima se trunca y se avisa explícitamente. */

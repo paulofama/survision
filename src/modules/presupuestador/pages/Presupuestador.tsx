@@ -283,13 +283,6 @@ interface PacienteSupabase {
 /** Fuente unificada para el DNI lookup */
 type DniFuente = "geclisa" | "supabase" | null;
 
-interface BuscarDniResponse {
-  encontrado: boolean;
-  fuente?: string;
-  paciente?: PacienteGeclisa;
-  message?: string;
-}
-
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
@@ -2106,7 +2099,7 @@ export default function Presupuestador() {
                         Total USD ({1 + form.tratamientosExtra.length} tratamientos)
                       </span>
                       <span className="text-blue-500 text-xs">
-                        = USD {fmtARS(form.montoUSD)} {form.tratamientosExtra.map((t, i) => `+ USD ${fmtARS(t.montoUSD || 0)}`).join(" ")}
+                        = USD {fmtARS(form.montoUSD)} {form.tratamientosExtra.map((t, _i) => `+ USD ${fmtARS(t.montoUSD || 0)}`).join(" ")}
                       </span>
                     </div>
                     <span className="text-lg font-bold text-blue-700">
@@ -3053,23 +3046,13 @@ interface PreviewModalProps {
   onClose: () => void;
 }
 
-function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, estadoPresupuesto, adminTelefonoMap, administrativasOptions, yaGuardado, datosGuardados, loading, onGuardar, onClose }: PreviewModalProps) {
+function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelefonoMap, administrativasOptions, yaGuardado, datosGuardados, loading, onGuardar, onClose }: PreviewModalProps) {
   const prestDesc = prestaciones.find((p) => p.codigo === form.prestacionCodigo)?.practica || "";
   const cirujanoLabel = CIRUJANOS_FALLBACK.find((c) => c.value === form.cirujano)?.label || form.cirujano;
   // Nombre a mostrar: primero entre los usuarios del sistema; si no está, es un
   // presupuesto viejo guardado con el formato de la lista histórica.
   const nombreAdmin = (value: string): string =>
     administrativasOptions.find((a) => a.value === value)?.label || etiquetaAdminLegacy(value);
-  const adminLabel = nombreAdmin(form.administrativa);
-
-  // Buscar teléfono: primero por value exacto, luego por nombre normalizado
-  const adminNombreNorm = adminLabel
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, "_");
-  const adminTelefono = adminTelefonoMap[form.administrativa]
-    ?? adminTelefonoMap[adminNombreNorm]
-    ?? "";
 
   const openPrintWindow = (autoPrint: boolean) => {
     const w = window.open("", "_blank");
@@ -3130,7 +3113,6 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, estadoPres
       : new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
     const numeroStr = numeroPresupuesto || "NUEVO";
-    const estadoStr = estadoPresupuesto ? (ESTADOS[estadoPresupuesto]?.label.toUpperCase() ?? "BORRADOR") : "BORRADOR";
 
     const serviciosParaPDF = srcServicios.map((s: any) => typeof s === "string"
       ? SERVICIOS.find((sv) => sv.id === s)?.label || s

@@ -18,8 +18,6 @@ import {
   ArrowDown,
   UserCheck,
   Loader2,
-  FileBarChart,
-  AlertTriangle,
   Info,
   ChevronDown,
   ChevronUp,
@@ -32,7 +30,7 @@ import useCostosFijosDistribucion, {
   semaforoDot,
 } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
-import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 // ============================================

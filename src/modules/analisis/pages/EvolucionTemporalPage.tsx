@@ -32,7 +32,7 @@ import {
 const EvolucionTemporalPage: React.FC = () => {
   // Estados
   const [evolucion, setEvolucion] = useState<EvolucionMensual[]>([]);
-  const [stats, setStats] = useState<StatsData | null>(null);
+  const [, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [meses, setMeses] = useState(12);

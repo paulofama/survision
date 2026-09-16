@@ -23,9 +23,8 @@ import {
   Loader2,
   CheckCircle,
   Search,
-  Building2
 } from 'lucide-react';
-import { useHonorariosConfig, HonorarioConfig, Prestador } from '@shared/hooks/useHonorariosConfig';
+import { useHonorariosConfig, HonorarioConfig } from '@shared/hooks/useHonorariosConfig';
 
 // ============================================
 // TIPOS LOCALES
@@ -59,13 +58,10 @@ const HonorariosPage: React.FC = () => {
     prestadores,
     estadisticas,
     loading,
-    error,
     isConnected,
     actualizarConfiguracion,
     crearConfiguracion,
-    eliminarConfiguracion,
     crearPrestador,
-    actualizarPrestador,
     toggleSocioPrestador,
     eliminarPrestador,
     simularHonorario,
@@ -80,7 +76,6 @@ const HonorariosPage: React.FC = () => {
   // Estados locales
   const [tabActiva, setTabActiva] = useState<TabActiva>('configuracion');
   const [editandoConfig, setEditandoConfig] = useState<string | null>(null);
-  const [editandoPrestador, setEditandoPrestador] = useState<string | null>(null);
   const [mostrarFormConfig, setMostrarFormConfig] = useState(false);
   const [mostrarFormPrestador, setMostrarFormPrestador] = useState(false);
   const [busquedaPrestador, setBusquedaPrestador] = useState('');

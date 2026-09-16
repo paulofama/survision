@@ -214,17 +214,6 @@ async function fetchFilasPeriodo(f: FiltrosPrestaciones): Promise<MovGecRow[]> {
   return filas;
 }
 
-function sumPrincipales(rows: MovGecRow[]) {
-  let ingreso = 0;
-  let practicas = 0;
-  for (const r of rows) {
-    if (!r.es_principal) continue;
-    practicas += 1;
-    ingreso += Number(r.total) || 0;
-  }
-  return { practicas, ingreso };
-}
-
 // ============================================
 // HOOK PRINCIPAL
 // ============================================

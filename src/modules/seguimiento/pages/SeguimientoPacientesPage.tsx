@@ -24,7 +24,6 @@ import {
   Shield,
   UserCheck,
   Clock,
-  Syringe,
   BarChart3,
   PieChart,
   Filter,

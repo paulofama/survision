@@ -287,7 +287,7 @@ const PrestacionesPage: React.FC = () => {
   } = usePrestaciones();
 
   // Tipo de cambio desde el context centralizado
-  const { tipoCambio, loading: loadingTC, convertirARS, convertirUSD } = useTipoCambio();
+  const { tipoCambio, convertirARS, convertirUSD } = useTipoCambio();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [prestacionEditar, setPrestacionEditar] = useState<Prestacion | null>(null);

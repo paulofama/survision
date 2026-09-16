@@ -19,7 +19,6 @@ import {
   Percent,
   Save,
   X,
-  ChevronDown,
   Printer,
   TrendingUp,
   MessageCircle,
@@ -61,13 +60,6 @@ interface RegistroDerivacion {
   prestacion: string;
   prestacion_codigo: string;
   coseguro: number;
-}
-
-interface ResumenDerivador {
-  derivador_id: number;
-  derivador: string;
-  cant_atenciones: number;
-  total_coseguro: number;
 }
 
 // ============================================

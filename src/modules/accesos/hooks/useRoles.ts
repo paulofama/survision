@@ -8,7 +8,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import {
-  Rol,
   RolConPermisos,
   NuevoRolForm,
   EditarRolForm,

@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { sbGet } from "../utils/circuito";
-import { esEmitido, estaVencido } from "../utils/resultado";
+import { estaVencido } from "../utils/resultado";
 
 interface Row {
   id: string;

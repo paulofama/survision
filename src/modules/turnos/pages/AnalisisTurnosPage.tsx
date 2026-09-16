@@ -13,12 +13,10 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
-  Filter,
   ChevronDown,
   ChevronUp,
   Activity,
   BarChart3,
-  PieChart,
   CalendarDays,
   UserCheck,
   CalendarX,
@@ -99,7 +97,6 @@ const AnalisisTurnosPage: React.FC = () => {
   const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
   
   // Filtros
-  const [vistaDetalle, setVistaDetalle] = useState<'hoy' | 'pendientes' | 'semana'>('hoy');
   const [seccionExpandida, setSeccionExpandida] = useState<string | null>('resumen');
 
   // ============================================
@@ -149,10 +146,6 @@ const AnalisisTurnosPage: React.FC = () => {
       day: '2-digit',
       month: '2-digit'
     });
-  };
-
-  const formatHora = (hora: string) => {
-    return hora || '--:--';
   };
 
   const toggleSeccion = (seccion: string) => {

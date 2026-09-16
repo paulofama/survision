@@ -6,10 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   PackageIcon, 
-  PlusIcon, 
   SearchIcon,
-  EditIcon,
-  TrashIcon,
   RefreshCwIcon,
   LayersIcon,
   TargetIcon

@@ -19,7 +19,7 @@ import { toMesKey, parseMesKey, type Mes } from '@shared/types/evolucionTemporal
 import { traerTodo } from '@shared/lib/traerTodo';
 import { cargarCostoLaboralRango, claveMes } from '@shared/services/costoLaboral';
 import {
-  armarDatosInformeMensual, etiquetaMes, CATEGORIA_SUELDOS,
+  armarDatosInformeMensual, etiquetaMes,
   type SimulacionSueldos,
 } from '../utils/datosInformeMensual';
 import { generarInformeMensualPDF, type ComprobanteCF } from '../utils/generarInformeMensual';

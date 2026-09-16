@@ -27,7 +27,7 @@ import { supabase } from '../lib/supabase';
 import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
 import type { Mes } from '../types/evolucionTemporal';
 import { parseMesKey, toMesKey } from '../types/evolucionTemporal';
-import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 /** Médicos prestadores, por apellido + nombre para no confundir homónimos. */

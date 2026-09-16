@@ -35,7 +35,6 @@ import {
   RECORDATORIO_META,
   buildWhatsAppUrl,
   formatFechaISO,
-  formatFechaLarga,
   hoyISO,
   sumarDiasISO,
   horaAMinutos,

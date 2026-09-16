@@ -18,9 +18,7 @@ import {
   RefreshCw,
   Building2,
   UserCheck,
-  Clock,
   Stethoscope,
-  Target,
   Award,
   ArrowRight,
   CalendarDays,
@@ -29,7 +27,6 @@ import {
   Zap,
   CheckCircle2,
   AlertTriangle,
-  XCircle
 } from 'lucide-react';
 import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { supabase } from '@shared/lib/supabase';

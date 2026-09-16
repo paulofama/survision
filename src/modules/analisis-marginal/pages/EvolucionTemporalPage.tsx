@@ -29,7 +29,6 @@ import {
   Calendar,
   Percent,
   XCircle,
-  ExternalLink,
   FileDown,
 } from 'lucide-react';
 import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';

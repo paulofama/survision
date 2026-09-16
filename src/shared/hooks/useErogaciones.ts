@@ -307,62 +307,6 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
   // AUTO-CLASIFICAR MES (por proveedores default)
   // ============================================
 
-  const autoClasificarMes = useCallback(async (
-    erogacionesData: Erogacion[],
-    clasificacionesMap: Map<string, ClasificacionErogacion>
-  ) => {
-    if (proveedoresDefault.length === 0) return;
-
-    let autoClasificados = 0;
-
-    for (const erogacion of erogacionesData) {
-      const clave = getClaveErogacion(erogacion.fuente, erogacion.id_geclisa);
-      // Solo auto-clasificar si no tiene clasificación previa
-      if (clasificacionesMap.has(clave)) continue;
-
-      const provDefault = buscarProveedorDefault(erogacion.proveedor_nombre);
-      if (!provDefault) continue;
-
-      try {
-        const nuevaClasificacion = {
-          fuente: erogacion.fuente,
-          id_geclisa: erogacion.id_geclisa,
-          anio,
-          mes,
-          fecha: erogacion.fecha,
-          descripcion: erogacion.descripcion,
-          proveedor_nombre: erogacion.proveedor_nombre,
-          monto: erogacion.monto,
-          categoria: erogacion.categoria_sugerida,
-          tipo_costo: tipoDeProveedorDefault(provDefault),
-          es_costo_fijo: provDefault.es_costo_fijo_default,
-          categoria_costo_fijo_id: provDefault.categoria_costo_fijo_id || null,
-          auto_clasificado: true,
-          clasificado_por: 'auto',
-          clasificado_at: new Date().toISOString()
-        };
-
-        const { data, error: insertError } = await supabase
-          .from('erogaciones_clasificacion')
-          .upsert([nuevaClasificacion], { onConflict: 'fuente,id_geclisa' })
-          .select()
-          .single();
-
-        if (!insertError && data) {
-          clasificacionesMap.set(clave, data);
-          autoClasificados++;
-        }
-      } catch (err) {
-        // Silenciar errores individuales de auto-clasificación
-      }
-    }
-
-    if (autoClasificados > 0) {
-      setClasificaciones(new Map(clasificacionesMap));
-      console.log(`🤖 Auto-clasificados: ${autoClasificados} registros`);
-    }
-  }, [anio, mes, proveedoresDefault, buscarProveedorDefault]);
-
   // ============================================
   // CARGAR EROGACIONES DE GECLISA
   // ============================================

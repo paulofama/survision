@@ -11,7 +11,6 @@ import {
   CheckIcon,
   AlertTriangleIcon,
   BarChart3Icon,
-  CalendarIcon
 } from 'lucide-react';
 
 // ============================================
@@ -134,7 +133,7 @@ const ImportacionCsvModal: React.FC<ImportacionCsvModalProps> = ({
   onImportSuccess
 }) => {
   // Estados del componente
-  const [archivo, setArchivo] = useState<File | null>(null);
+  const [, setArchivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [paso, setPaso] = useState<'seleccion' | 'procesando' | 'revision' | 'completado'>('seleccion');
   const [datosProcessed, setDatosProcessed] = useState<PrestacionRealizada[]>([]);

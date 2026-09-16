@@ -6,7 +6,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import type {
-  LiqHonorario,
   LiqHonorarioConPrestador,
   LiqPrestador,
   LiqOperationResult,

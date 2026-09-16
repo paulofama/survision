@@ -84,22 +84,6 @@ interface AtencionRaw {
 // HELPERS DE CLASIFICACIÓN (replicados del módulo)
 // ============================================
 
-/**
- * Extrae el mes 'YYYY-MM' de una fecha en string.
- * Soporta 'YYYY-MM-DD' y formatos ISO.
- */
-const extraerMes = (fechaStr: string): Mes | null => {
-  if (!fechaStr) return null;
-  const s = String(fechaStr).slice(0, 10); // 'YYYY-MM-DD'
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-    return s.slice(0, 7); // 'YYYY-MM'
-  }
-  // Fallback: parsear como Date
-  const d = new Date(fechaStr);
-  if (isNaN(d.getTime())) return null;
-  return toMesKey(d.getFullYear(), d.getMonth() + 1);
-};
-
 // ============================================
 // HOOK PRINCIPAL
 // ============================================

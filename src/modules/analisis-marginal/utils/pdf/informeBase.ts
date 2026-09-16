@@ -346,7 +346,6 @@ export function graficoBarrasLinea(
 
   const gX = M + 20;              // deja lugar a los rótulos del eje
   const gW = L.cw - 20;
-  const gTop = L.y;
   const gBot = L.y + alto;
 
   // Escala: incluye el 0 para que las barras no mientan sobre su tamaño.
@@ -463,7 +462,6 @@ export function graficoPuente(L: Lienzo, barras: BarraPuente[], opts: { alto?: n
 
   const gX = M + 22;
   const gW = L.cw - 22;
-  const gTop = L.y;
   const gBot = L.y + alto;
 
   // Acumulados para saber dónde arranca y termina cada columna

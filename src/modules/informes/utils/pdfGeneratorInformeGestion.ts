@@ -126,11 +126,6 @@ const fmtNumero = (n: number): string => {
   return new Intl.NumberFormat('es-AR').format(Math.round(n));
 };
 
-const fmtPct = (n: number): string => {
-  const signo = n > 0 ? '+' : '';
-  return `${signo}${n.toFixed(1)}%`;
-};
-
 const fmtVariacion = (n: number): string => {
   if (n > 0) return `+${n.toFixed(1)}%`;
   if (n < 0) return `${n.toFixed(1)}%`;
@@ -1832,7 +1827,6 @@ function dibujarSeccionCruceOSxPracticas(
       cols.forEach(c => {
         totalesCol[c.key] = { cantidad: 0, facturado: 0 };
       });
-      let granCant = 0, granFact = 0;
 
       cruce.filasPracticas.forEach(fila => {
         cols.forEach(c => {
@@ -1847,8 +1841,6 @@ function dibujarSeccionCruceOSxPracticas(
             }
           }
         });
-        granCant += fila.totalCantidad;
-        granFact += fila.totalFacturado;
       });
 
       // Fila de totales

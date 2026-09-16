@@ -30,7 +30,7 @@
 import autoTable from 'jspdf-autotable';
 import {
   Lienzo, C, M, CW, PW, PH, Y_CONTENIDO, RGB,
-  nuevoLienzo, nuevaHoja, membrete, seccion, parrafo, vinieta, aviso, kpi,
+  nuevoLienzo, membrete, seccion, parrafo, vinieta, aviso, kpi,
   asegurar, cerrar, graficoBarrasLinea, graficoPuente,
   fmt, fmtCant, fmtPct, fmtDelta, vari, varPP, alinear,
   type PuntoSerie, type BarraPuente,
@@ -79,7 +79,6 @@ const TONO_COLOR: Record<TonoLectura, RGB> = {
   positivo: C.green, negativo: C.red, alerta: C.amber, neutro: C.medium,
 };
 
-const colorDe = (n: number): RGB => (n >= 0 ? C.green : C.red);
 
 /** Marca visible de dato estimado. Va donde aparece el número, no sólo al pie. */
 const SELLO_EST = ' (est.)';
@@ -567,7 +566,7 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
   parrafo(L, 'Estado de resultados comparativo', { bold: true, size: 10, color: C.primary });
 
   const cols = d.serie.slice(-6);
-  const filaEERR = (label: string, get: (c: CifrasMes) => number, pctSobreFact = true, bold = false) => [
+  const filaEERR = (label: string, get: (c: CifrasMes) => number, pctSobreFact = true, _bold = false) => [
     label,
     ...cols.flatMap(c => {
       const v = get(c);
@@ -879,7 +878,6 @@ function seccionPrestaciones(L: Lienzo, d: DatosInformeMensual) {
 // ============================================================
 
 function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
-  const m = d.mes;
   const a = d.anterior;
   seccion(L, '6. Obras sociales', { hojaNueva: true });
 

@@ -223,7 +223,6 @@ export function armarEvolucionPDF(datos: DatosEvolucionPDF): Lienzo {
   const periodo = meses.length === 1 ? desde : `${desde} a ${hasta}`;
 
   const L = nuevoLienzo(`Evolución Temporal — ${periodo}`, 'l');
-  const { doc } = L;
 
   if (!meses.length) {
     // Único caso en que el informe no tiene nada que decir: se dice.

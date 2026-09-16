@@ -19,11 +19,7 @@ import {
   ArrowDown,
   Building2,
   Loader2,
-  TrendingUp,
-  TrendingDown,
   Users,
-  FileBarChart,
-  AlertTriangle,
   Info,
 } from 'lucide-react';
 import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
@@ -33,7 +29,7 @@ import useCostosFijosDistribucion, {
   semaforoDot,
 } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
-import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 // ============================================

@@ -378,7 +378,7 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
       setFiltroSegmento(nuevos.segmento || '');
     }
 
-    const { segmento, ...rest } = nuevos;
+    const { ...rest } = nuevos;
     if (Object.keys(rest).length > 0) {
       aplicarFiltrosBase(rest);
     }

@@ -15,8 +15,6 @@ import {
   Search,
   RefreshCw,
   Download,
-  Calendar,
-  FolderTree,
   TrendingUp,
   DollarSign,
   Users,
@@ -27,11 +25,10 @@ import {
   WifiOff,
   ChevronDown,
   Hash,
-  Activity,
   Layers
 } from 'lucide-react';
 import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
-import { FiltroSelect, StatCard } from '@shared/components/ui';
+import { StatCard } from '@shared/components/ui';
 
 // ============================================
 // COMPONENTE PRINCIPAL
@@ -39,7 +36,6 @@ import { FiltroSelect, StatCard } from '@shared/components/ui';
 
 const AnalisisPorGrupoPage: React.FC = () => {
   const {
-    prestaciones,
     totalesPeriodo,        // ★ v3.0: Totales del servidor
     statsPorGrupo,         // ★ v3.0: Datos agrupados del servidor
     opcionesFiltros,

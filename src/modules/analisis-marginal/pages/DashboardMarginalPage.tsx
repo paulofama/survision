@@ -28,7 +28,7 @@ import useNombreMapping from '@shared/hooks/useNombreMapping';
 import InformeMensualModal from '../components/InformeMensualModal';
 import { useAuth } from '@shared/context/AuthContext';
 import { formatearPeriodo } from '../utils/periodo';
-import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
+import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
 // ============================================
@@ -216,8 +216,6 @@ const DashboardMarginalContent: React.FC = () => {
     let totalFacturado = 0;
     let totalHonorarios = 0;
     let totalCostos = 0;
-    let totalPools = 0;
-    let totalInsumos = 0;
     const prestadoresSet = new Set<string>();
     const obrasSocialesSet = new Set<string>();
 
@@ -274,8 +272,6 @@ const DashboardMarginalContent: React.FC = () => {
       // Acumular totales
       totalFacturado += facturado;
       totalHonorarios += honorario;
-      totalPools += costoPools;
-      totalInsumos += costoInsumos;
       totalCostos += honorario + costoReceta;
 
       // Por segmento
@@ -492,9 +488,6 @@ const DashboardMarginalContent: React.FC = () => {
             ? (resultadoOperativo / analytics.totalFacturado) * 100
             : 0;
           const color = getSemaforoColor(resultadoPct);
-          const colorMap: Record<string, 'green' | 'yellow' | 'red'> = {
-            verde: 'green', amarillo: 'yellow', rojo: 'red'
-          };
           return (
             <div className="bg-white rounded-xl border p-4 border-emerald-200 bg-emerald-50 relative">
               <div className="flex items-start justify-between">

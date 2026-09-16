@@ -5,9 +5,9 @@
 // ============================================================
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Save, X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Save, X, AlertTriangle, Info } from 'lucide-react';
 import { useCajaCalculation, calcularOS, calcularTotales } from './useCajaCalculation';
-import type { LiqPrestador, LiqHonorarioConPrestador, CajaCalculated } from './types';
+import type { LiqPrestador, LiqHonorarioConPrestador } from './types';
 
 // ─── FMT helper (necesario antes de los componentes) ───────
 const NUM = (v: string | number): number => {
