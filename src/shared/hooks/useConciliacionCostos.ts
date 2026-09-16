@@ -29,6 +29,48 @@ import type { Mes } from '../types/evolucionTemporal';
 import { parseMesKey, toMesKey } from '../types/evolucionTemporal';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import type { RecetaIndexable, AliasNombre } from '@shared/utils/buscadorRecetas';
+import { traerTodo } from '../lib/traerTodo';
+import type { ConfigSegmentoHonorario } from '@shared/utils/honorariosPrestador';
+
+// ── Formas de las filas que se traen ──────────────────────────────────────────
+// Una por consulta, con exactamente las columnas que pide su `select`. Viven acá
+// y no en `types/` porque no son entidades del dominio: son el recorte que
+// necesita esta conciliación.
+
+interface FilaMovimiento {
+  anio: number;
+  mes: number;
+  practica_codigo: string | null;
+  practica_nombre: string | null;
+  prestador_nombre: string | null;
+  total: number | null;
+}
+
+interface FilaPrestador {
+  nombre: string | null;
+  es_socio: boolean | null;
+}
+
+interface FilaHonorarioConfig extends ConfigSegmentoHonorario {
+  segmento: string;
+}
+
+interface FilaErogacion {
+  anio: number;
+  mes: number;
+  monto: number | null;
+  proveedor_nombre: string | null;
+  descripcion: string | null;
+}
+
+/** Las dos columnas de costo que esta pantalla suma de la vista de recetas. */
+interface FilaReceta extends RecetaIndexable {
+  costo_total_pools: number | null;
+  costo_insumos_directos: number | null;
+}
+
+type FilaAlias = AliasNombre;
 
 /** Médicos prestadores, por apellido + nombre para no confundir homónimos. */
 const MEDICOS: Array<[string, string]> = [
@@ -76,19 +118,6 @@ const cero = (meses: Mes[]): Record<Mes, number> =>
 const filtroMeses = (meses: Mes[]): string =>
   meses.map((m) => { const { anio, mes } = parseMesKey(m); return `and(anio.eq.${anio},mes.eq.${mes})`; }).join(',');
 
-async function traerTodo<T>(build: (desde: number) => any): Promise<T[]> {
-  const out: T[] = [];
-  let from = 0;
-  for (;;) {
-    const { data, error } = await build(from);
-    if (error) throw new Error(error.message);
-    out.push(...((data || []) as T[]));
-    if (!data || data.length < 1000) break;
-    from += 1000;
-  }
-  return out;
-}
-
 export function useConciliacionCostos(meses: Mes[], activo: boolean): ConciliacionCostos {
   const [estado, setEstado] = useState<ConciliacionCostos>(VACIO);
 
@@ -97,24 +126,25 @@ export function useConciliacionCostos(meses: Mes[], activo: boolean): Conciliaci
     try {
       const orM = filtroMeses(ms);
       const [mov, rec, maps, pres, cfg, ero] = await Promise.all([
-        traerTodo<any>((d) => supabase.from('movimientos_geclisa')
+        traerTodo<FilaMovimiento>((d) => supabase.from('movimientos_geclisa')
           .select('anio, mes, practica_codigo, practica_nombre, prestador_nombre, total')
           .eq('es_principal', true).or(orM).range(d, d + 999)),
-        traerTodo<any>((d) => supabase.from('v_recetas_costos_por_pool')
+        traerTodo<FilaReceta>((d) => supabase.from('v_recetas_costos_por_pool')
           .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos').range(d, d + 999)),
-        traerTodo<any>((d) => supabase.from('prestaciones_nombre_mapping')
+        traerTodo<FilaAlias>((d) => supabase.from('prestaciones_nombre_mapping')
           .select('nombre_geclisa, nombre_receta').range(d, d + 999)),
-        traerTodo<any>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
-        traerTodo<any>((d) => supabase.from('honorarios_config')
+        traerTodo<FilaPrestador>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
+        traerTodo<FilaHonorarioConfig>((d) => supabase.from('honorarios_config')
           .select('segmento, porcentaje_socio, porcentaje_no_socio').range(d, d + 999)),
-        traerTodo<any>((d) => supabase.from('erogaciones_clasificacion')
+        traerTodo<FilaErogacion>((d) => supabase.from('erogaciones_clasificacion')
           .select('anio, mes, monto, proveedor_nombre, descripcion')
           .eq('tipo_costo', 'variable').or(orM).range(d, d + 999)),
       ]);
 
       const rm = crearIndiceRecetas(rec, maps);
       const pm = new Map(pres.map((p) => [String(p.nombre).toUpperCase(), p]));
-      const cs: Record<string, any> = {}; cfg.forEach((c) => cs[c.segmento] = c);
+      const cs: Record<string, ConfigSegmentoHonorario> = {};
+      cfg.forEach((c) => { cs[c.segmento] = c; });
 
       // ── estándar ──
       const honEst = cero(ms), insEst = cero(ms);

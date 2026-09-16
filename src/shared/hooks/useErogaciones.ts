@@ -66,6 +66,72 @@ interface ClasificacionErogacion {
   clasificado_at?: string;
 }
 
+/** Fila de `erogaciones_geclisa`, el espejo de las tres fuentes de GECLISA. */
+interface FilaErogacionGeclisa {
+  fuente: Erogacion['fuente'];
+  id_geclisa: number;
+  fecha: string;
+  proveedor_nombre: string | null;
+  descripcion: string | null;
+  monto: number | null;
+  categoria_sugerida: string | null;
+  tipo_comprobante: string | null;
+  numero_comprobante: string | null;
+}
+
+/**
+ * Lo que se manda al clasificar a mano. `updated_at` NO va nunca: lo pone un
+ * trigger y mandarlo devuelve 400.
+ */
+interface ActualizacionClasificacion {
+  tipo_costo: TipoCosto;
+  es_costo_fijo: boolean;
+  clasificado_por: string;
+  auto_clasificado: boolean;
+  clasificado_at: string;
+  categoria_costo_fijo_id?: string | null;
+  subcategoria_variable?: 'honorarios' | 'insumos' | null;
+}
+
+/** El recorte del histórico con el que se aprende la clasificación por proveedor. */
+interface FilaHistorico {
+  proveedor_nombre: string | null;
+  monto: number | null;
+  tipo_costo: string | null;
+  categoria_costo_fijo_id: string | null;
+  // Viene como texto suelto de la columna, sin estrechar: la validación real la
+  // hace `normalizeTipoCosto` y el combo se arma con JSON.
+  subcategoria_variable: string | null;
+}
+
+/** Lo que necesita el resumen anual: mes, fuente e importe. */
+interface FilaResumenAnual {
+  mes: number;
+  fuente: string;
+  monto: number | null;
+}
+
+/** Una sugerencia lista para upsert. Espeja las columnas de la tabla. */
+interface FilaSugerencia {
+  fuente: string;
+  id_geclisa: number;
+  anio: number;
+  mes: number;
+  // Foto de la erogación al momento de sugerir, para que la fila valga sola.
+  fecha: string;
+  descripcion: string;
+  proveedor_nombre: string;
+  monto: number;
+  categoria: string;
+  tipo_costo: TipoCosto;
+  es_costo_fijo: boolean;
+  categoria_costo_fijo_id: string | null;
+  subcategoria_variable: 'honorarios' | 'insumos' | null;
+  auto_clasificado: boolean;
+  clasificado_por: string;
+  clasificado_at: string;
+}
+
 // OJO: la tabla `proveedores_clasificacion_default` NO tiene `tipo_costo_default`.
 // El código lo leía igual y siempre caía al `|| 'fijo'`, y el alta lo INSERTABA,
 // lo que hacía fallar el insert entero contra una columna inexistente. El tipo
@@ -104,7 +170,7 @@ interface PendienteGuardarDefault {
 
 // Normaliza tipo_costo: elimina comillas embebidas que genera Supabase JSONB
 // Ejemplo: '"variable"' → 'variable', '"fijo"' → 'fijo'
-const normalizeTipoCosto = (valor: any): TipoCosto => {
+const normalizeTipoCosto = (valor: unknown): TipoCosto => {
   if (!valor) return 'sin_clasificar';
   const str = String(valor).replace(/^"|"$/g, '').trim();
   if (str === 'fijo' || str === 'variable' || str === 'sin_clasificar') {
@@ -119,7 +185,7 @@ const MESES = [
 ];
 
 // Normaliza el nombre de proveedor para matchear contra el histórico.
-const normalizarProveedor = (s: any): string =>
+const normalizarProveedor = (s: unknown): string =>
   String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
 
 // ============================================
@@ -292,7 +358,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       if (supabaseError) throw supabaseError;
 
       const mapa = new Map<string, ClasificacionErogacion>();
-      (data || []).forEach((c: any) => {
+      (data || []).forEach((c: ClasificacionErogacion) => {
         const clave = getClaveErogacion(c.fuente, c.id_geclisa);
         // Normalizar tipo_costo para eliminar comillas embebidas de JSONB
         mapa.set(clave, { ...c, tipo_costo: normalizeTipoCosto(c.tipo_costo) });
@@ -331,7 +397,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         .order('monto', { ascending: false });
       if (sbErr) throw new Error(sbErr.message);
 
-      const erogacionesGeclisa: Erogacion[] = (rows || []).map((e: any) => ({
+      const erogacionesGeclisa: Erogacion[] = (rows || []).map((e: FilaErogacionGeclisa) => ({
         fuente: e.fuente,
         id_geclisa: e.id_geclisa,
         fecha: e.fecha,
@@ -440,7 +506,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
     const clasificacionExistente = clasificaciones.get(clave);
 
     try {
-      const updateData: any = {
+      const updateData: ActualizacionClasificacion = {
         tipo_costo: nuevoTipo,
         es_costo_fijo: nuevoTipo === 'fijo',
         clasificado_por: 'manual',
@@ -683,7 +749,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
 
       // 2. Clasificación dominante por proveedor (combinación más frecuente).
       const porProv = new Map<string, Map<string, number>>();
-      (hist || []).forEach((r: any) => {
+      (hist || []).forEach((r: FilaHistorico) => {
         const prov = normalizarProveedor(r.proveedor_nombre);
         if (!prov) return;
         const tipo = normalizeTipoCosto(r.tipo_costo);
@@ -704,7 +770,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       // honorarios de otros montos): el alquiler recurrente se auto-clasifica
       // bien por su monto, en vez de heredar la clasificación dominante.
       const porProvMonto = new Map<string, Map<string, number>>();
-      (hist || []).forEach((r: any) => {
+      (hist || []).forEach((r: FilaHistorico) => {
         const prov = normalizarProveedor(r.proveedor_nombre);
         if (!prov) return;
         const tipo = normalizeTipoCosto(r.tipo_costo);
@@ -723,7 +789,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
 
       // 3. Construir sugerencias para las erogaciones SIN clasificar del mes.
       const ahora = new Date().toISOString();
-      const filasUpsert: any[] = [];
+      const filasUpsert: FilaSugerencia[] = [];
       let sinMatch = 0;
       for (const e of erogaciones) {
         const clave = getClaveErogacion(e.fuente, e.id_geclisa);
@@ -766,7 +832,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       // 5. Actualizar el mapa local.
       setClasificaciones(prev => {
         const nuevo = new Map(prev);
-        (data || []).forEach((c: any) => {
+        (data || []).forEach((c: ClasificacionErogacion) => {
           nuevo.set(getClaveErogacion(c.fuente, c.id_geclisa), { ...c, tipo_costo: normalizeTipoCosto(c.tipo_costo) });
         });
         return nuevo;
@@ -873,19 +939,26 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
 
     try {
       // Resumen anual desde el espejo Supabase (agrupado por mes + fuente).
-      const { data: rows, error: sbErr } = await supabase
+      //
+      // PAGINADO, y no es un detalle: un año tiene más de 2.000 erogaciones y
+      // PostgREST corta en 1.000 sin avisar —devuelve `error: null`, así que
+      // parece una respuesta completa—. Sin paginar, el resumen anual mostraba
+      // $96,4 M en 2024 contra $341,4 M reales (-71,8 %), $492,7 M en 2025
+      // contra $1.384,5 M (-64,4 %) y $674,6 M en 2026 contra $915,8 M
+      // (-26,3 %). Medido el 16/09/2026. Ver `lib/traerTodo`.
+      const rows = await traerTodo<FilaResumenAnual>((desde) => supabase
         .from('erogaciones_geclisa')
         .select('mes, fuente, monto')
-        .eq('anio', anioCargar);
-      if (sbErr) throw new Error(sbErr.message);
+        .eq('anio', anioCargar)
+        .range(desde, desde + 999));
 
-      const porMes = new Map<number, { mes: number; proveedores: number; egresos_caja: number; liquidaciones: number; total_mes: number; cantidad_total: number }>();
+      const porMes = new Map<number, ResumenMensual>();
       for (let m = 1; m <= 12; m++) porMes.set(m, { mes: m, proveedores: 0, egresos_caja: 0, liquidaciones: 0, total_mes: 0, cantidad_total: 0 });
-      for (const r of rows || []) {
-        const e = porMes.get((r as any).mes);
+      for (const r of rows) {
+        const e = porMes.get(r.mes);
         if (!e) continue;
-        const monto = Number((r as any).monto) || 0;
-        const fuente = (r as any).fuente;
+        const monto = Number(r.monto) || 0;
+        const fuente = r.fuente;
         if (fuente === 'MovProv') e.proveedores += monto;
         else if (fuente === 'MovValoresEnca') e.egresos_caja += monto;
         else if (fuente === 'LiqComp') e.liquidaciones += monto;
