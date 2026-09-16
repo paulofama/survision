@@ -22,7 +22,7 @@ import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
 export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef, CopiaCaja, RecetaDeCostos } from "./documentos";
 export { LEYENDA_RESPONSABILIDAD_RECETA } from "./documentos";
 export {
-  calcularDeposito, totalObraSocial, baseDeposito,
+  calcularDeposito, baseDeposito,
   conceptoCompleto, recetasDelSobre, recetasDeMedicacionAdicional,
   // Caja: valor total, entrega y regla de facturación (FASE 3).
   valorTotalCaja, entregaActual, restaPagar,
@@ -138,7 +138,6 @@ export async function cargarRecetaDeCostos(
 export const CAJA_VACIA: CajaOpts = {
   depositoModalidad: null,
   depositoValor: null,
-  montoUnico: null,
   entrega: null,
 };
 
@@ -147,15 +146,18 @@ export const CAJA_VACIA: CajaOpts = {
  *
  * `entrega` arranca SIEMPRE en null, a propósito: cada comprobante documenta un
  * pago nuevo, así que el operador tiene que tipear cuánto se recibe ahora. Lo
- * que se conserva de la aceptación es el marco —la modalidad y, en obra social,
- * el importe a cargo del paciente— no el dinero entregado.
+ * que se conserva de la aceptación es el marco —la modalidad de la entrega en
+ * Particular— no el dinero entregado.
+ *
+ * `caja_monto_unico` ya no se lee: el valor total sale del presupuesto en todas
+ * las coberturas. La columna se conserva con lo cargado hasta el 15/09/2026,
+ * que es el rastro de los comprobantes emitidos con el cálculo viejo.
  */
 export function cajaDesdeAceptacion(a: Aceptacion | null): CajaOpts {
   if (!a) return { ...CAJA_VACIA };
   return {
     depositoModalidad: a.deposito_modalidad ?? null,
     depositoValor: a.deposito_valor == null ? null : num(a.deposito_valor),
-    montoUnico: a.caja_monto_unico == null ? null : num(a.caja_monto_unico),
     entrega: null,
   };
 }

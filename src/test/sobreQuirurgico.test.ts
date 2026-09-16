@@ -17,7 +17,7 @@ import { nuevoLienzo, nuevaHoja, cerrar, Lienzo, Orientacion } from "../modules/
 import {
   docPedidoCirugia, docIndicaciones, docCronograma, docRecetas,
   docAnalisisEcg, docCaja, docCajaCopia, docRecetaCostos, docTrazabilidad, docConsentimiento,
-  calcularDeposito, totalObraSocial, valorTotalCaja, restaPagar,
+  calcularDeposito, valorTotalCaja, restaPagar,
   requiereFactura, leyendaIva, DX_RECETAS, LEYENDA_RECETA_POR_SISTEMA,
   LEYENDA_A_CARGO_PACIENTE, LEYENDA_RESPONSABILIDAD_RECETA, SobreCtx, RecetaDeCostos,
 } from "../modules/presupuestador/utils/sobre/documentos";
@@ -162,10 +162,10 @@ const ctxDe = (
   });
 
 /** Caja sin nada cargado (el operador todavía no tipeó la entrega). */
-const CAJA_0: SobreCtx["caja"] = { depositoModalidad: null, depositoValor: null, montoUnico: null, entrega: null };
-/** Entrega en pesos. `montoUnico` sólo aplica en obra social. */
-const cajaCon = (entrega: number | null, montoUnico: number | null = null): SobreCtx["caja"] =>
-  ({ depositoModalidad: null, depositoValor: null, montoUnico, entrega });
+const CAJA_0: SobreCtx["caja"] = { depositoModalidad: null, depositoValor: null, entrega: null };
+/** Entrega en pesos. El valor total ya no se carga: sale del presupuesto. */
+const cajaCon = (entrega: number | null): SobreCtx["caja"] =>
+  ({ depositoModalidad: null, depositoValor: null, entrega });
 
 // ── Extracción de texto del PDF (jsPDF no comprime: los literales son legibles) ──
 
@@ -646,7 +646,7 @@ describe("Ingreso de caja — Particular", () => {
   });
 
   it("la entrega por PORCENTAJE se resuelve sobre el valor total", () => {
-    const ctx = ctxDe(P810, base, { depositoModalidad: "PORCENTAJE", depositoValor: 30, montoUnico: null, entrega: null });
+    const ctx = ctxDe(P810, base, { depositoModalidad: "PORCENTAJE", depositoValor: 30, entrega: null });
     expect(calcularDeposito(ctx)?.monto).toBeCloseTo(6299260 * 0.3, 2);
   });
 
@@ -699,7 +699,7 @@ describe("Ingreso de caja — leyenda C/IVA — S/IVA", () => {
   });
 
   it("con descuento: S/IVA y requiere_factura = false", () => {
-    const ctx = ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000, 2214401));
+    const ctx = ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000));
     expect(ctx.precios.descuento).toBe(221440.1);
     expect(requiereFactura(ctx)).toBe(false);
     expect(leyendaIva(ctx)).toBe("S/IVA");
@@ -721,7 +721,7 @@ describe("Ingreso de caja — leyenda C/IVA — S/IVA", () => {
   });
 
   it("en el papel va sólo la sigla, sin interpretación fiscal", () => {
-    const ctx = ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000, 2214401));
+    const ctx = ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000));
     const t = textoCaja(ctx);
     expect(t).not.toContain("no corresponde factura");
     expect(t).not.toContain("requiere_factura");
@@ -772,37 +772,46 @@ describe("Ingreso de caja — bloque de tesorería", () => {
 describe("Ingreso de caja — Obra social vía directa (OSEP)", () => {
   const base = { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" };
 
-  it("el VALOR TOTAL es el importe a cargo del paciente", () => {
-    const ctx = ctxDe(P812, base, cajaCon(500000, 2214401));
-    expect(totalObraSocial(ctx)).toBeCloseTo(2214401 - 221440.1, 2);
-    expect(valorTotalCaja(ctx)).toBeCloseTo(2214401 - 221440.1, 2);
+  // El total del presupuesto YA es el importe a cargo del paciente: la
+  // cobertura se descuenta antes de llegar a él. Hasta el 15/09/2026 esta rama
+  // paraba en el neto (2.214.401 − 221.440,10 = 1.992.960,90) y el comprobante
+  // salía corto por el IVA — $418.521,79 en este presupuesto.
+  it("el VALOR TOTAL es el total del presupuesto, con IVA", () => {
+    const ctx = ctxDe(P812, base, cajaCon(500000));
+    expect(valorTotalCaja(ctx)).toBeCloseTo(2411482.689, 2);
     const t = textoCaja(ctx);
-    expect(t).toContain(fmtARS(2214401 - 221440.1));
+    expect(t).toContain(fmtARS(2411482.689));
     expect(t).toContain(LEYENDA_A_CARGO_PACIENTE);
   });
 
+  it("NO se queda en el neto: el IVA no se descuenta del valor total", () => {
+    const ctx = ctxDe(P812, base, cajaCon(500000));
+    expect(valorTotalCaja(ctx)).not.toBeCloseTo(2214401 - 221440.1, 2);
+    expect(textoCaja(ctx)).not.toContain(fmtARS(1992960.9));
+  });
+
   it("ya no dice que el importe lo cubre la obra social", () => {
-    const ctx = ctxDe(P812, base, cajaCon(500000, 2214401));
+    const ctx = ctxDe(P812, base, cajaCon(500000));
     expect(textoCaja(ctx)).not.toContain("Importe registrado por convenio");
   });
 
   it("mantiene ENTREGA y RESTA PAGAR, igual que en Particular", () => {
-    const ctx = ctxDe(P812, base, cajaCon(500000, 2214401));
-    expect(restaPagar(ctx)).toBeCloseTo(2214401 - 221440.1 - 500000, 2);
+    const ctx = ctxDe(P812, base, cajaCon(500000));
+    expect(restaPagar(ctx)).toBeCloseTo(2411482.689 - 500000, 2);
     const t = textoCaja(ctx);
     expect(t).toContain("ENTREGA");
     expect(t).toContain("RESTA PAGAR");
   });
 
   it("DNI y N° de afiliado", () => {
-    const ctx = ctxDe(P812, base, cajaCon(500000, 2214401));
+    const ctx = ctxDe(P812, base, cajaCon(500000));
     const t = textoCaja(ctx);
     expect(t).toContain("30724328");        // DNI
     expect(t).toContain("4400499/00");      // afiliado
   });
 
   it("SIN ninguna línea de IVA", () => {
-    const ctx = ctxDe(P812, base, cajaCon(500000, 2214401));
+    const ctx = ctxDe(P812, base, cajaCon(500000));
     const t = textoCaja(ctx);
     expect(t).not.toMatch(/IVA \(incluido\)/);
     expect(t).not.toContain(fmtARS(418521.789));
@@ -813,30 +822,33 @@ describe("Ingreso de caja — Círculo Médico", () => {
   const base = { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" };
 
   it("sin detalle de IVA", () => {
-    const ctx = ctxDe(P813, base, cajaCon(400000, 1287040));
+    const ctx = ctxDe(P813, base, cajaCon(400000));
     const t = textoCaja(ctx);
     expect(t).not.toMatch(/IVA \(incluido\)/);
     expect(t).not.toContain(fmtARS(292742.75));
   });
 
-  it("detalla la ampolla de Avastin del presupuesto y la suma al total", () => {
-    const ctx = ctxDe(P813, base, cajaCon(400000, 1287040));
+  // Los adicionales se DETALLAN, pero no se suman aparte: `precios.total` ya
+  // los incluye (neto = base − descuento + insumos). Sumarlos otra vez los
+  // cobraría dos veces.
+  it("detalla la ampolla de Avastin, que ya viene dentro del total", () => {
+    const ctx = ctxDe(P813, base, cajaCon(400000));
     expect(ctx.itemsAdicionales).toEqual([{ descripcion: "AVASTIN", monto: 106973.11 }]);
-    expect(valorTotalCaja(ctx)).toBeCloseTo(1287040 + 106973.11, 2);
+    expect(valorTotalCaja(ctx)).toBeCloseTo(1686755.86, 2);
     const t = textoCaja(ctx);
     expect(t).toContain("AVASTIN");
     expect(t).toContain(fmtARS(106973.11));
-    expect(t).toContain(fmtARS(1287040 + 106973.11));
+    expect(t).toContain(fmtARS(1686755.86));
   });
 
   it("el concepto dice qué está pagando, en el encabezado del detalle", () => {
-    const ctx = ctxDe(P813, base, cajaCon(400000, 1287040));
+    const ctx = ctxDe(P813, base, cajaCon(400000));
     expect(conceptoCompleto(ctx)).toBe("Cirugía de catarata con LIO Monofocal + AVASTIN");
     expect(textoCaja(ctx)).toContain("CIRUGÍA DE CATARATA CON LIO MONOFOCAL + AVASTIN");
   });
 
   it("detalla el ojo a operar", () => {
-    const ctx = ctxDe(P813, base, cajaCon(400000, 1287040));
+    const ctx = ctxDe(P813, base, cajaCon(400000));
     expect(textoCaja(ctx)).toContain("ojo derecho (OD)");
   });
 
@@ -849,8 +861,8 @@ describe("Ingreso de caja — Círculo Médico", () => {
 describe("Ingreso de caja — regla transversal de IVA", () => {
   const CASOS: [string, SobreCtx, number][] = [
     ["Particular", ctxDe(P810, { rama_cobertura: "PARTICULAR", lio_id: "l5" }, cajaCon(100000)), 1093260],
-    ["OSEP", ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000, 2214401)), 418521.789],
-    ["Círculo", ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" }, cajaCon(400000, 1287040)), 292742.75],
+    ["OSEP", ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000)), 418521.789],
+    ["Círculo", ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" }, cajaCon(400000)), 292742.75],
   ];
 
   it.each(CASOS)("%s: nunca desglosa el IVA", (nombre, ctx, montoIva) => {
@@ -924,8 +936,8 @@ describe("Estructura del Sobre Quirúrgico", () => {
   it("genera el sobre completo de las 3 coberturas sin romperse", () => {
     const casos: [string, SobreCtx][] = [
       ["Particular", ctxDe(P810, { rama_cobertura: "PARTICULAR", lio_id: "l5", requiere_analisis_ecg: true }, cajaCon(1500000))],
-      ["OSEP",       ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000, 2214401))],
-      ["Círculo",    ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" }, cajaCon(400000, 1287040))],
+      ["OSEP",       ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000))],
+      ["Círculo",    ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" }, cajaCon(400000))],
     ];
     for (const [nombre, ctx] of casos) {
       const incluir = docsDelSobre(ctx);
@@ -957,7 +969,7 @@ describe("Estructura del Sobre Quirúrgico", () => {
 
   // ── Receta de costos (hoja de quirófano) ──────────────────────────────────
   describe("receta de costos", () => {
-    const ctx = ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" }, cajaCon(400000, 1287040));
+    const ctx = ctxDe(P813, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" }, cajaCon(400000));
 
     it("imprime los insumos con cantidad, precio unitario y costo", () => {
       const t = textoDe(construir(docRecetaCostos, ctx));
@@ -1026,7 +1038,7 @@ describe("Estructura del Sobre Quirúrgico", () => {
   it("arma el sobre completo y lo nombra con el número de presupuesto", () => {
     // Se usa `armarSobreCompleto` (sin descargar): `generarSobreCompleto` es la
     // misma función + `save()`, que en test escribiría el PDF a disco.
-    const ctx = ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000, 2214401));
+    const ctx = ctxDe(P812, { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }, cajaCon(500000));
     const L = armarSobreCompleto(ctx);
     expect(L).not.toBeNull();
     expect(nombreArchivoSobre(ctx)).toBe("Sobre-Quirurgico-P-2026-812.pdf");

@@ -188,11 +188,13 @@ export default function CircuitoPanel({
     const ctx = contexto(caja);
 
     try {
-      // Parámetros del comprobante (modalidad, importe a cargo del paciente).
+      // Parámetros del comprobante. `caja_monto_unico` NO se manda: desde el
+      // 15/09/2026 el valor total sale del presupuesto y ya no se carga a mano.
+      // Al no incluirlo en el PATCH, la columna conserva lo que se guardó con el
+      // cálculo viejo, que es el rastro de los comprobantes ya emitidos.
       await sbPatch(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}`, {
         deposito_modalidad: caja.depositoModalidad,
         deposito_valor: caja.depositoValor,
-        caja_monto_unico: caja.montoUnico,
         caja_registrado_por: username,
         caja_registrado_en: new Date().toISOString(),
       });
@@ -200,7 +202,6 @@ export default function CircuitoPanel({
         ...prev,
         deposito_modalidad: caja.depositoModalidad,
         deposito_valor: caja.depositoValor,
-        caja_monto_unico: caja.montoUnico,
       } : prev));
 
       // La ENTREGA es una fila nueva, nunca un upsert: si se pisara, el segundo

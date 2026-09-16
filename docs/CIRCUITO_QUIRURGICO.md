@@ -24,7 +24,7 @@ Las tres coberturas son **Particular**, **obra social vía directa** (ej. OSEP) 
 | Recetas fijas (A/B/C) | Sí, una por hoja | Sí | Sí |
 | Receta de medicación adicional | Sí | Sí, **+ leyenda** de carga por OSEP | Sí |
 | Identificación en caja | DNI | DNI + N° de afiliado | DNI + N° de afiliado |
-| VALOR TOTAL del comprobante | Total del presupuesto | **Importe a cargo del paciente** | ídem |
+| VALOR TOTAL del comprobante | Total del presupuesto | **Total del presupuesto** (ya neto de cobertura) | ídem |
 | Entrega / Resta pagar | Sí | Sí | Sí |
 | Detalle de IVA | **Nunca** | **Nunca** | **Nunca** |
 | Leyenda C/IVA — S/IVA | Según descuento | ídem | ídem |
@@ -162,7 +162,9 @@ LIO ELEGIDO: <tipo>
 
 **Los tres renglones de dinero:**
 
-- **VALOR TOTAL** — Particular: el total del presupuesto. Obra social: el **importe a cargo del paciente**, que carga el operador. El comprobante documenta lo que el paciente paga, no lo que liquida la obra social.
+- **VALOR TOTAL** — **el total del presupuesto, en todas las coberturas.** No se tipea. En obra social ese total YA es el importe a cargo del paciente: la cadena del presupuesto descuenta la cobertura (`subtotalOriginal − coberturaOS`) antes de llegar a él, así que es la diferencia no cubierta y nada más. Los ítems adicionales se **detallan** pero no se suman aparte: `precios.total` ya los incluye.
+
+  > **Corregido el 15/09/2026.** Obra social calculaba el total por su cuenta: partía del importe que proponía el modal —`baseAntesDescuento`, una base **pre-IVA**—, le restaba el descuento y paraba ahí. Nunca sumaba el IVA, mientras Particular usaba `precios.total`, que sí lo incluye. **Los comprobantes de obra social salían cortos por el 21 %.** En P-2026-895 y P-2026-929 (Ibañez, un presupuesto por ojo) se imprimió $1.512.720,00 donde correspondía $1.830.391,20, con un saldo de $12.720,00 donde el paciente adeudaba $330.391,20: **$317.671,20 por comprobante**. La regla la fijó Administración: el descuento del 10 % va sobre la base, pero **el IVA se cobra igual** — si después hay que emitir factura, la clínica resigna el 10 % del descuento, no el 21 % del impuesto. El campo "importe a cargo del paciente" se sacó del modal; la columna `caja_monto_unico` se conserva sin uso, como rastro de lo emitido con el cálculo viejo.
 - **ENTREGA** — siempre a mano. En Particular puede expresarse como monto fijo o como **porcentaje** del valor total (`baseDeposito()`, aislado para cambiarlo en un solo lugar).
 - **RESTA PAGAR** — `valor total − entregas anteriores − esta entrega`.
 

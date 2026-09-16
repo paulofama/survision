@@ -32,8 +32,6 @@ export interface CajaOpts {
   depositoModalidad: DepositoModalidad | null;
   /** Particular: el número tipeado — $ si MONTO, % si PORCENTAJE. */
   depositoValor: number | null;
-  /** Obra social: monto único (sin desglose de IVA), antes del descuento autorizado. */
-  montoUnico: number | null;
   /**
    * ENTREGA que se recibe AHORA, en pesos, ya resuelta por el modal (en
    * Particular sale de aplicar `depositoModalidad`/`depositoValor`).
@@ -492,22 +490,37 @@ export function docAnalisisEcg(L: Lienzo, ctx: SobreCtx) {
 //     coberturas.
 //   - Todos los ítems adicionales del presupuesto se detallan acá.
 
-/** Total del ingreso para obra social: monto único − descuento + ítems adicionales. */
-export function totalObraSocial(ctx: SobreCtx): number {
-  const base = ctx.caja.montoUnico ?? 0;
-  const adicionales = ctx.itemsAdicionales.reduce((s, i) => s + (i.monto || 0), 0);
-  return Math.max(0, base - ctx.precios.descuento) + adicionales;
-}
-
 /**
- * VALOR TOTAL del comprobante.
+ * VALOR TOTAL del comprobante: lo que el paciente tiene que pagar.
  *
- * En obra social es el IMPORTE A CARGO DEL PACIENTE (la diferencia no cubierta),
- * no lo que liquida la obra social: el comprobante documenta lo que el paciente
- * paga. Es coherente con la leyenda al pie — ver `LEYENDA_A_CARGO_PACIENTE`.
+ * Es el total del presupuesto en TODAS las coberturas. En obra social eso ya es
+ * el importe a cargo del paciente: la cadena del presupuesto descuenta la
+ * cobertura antes de llegar al total (`subtotalOriginal − coberturaOS`), así que
+ * `total` es la diferencia no cubierta y nada más. Es coherente con la leyenda
+ * al pie — ver `LEYENDA_A_CARGO_PACIENTE`.
+ *
+ * EL BUG QUE ESTO CORRIGE (Administración, 15/09/2026)
+ * ----------------------------------------------------
+ * La rama de obra social calculaba el total por su cuenta, partiendo del
+ * "importe a cargo del paciente" que proponía el modal —`baseAntesDescuento`,
+ * que es una base PRE-IVA— y restándole el descuento. Terminaba en el NETO y
+ * nunca sumaba el IVA, mientras Particular usaba `precios.total`, que sí lo
+ * incluye. Resultado: los comprobantes de obra social salían cortos por el 21 %.
+ *
+ * En P-2026-895 y P-2026-929 (Ibañez, los dos ojos) se imprimió
+ * $1.512.720,00 donde correspondía $1.830.391,20, y un saldo de $12.720,00
+ * donde el paciente adeudaba $330.391,20. $317.671,20 por comprobante.
+ *
+ * La regla la fijó Administración: el descuento del 10 % se aplica sobre la
+ * base, pero **el IVA se cobra igual** — si después hay que emitir la factura,
+ * la clínica resigna el 10 % del descuento, no el 21 % del impuesto.
+ *
+ * Los ítems adicionales NO se suman aparte: `precios.total` ya los incluye
+ * (`neto = baseAntesDescuento − descuento + totalInsumos`). Sumarlos de nuevo
+ * los cobraría dos veces.
  */
 export function valorTotalCaja(ctx: SobreCtx): number {
-  return ctx.esObraSocial ? totalObraSocial(ctx) : ctx.precios.total;
+  return ctx.precios.total;
 }
 
 /**
@@ -655,7 +668,7 @@ export function docCajaCopia(L: Lienzo, ctx: SobreCtx, copia: CopiaCaja) {
   // ── Detalle ──
   // Los ítems e insumos se siguen detallando (regla de FASE 1). Ningún
   // comprobante discrimina IVA, en ninguna cobertura.
-  const bruto = ctx.esObraSocial ? (ctx.caja.montoUnico ?? 0) : ctx.precios.baseAntesDescuento;
+  const bruto = ctx.precios.baseAntesDescuento;
   importe(L, `Cirugía de catarata con LIO ${ctx.lioNombre}`.trim(), pesos(ctx, bruto), { size: 10 });
   bloqueDescuento(L, ctx);
   bloqueItemsAdicionales(L, ctx);

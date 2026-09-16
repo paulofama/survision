@@ -6,10 +6,14 @@
 // presupuesto: ese era el bug conceptual que relevó Administración el
 // 31/08/2026 contra el comprobante en papel que usan hoy.
 //
-//   VALOR TOTAL   de dónde sale según la cobertura:
-//                 · PARTICULAR   → el total del presupuesto (no editable).
-//                 · OBRA SOCIAL  → el importe a cargo del paciente, que carga
-//                                  el operador (la diferencia no cubierta).
+//   VALOR TOTAL   el total del presupuesto, en TODAS las coberturas. No se
+//                 edita ni se tipea. En obra social ese total YA es el importe
+//                 a cargo del paciente: la cobertura se descuenta antes, dentro
+//                 de la cadena del presupuesto.
+//
+//                 Hasta el 15/09/2026 obra social lo pedía a mano, prellenado
+//                 con una base PRE-IVA, y el comprobante salía corto por el
+//                 21 %. Ver `valorTotalCaja` en utils/sobre/documentos.
 //   ENTREGA       la carga SIEMPRE el operador. En Particular puede expresarla
 //                 como monto fijo o como porcentaje del valor total.
 //   RESTA PAGAR   valor total − entregas anteriores − esta entrega.
@@ -56,20 +60,13 @@ export default function CajaIngresoModal({
   const [depositoTxt, setDepositoTxt] = useState<string>("");
   // Entrega en obra social, siempre en pesos.
   const [entregaTxt, setEntregaTxt] = useState<string>("");
-  // Importe a cargo del paciente (obra social): si nunca se cargó, se propone
-  // la base del presupuesto antes del descuento; el operador puede pisarla.
-  const [montoTxt, setMontoTxt] = useState<string>(
-    ctx.caja.montoUnico != null
-      ? String(ctx.caja.montoUnico)
-      : (ctx.precios.baseAntesDescuento ? String(ctx.precios.baseAntesDescuento.toFixed(2)) : ""),
-  );
   const [guardando, setGuardando] = useState(false);
 
   // Se arma primero sin la entrega resuelta, porque en Particular el porcentaje
   // se calcula SOBRE el valor total y éste depende del resto del contexto.
   const parcial: CajaOpts = esOS
-    ? { depositoModalidad: null, depositoValor: null, montoUnico: aNumero(montoTxt), entrega: null }
-    : { depositoModalidad: modalidad, depositoValor: aNumero(depositoTxt), montoUnico: null, entrega: null };
+    ? { depositoModalidad: null, depositoValor: null, entrega: null }
+    : { depositoModalidad: modalidad, depositoValor: aNumero(depositoTxt), entrega: null };
 
   const dep = esOS ? null : calcularDeposito({ ...ctx, caja: parcial });
   const entrega = esOS ? aNumero(entregaTxt) : (dep ? dep.monto : null);
@@ -84,7 +81,7 @@ export default function CajaIngresoModal({
   const entregaValida = entrega != null && entrega > 0;
   const valido = entregaValida && (
     esOS
-      ? caja.montoUnico != null && caja.montoUnico >= 0
+      ? true
       : caja.depositoValor != null &&
         caja.depositoValor >= 0 &&
         (modalidad !== "PORCENTAJE" || caja.depositoValor <= 100)
@@ -119,22 +116,15 @@ export default function CajaIngresoModal({
 
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           {esOS && (
-            <label className="block text-sm">
-              <span className="block text-gray-600 mb-1 font-medium">Importe a cargo del paciente * (carga manual)</span>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={montoTxt}
-                onChange={(e) => setMontoTxt(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                placeholder="0,00"
-              />
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+              <span className="block text-gray-600 font-medium">Importe a cargo del paciente</span>
+              <span className="block text-lg font-bold text-gray-900">{$(valorTotalCaja(preview))}</span>
               <span className="text-[11px] text-gray-500 mt-1 block">
-                Es la diferencia que NO cubre la obra social, sin discriminar IVA.
-                Cargala <strong>antes</strong> del descuento autorizado.
+                Sale del presupuesto {ctx.numeroPresupuesto}, con la cobertura de{" "}
+                {ctx.coberturaLabel} y el descuento ya aplicados. No se edita acá: si está
+                mal, se corrige el presupuesto.
               </span>
-            </label>
+            </div>
           )}
 
           {!esOS && (
@@ -188,12 +178,8 @@ export default function CajaIngresoModal({
           {/* ── Resumen: es exactamente lo que va a salir impreso ── */}
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-gray-600">
-                {esOS ? "Importe a cargo del paciente" : `Cirugía con LIO ${ctx.lioNombre}`}
-              </span>
-              <span className="font-medium text-gray-800">
-                {$(esOS ? (caja.montoUnico ?? 0) : ctx.precios.baseAntesDescuento)}
-              </span>
+              <span className="text-gray-600">{`Cirugía con LIO ${ctx.lioNombre}`}</span>
+              <span className="font-medium text-gray-800">{$(ctx.precios.baseAntesDescuento)}</span>
             </div>
             {ctx.precios.descuento > 0 && (
               <div className="flex justify-between text-orange-600">
