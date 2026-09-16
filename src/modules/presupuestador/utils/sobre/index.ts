@@ -15,6 +15,7 @@ import {
   SobreCtx, CajaOpts, RecetaDeCostos,
   docPedidoCirugia, docIndicaciones, docCronograma, docRecetas,
   docAnalisisEcg, docCaja, docRecetaCostos, docTrazabilidad, docConsentimiento,
+  recetasDelSobre,
 } from "./documentos";
 import { Aceptacion, Convenio, Lio, sbGet } from "../circuito";
 import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
@@ -291,6 +292,14 @@ export interface DocDef {
   orient?: Orientacion;
   /** Sólo si el circuito requiere análisis/ECG. */
   condicional?: boolean;
+  /**
+   * El documento no tiene nada que imprimir para ESTE contexto.
+   *
+   * No alcanza con que `build` no dibuje nada: el orquestador abre la hoja
+   * ANTES de llamarlo, así que un documento vacío sale como una página en
+   * blanco con membrete. Pasó al suprimir las recetas de OSEP.
+   */
+  omitirSi?: (ctx: SobreCtx) => boolean;
   /** Se archiva en quirófano (va al final del sobre, desprendible). */
   quirofano?: boolean;
 }
@@ -300,7 +309,8 @@ export const DOCS: DocDef[] = [
   { clave: "pedido",         label: "Pedido de cirugía",        build: docPedidoCirugia },
   { clave: "indicaciones",   label: "Indicaciones",             build: docIndicaciones },
   { clave: "cronograma",     label: "Cronograma de gotas",      build: docCronograma, orient: "l" },
-  { clave: "recetas",        label: "Recetas (una por hoja)",   build: docRecetas },
+  { clave: "recetas",        label: "Recetas (una por hoja)",   build: docRecetas,
+    omitirSi: (ctx) => recetasDelSobre(ctx).length === 0 },
   { clave: "analisis",       label: "Análisis y ECG",           build: docAnalisisEcg, condicional: true },
   { clave: "caja",           label: "Ingreso de caja",          build: docCaja },
   // ── Se archivan en quirófano (hoja propia, al final) ──
@@ -311,7 +321,7 @@ export const DOCS: DocDef[] = [
 
 /** Documentos que van en el sobre, en orden: paciente primero, quirófano al final. */
 export function docsDelSobre(ctx: SobreCtx): DocDef[] {
-  const incluidos = DOCS.filter((d) => !d.condicional || ctx.requiereAnalisisEcg);
+  const incluidos = DOCS.filter((d) => (!d.condicional || ctx.requiereAnalisisEcg) && !d.omitirSi?.(ctx));
   return [
     ...incluidos.filter((d) => !d.quirofano),
     ...incluidos.filter((d) => d.quirofano),
@@ -348,7 +358,7 @@ export function armarSobreCompleto(ctx: SobreCtx): Lienzo | null {
 /** Genera y descarga UN documento del Sobre. */
 export function generarDocumento(clave: string, ctx: SobreCtx): void {
   const def = DOCS.find((d) => d.clave === clave);
-  if (!def) return;
+  if (!def || def.omitirSi?.(ctx)) return;
   const L = nuevoLienzo({ orient: def.orient, fecha: ctx.fechaHoy });
   construir(L, def, ctx);
   cerrar(L);

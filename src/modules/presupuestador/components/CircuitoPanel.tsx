@@ -17,7 +17,7 @@ import {
 } from "../utils/circuito";
 import {
   CajaOpts, SobreCtx, RecetaDeCostos,
-  DOCS, armarContexto, cargarConsentimiento, cargarRecetaDeCostos,
+  docsDelSobre, armarContexto, cargarConsentimiento, cargarRecetaDeCostos,
   generarDocumento, generarSobreCompleto,
   valorTotalCaja, requiereFactura, restaPagar,
 } from "../utils/sobre";
@@ -238,6 +238,13 @@ export default function CircuitoPanel({
     setPendienteCaja(null);
   };
 
+  // La botonera muestra EXACTAMENTE los documentos que va a traer el sobre.
+  // Salía de `DOCS` crudo, así que ofrecía generar hojas que el sobre omite
+  // —las recetas cuando el convenio las suprime, por ejemplo— y el botón
+  // descargaba un PDF vacío.
+  const ctxDocs = contexto();
+  const docsDelContexto = ctxDocs ? docsDelSobre(ctxDocs) : [];
+
   const labelDe = (clave: string) => CHECKLIST_ITEMS.find((i) => i.clave === clave)?.label || clave;
   const convenioNombre = aceptacion?.convenio_id ? (convenios.find((c) => c.id === aceptacion.convenio_id)?.nombre || "—") : "—";
   const lioNombre = aceptacion?.lio_id ? (lios.find((l) => l.id === aceptacion.lio_id)?.nombre || "—") : "—";
@@ -365,7 +372,7 @@ export default function CircuitoPanel({
                     Trazabilidad y consentimiento salen en hoja propia al final, para desprenderlos y archivarlos en quirófano.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {DOCS.filter((d) => !d.condicional || aceptacion.requiere_analisis_ecg).map((d) => (
+                    {docsDelContexto.map((d) => (
                       <button
                         key={d.clave}
                         onClick={() => generarUno(d.clave)}

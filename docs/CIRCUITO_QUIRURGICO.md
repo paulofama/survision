@@ -117,7 +117,9 @@ Cada columna de semana trae espacio para el rango de fechas (`SEMANA n / del __/
 
 `Dx` unificado en **`DX_RECETAS = "Cirugía ocular"`** para todas. Antes la A y la B decían "Cataratas": la medicación se prescribe por la cirugía, no por la catarata.
 
-En OSEP **se imprimen igual** y llevan al pie *"Receta a cargar por el sistema de OSEP."* Antes se suprimía la receta de medicación adicional y se perdía el respaldo en papel del sobre. Suprimirlas es un flag del convenio (`config.recetas_suprimir`), no un borrado de código.
+**En OSEP ya NO se imprimen** (Administración, 16/09/2026): *"tiene que dejarlas de imprimir porque gastás un montón de hojas"*. Se aplicó `config.recetas_suprimir = true` en el convenio OSEP — un flag, no un cambio de código. El sobre de OSEP pasó de **13 a 9 hojas**. Revierte la decisión del 31/08, que las mantenía impresas como respaldo en papel; para volver atrás alcanza con sacar el flag. Las que se imprimen en los demás convenios siguen llevando al pie *"Receta a cargar por el sistema de OSEP."* cuando corresponde.
+
+> **Ojo al suprimir un documento:** no alcanza con que no dibuje nada. El orquestador abre la hoja ANTES de construirlo, así que un documento vacío sale como **una página en blanco con membrete**. Por eso `DocDef` tiene `omitirSi`: el documento se saca de la lista, no se deja mudo. Hay test de regresión.
 
 ### Membrete
 

@@ -495,6 +495,34 @@ describe("Recetas", () => {
     expect(recetasDelSobre(ctx)).toEqual([]);
   });
 
+  // No alcanza con que la receta no se dibuje: el orquestador abre la hoja
+  // ANTES de construir el documento, así que suprimir las recetas dejaba una
+  // página en blanco con membrete. El documento tiene que salir de la lista.
+  it("al suprimirlas, el documento sale del sobre y no queda una hoja en blanco", () => {
+    const conveniosSuprime = [
+      CONVENIOS[0],
+      { ...CONVENIOS[1], config: { ...CONVENIOS[1].config, recetas_suprimir: true } },
+    ];
+    const aceptacion = aceptacionDe({ rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l2" });
+    const conSupresion = armarContexto({
+      presupuesto: P813, aceptacion, convenios: conveniosSuprime, lios: LIOS, consentimiento: CONSENTIMIENTO,
+    });
+    const sinSupresion = armarContexto({
+      presupuesto: P813, aceptacion, convenios: CONVENIOS, lios: LIOS, consentimiento: CONSENTIMIENTO,
+    });
+
+    expect(docsDelSobre(sinSupresion).map((d) => d.clave)).toContain("recetas");
+    expect(docsDelSobre(conSupresion).map((d) => d.clave)).not.toContain("recetas");
+
+    // El sobre tiene que perder EXACTAMENTE tantas hojas como recetas había.
+    // Una de más sería la página en blanco que dejaba el documento vacío.
+    const hojas = (ctx: SobreCtx) => {
+      const raw = rawPdf(armarSobreCompleto(ctx)!);
+      return (raw.match(/\/Type\s*\/Page[^s]/g) || []).length;
+    };
+    expect(hojas(conSupresion)).toBe(hojas(sinSupresion) - recetasDelSobre(sinSupresion).length);
+  });
+
   it("Particular con medicación adicional SÍ emite la receta", () => {
     const ctx = ctxDe(P813, { rama_cobertura: "PARTICULAR", lio_id: "l2" });
     expect(ctx.recetasPorSistema).toBe(false);
