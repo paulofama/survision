@@ -36,8 +36,15 @@ interface PresupuestoMin {
   datos_completos?: any;
 }
 
-/** Qué se genera después de confirmar los datos de caja. */
-type PendienteCaja = { modo: "uno" } | { modo: "sobre" };
+/**
+ * Qué se genera después de confirmar los datos de caja.
+ *
+ * El sobre viaja con la selección de documentos: el modal se abre en el medio
+ * y al volver hay que armar EXACTAMENTE lo que el operador había tildado.
+ */
+type PendienteCaja =
+  | { modo: "uno" }
+  | { modo: "sobre"; claves: string[] };
 
 // `fecha_tentativa_cirugia` es una columna `date` ("2026-08-11"): construir un
 // Date con eso la ubica a medianoche UTC y en Argentina muestra el día
@@ -82,6 +89,9 @@ export default function CircuitoPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [pendienteCaja, setPendienteCaja] = useState<PendienteCaja | null>(null);
+  // Se guardan los DESTILDADOS, no los tildados: así un documento nuevo entra
+  // al sobre por defecto en vez de quedar afuera sin que nadie lo note.
+  const [excluidos, setExcluidos] = useState<string[]>([]);
 
   const cargar = async () => {
     setLoading(true);
@@ -162,21 +172,57 @@ export default function CircuitoPanel({
   };
 
   /**
+   * Deja constancia de qué se imprimió (migración 46).
+   *
+   * Nunca bloquea la impresión: si falla el registro, el sobre igual sale. El
+   * papel es lo que el paciente se lleva; la auditoría es interna.
+   */
+  const registrarSobre = async (documentos: string[], modo: "sobre" | "documento") => {
+    if (!documentos.length) return;
+    try {
+      await sbInsert("presupuestos_sobres", {
+        presupuesto_id: presupuesto.id,
+        documentos,
+        modo,
+        generado_por: username,
+      });
+    } catch {
+      // Silencio a propósito: ver el comentario de arriba.
+    }
+  };
+
+  /**
    * El comprobante de caja necesita datos que carga el operador (monto o % del
-   * depósito en Particular; monto único en obra social), así que cualquier
-   * generación que lo incluya pasa antes por el modal.
+   * depósito en Particular), así que cualquier generación que lo incluya pasa
+   * antes por el modal.
    */
   const generarUno = (clave: string) => {
     if (!aceptacion) return;
     if (clave === "caja") { setPendienteCaja({ modo: "uno" }); return; }
     const ctx = contexto();
-    if (ctx) generarDocumento(clave, ctx);
+    if (!ctx) return;
+    generarDocumento(clave, ctx);
+    registrarSobre([clave], "documento");
   };
 
-  const generarTodo = () => {
+  /** Claves tildadas, en el orden del sobre (no en el orden en que se tildaron). */
+  const clavesElegidas = () =>
+    docsDelContexto.filter((d) => !excluidos.includes(d.clave)).map((d) => d.clave);
+
+  const generarSobre = () => {
     if (!aceptacion) return;
-    setPendienteCaja({ modo: "sobre" });
+    const claves = clavesElegidas();
+    if (!claves.length) return;
+    // Si la caja entra en el sobre, primero hay que cargar la entrega.
+    if (claves.includes("caja")) { setPendienteCaja({ modo: "sobre", claves }); return; }
+    const ctx = contexto();
+    if (!ctx) return;
+    generarSobreCompleto(ctx, claves);
+    registrarSobre(claves, "sobre");
   };
+
+  const toggleDoc = (clave: string) =>
+    setExcluidos((prev) => (prev.includes(clave) ? prev.filter((c) => c !== clave) : [...prev, clave]));
 
   /** Persiste lo cargado en caja y genera lo que estaba pendiente. */
   const confirmarCaja = async (caja: CajaOpts) => {
@@ -232,8 +278,13 @@ export default function CircuitoPanel({
     }
 
     if (ctx) {
-      if (pendienteCaja.modo === "sobre") generarSobreCompleto(ctx);
-      else generarDocumento("caja", ctx);
+      if (pendienteCaja.modo === "sobre") {
+        generarSobreCompleto(ctx, pendienteCaja.claves);
+        registrarSobre(pendienteCaja.claves, "sobre");
+      } else {
+        generarDocumento("caja", ctx);
+        registrarSobre(["caja"], "documento");
+      }
     }
     setPendienteCaja(null);
   };
@@ -244,6 +295,7 @@ export default function CircuitoPanel({
   // descargaba un PDF vacío.
   const ctxDocs = contexto();
   const docsDelContexto = ctxDocs ? docsDelSobre(ctxDocs) : [];
+  const cantidadElegida = docsDelContexto.filter((d) => !excluidos.includes(d.clave)).length;
 
   const labelDe = (clave: string) => CHECKLIST_ITEMS.find((i) => i.clave === clave)?.label || clave;
   const convenioNombre = aceptacion?.convenio_id ? (convenios.find((c) => c.id === aceptacion.convenio_id)?.nombre || "—") : "—";
@@ -371,28 +423,74 @@ export default function CircuitoPanel({
                   <p className="text-[11px] text-gray-500 mb-2">
                     Trazabilidad y consentimiento salen en hoja propia al final, para desprenderlos y archivarlos en quirófano.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {docsDelContexto.map((d) => (
-                      <button
-                        key={d.clave}
-                        onClick={() => generarUno(d.clave)}
-                        className={`text-xs border px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                          d.quirofano
-                            ? "border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
-                            : "border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
-                        }`}
-                        title={d.quirofano ? "Se archiva en quirófano" : "Se lo lleva el paciente"}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
+                  {/*
+                    ELEGIR QUÉ SE IMPRIME (16/09/2026).
+
+                    Antes acá había una pastilla de color por documento y cada
+                    clic descargaba ESE documento suelto. Administración las leyó
+                    como casillas: "cuando vi que me da opciones de tildar pensé
+                    que me estaba dando la opción de solamente imprimir esas".
+                    Tildaba las que quería y bajaba el sobre entero, que salía
+                    completo. La interfaz decía una cosa y hacía otra.
+
+                    Ahora la casilla es una casilla —decide qué entra en el
+                    sobre— y para bajar una hoja sola está el ícono de descarga,
+                    que es una acción aparte y se ve como tal.
+                  */}
+                  <div className="space-y-1">
+                    {docsDelContexto.map((d) => {
+                      const incluido = !excluidos.includes(d.clave);
+                      return (
+                        <div
+                          key={d.clave}
+                          className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors ${
+                            incluido ? "border-gray-200 bg-white" : "border-gray-200 bg-gray-50"
+                          }`}
+                        >
+                          <label className="flex flex-1 items-center gap-2 cursor-pointer min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={incluido}
+                              onChange={() => toggleDoc(d.clave)}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                            />
+                            <span className={`text-xs font-medium truncate ${incluido ? "text-gray-800" : "text-gray-400 line-through"}`}>
+                              {d.label}
+                            </span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+                                d.quirofano ? "bg-indigo-50 text-indigo-700" : "bg-blue-50 text-blue-700"
+                              }`}
+                            >
+                              {d.quirofano ? "quirófano" : "paciente"}
+                            </span>
+                          </label>
+                          <button
+                            onClick={() => generarUno(d.clave)}
+                            className="text-[11px] text-gray-500 hover:text-blue-700 border border-gray-200 hover:border-blue-300 rounded px-1.5 py-0.5 shrink-0"
+                            title={`Descargar sólo esta hoja: ${d.label}`}
+                          >
+                            ↓ sola
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
+
                   <button
-                    onClick={generarTodo}
-                    className="mt-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
+                    onClick={generarSobre}
+                    disabled={cantidadElegida === 0}
+                    className="mt-2 text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
                   >
-                    Descargar todo el Sobre
+                    {cantidadElegida === 0
+                      ? "Sin documentos tildados"
+                      : `Descargar el Sobre (${cantidadElegida} de ${docsDelContexto.length})`}
                   </button>
+                  {excluidos.length > 0 && cantidadElegida > 0 && (
+                    <p className="text-[11px] text-orange-600 mt-1">
+                      Quedan afuera: {docsDelContexto.filter((d) => excluidos.includes(d.clave)).map((d) => d.label).join(", ")}.
+                    </p>
+                  )}
 
                   {/*
                     Entregas registradas. Acá es donde Ivana y Flavio miran si
@@ -464,7 +562,12 @@ export default function CircuitoPanel({
         <CajaIngresoModal
           ctx={ctxCaja}
           titulo="Ingreso de caja"
-          confirmLabel={pendienteCaja.modo === "sobre" ? "Generar Sobre completo" : "Generar comprobante"}
+          // Ya no es "completo": el sobre lleva lo que el operador haya tildado.
+          confirmLabel={
+            pendienteCaja.modo === "sobre"
+              ? `Generar Sobre (${pendienteCaja.claves.length} ${pendienteCaja.claves.length === 1 ? "documento" : "documentos"})`
+              : "Generar comprobante"
+          }
           onClose={() => setPendienteCaja(null)}
           onConfirm={confirmarCaja}
         />

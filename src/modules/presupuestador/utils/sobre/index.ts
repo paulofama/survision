@@ -319,13 +319,33 @@ export const DOCS: DocDef[] = [
   { clave: "consentimiento", label: "Consentimiento informado", build: docConsentimiento, quirofano: true },
 ];
 
-/** Documentos que van en el sobre, en orden: paciente primero, quirófano al final. */
+/**
+ * Documentos que PUEDEN ir en el sobre, en orden: paciente primero, quirófano
+ * al final. Es la lista sobre la que el operador elige.
+ *
+ * Quedan afuera los condicionales que no aplican y los que no tienen nada que
+ * imprimir para este contexto (`omitirSi`).
+ */
 export function docsDelSobre(ctx: SobreCtx): DocDef[] {
   const incluidos = DOCS.filter((d) => (!d.condicional || ctx.requiereAnalisisEcg) && !d.omitirSi?.(ctx));
   return [
     ...incluidos.filter((d) => !d.quirofano),
     ...incluidos.filter((d) => d.quirofano),
   ];
+}
+
+/**
+ * Los documentos que el operador eligió imprimir, en el orden del sobre.
+ *
+ * `claves` acota; `undefined` significa "todo lo que corresponda" (que es lo
+ * que hacía el sobre antes de que se pudiera elegir). El orden NUNCA sale de la
+ * selección: lo fija `docsDelSobre`, para que el sobre se arme siempre igual
+ * sin importar en qué orden se tildaron las casillas.
+ */
+export function docsElegidos(ctx: SobreCtx, claves?: string[]): DocDef[] {
+  const todos = docsDelSobre(ctx);
+  if (!claves) return todos;
+  return todos.filter((d) => claves.includes(d.clave));
 }
 
 // ── Generación ────────────────────────────────────────────────────────────────
@@ -342,9 +362,14 @@ function construir(L: Lienzo, def: DocDef, ctx: SobreCtx) {
   def.build(L, ctx, (l) => nuevaHoja(l, def.orient ?? "p"));
 }
 
-/** Arma el PDF del Sobre completo sin descargarlo (usable para tests). */
-export function armarSobreCompleto(ctx: SobreCtx): Lienzo | null {
-  const incluir = docsDelSobre(ctx);
+/**
+ * Arma el PDF del Sobre sin descargarlo (usable para tests).
+ *
+ * `claves` es la selección del operador; sin ella entra todo lo que
+ * corresponda. Devuelve null si no queda ningún documento.
+ */
+export function armarSobreCompleto(ctx: SobreCtx, claves?: string[]): Lienzo | null {
+  const incluir = docsElegidos(ctx, claves);
   if (!incluir.length) return null;
   const L = nuevoLienzo({ orient: incluir[0].orient, fecha: ctx.fechaHoy });
   incluir.forEach((d, i) => {
@@ -365,8 +390,8 @@ export function generarDocumento(clave: string, ctx: SobreCtx): void {
   L.doc.save(nombreArchivoDocumento(def.clave, ctx));
 }
 
-/** Genera y descarga el Sobre completo (multipágina), respetando condicionales. */
-export function generarSobreCompleto(ctx: SobreCtx): void {
-  const L = armarSobreCompleto(ctx);
+/** Genera y descarga el Sobre con los documentos elegidos (todos si no se acota). */
+export function generarSobreCompleto(ctx: SobreCtx, claves?: string[]): void {
+  const L = armarSobreCompleto(ctx, claves);
   if (L) L.doc.save(nombreArchivoSobre(ctx));
 }

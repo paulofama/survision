@@ -71,6 +71,22 @@ Está en el catálogo y no en el código para que agregar una frase a otro lente
 
 ## 3. Sobre Quirúrgico
 
+### Elegir qué se imprime (16/09/2026)
+
+**El operador tilda qué hojas entran y el sobre sale con eso.** Antes salía siempre completo.
+
+El origen fue un malentendido de interfaz, no una función faltante: había una pastilla de color por documento y **cada clic descargaba ESE documento suelto**. Administración las leyó como casillas — *"cuando vi que me da opciones de tildar pensé que me estaba dando la opción de solamente imprimir esas"* — tildaba las que quería, bajaba el sobre y salía entero. La interfaz decía una cosa y hacía otra.
+
+Ahora la casilla es una casilla, y para bajar una hoja sola está el botón **↓ sola**, que es una acción aparte y se ve como tal.
+
+- La selección se guarda como **destildados**, no como tildados: un documento nuevo entra al sobre por defecto en vez de quedar afuera sin que nadie lo note.
+- **El orden NUNCA sale de la selección**: lo fija `docsDelSobre` (paciente primero, quirófano al final), así el sobre se arma siempre igual sin importar en qué orden se tildó.
+- Si la caja está tildada, el modal se abre primero y la selección viaja dentro de `PendienteCaja` para no perderse en el camino.
+- `armarSobreCompleto(ctx, claves?)` y `generarSobreCompleto(ctx, claves?)`: sin `claves` entra todo lo que corresponda, que es el comportamiento viejo.
+
+**Queda registrado qué se imprimió** en `presupuestos_sobres` (migración 46): una fila por generación, nunca un upsert, con las claves de los documentos, el modo (`sobre` o `documento` para una hoja suelta) y quién la generó. Si mañana falta el consentimiento de una cirugía, se puede saber si no se imprimió o si se perdió. El registro **nunca bloquea la impresión**: si falla, el sobre sale igual.
+
+
 Ocho documentos independientes, cada uno arrancando en hoja propia. `docsDelSobre()` los ordena: primero lo del paciente, al final lo de quirófano.
 
 | # | Clave | Destino | Notas |

@@ -22,7 +22,7 @@ import {
   LEYENDA_A_CARGO_PACIENTE, LEYENDA_RESPONSABILIDAD_RECETA, SobreCtx, RecetaDeCostos,
 } from "../modules/presupuestador/utils/sobre/documentos";
 import {
-  armarContexto, docsDelSobre, armarSobreCompleto,
+  armarContexto, docsDelSobre, docsElegidos, armarSobreCompleto,
   nombreArchivoSobre, nombreArchivoDocumento, DOCS,
   conceptoCompleto, recetasDelSobre, recetasDeMedicacionAdicional, fmtFechaISO,
 } from "../modules/presupuestador/utils/sobre";
@@ -1087,5 +1087,53 @@ describe("Estructura del Sobre Quirúrgico", () => {
       const ab = L.doc.output("arraybuffer") as ArrayBuffer;
       expect(String.fromCharCode(...new Uint8Array(ab).slice(0, 5)), nombre).toBe("%PDF-");
     }
+  });
+});
+
+// ============================================================
+// Elegir qué se imprime (16/09/2026)
+// ============================================================
+// Administración leía la botonera de documentos como casillas: tildaba lo que
+// quería y bajaba el sobre, que salía completo igual. Ahora la selección manda.
+describe("Selección de documentos del sobre", () => {
+  const ctx = ctxDe(P813, { rama_cobertura: "PARTICULAR", lio_id: "l2" });
+
+  const hojas = (c: SobreCtx, claves?: string[]) => {
+    const L = armarSobreCompleto(c, claves);
+    return L ? (rawPdf(L).match(/\/Type\s*\/Page[^s]/g) || []).length : 0;
+  };
+
+  it("sin selección entra todo lo que corresponde", () => {
+    expect(docsElegidos(ctx)).toEqual(docsDelSobre(ctx));
+  });
+
+  it("la selección acota, y lo no tildado no se imprime", () => {
+    const claves = ["pedido", "caja"];
+    expect(docsElegidos(ctx, claves).map((d) => d.clave)).toEqual(["pedido", "caja"]);
+    const t = textoDe(armarSobreCompleto(ctx, claves)!);
+    expect(t).toContain("Pedido de cirugía");
+    expect(t).not.toContain("Consentimiento");
+  });
+
+  // El sobre se arma siempre en el mismo orden: paciente primero, quirófano al
+  // final. Tildar en otro orden no puede reordenar las hojas.
+  it("el orden lo fija el sobre, no el orden en que se tildó", () => {
+    const alReves = ["consentimiento", "cronograma", "pedido"];
+    expect(docsElegidos(ctx, alReves).map((d) => d.clave)).toEqual(["pedido", "cronograma", "consentimiento"]);
+  });
+
+  it("sacar un documento saca sus hojas, no una de más ni una de menos", () => {
+    const todas = docsDelSobre(ctx).map((d) => d.clave);
+    const sinConsentimiento = todas.filter((c) => c !== "consentimiento");
+    const hojasConsentimiento = hojas(ctx, ["consentimiento"]);
+    expect(hojas(ctx, sinConsentimiento)).toBe(hojas(ctx, todas) - hojasConsentimiento);
+  });
+
+  it("sin nada tildado no se arma ningún PDF", () => {
+    expect(armarSobreCompleto(ctx, [])).toBeNull();
+  });
+
+  it("una clave que no existe se ignora, no rompe", () => {
+    expect(docsElegidos(ctx, ["pedido", "no_existe"]).map((d) => d.clave)).toEqual(["pedido"]);
   });
 });
