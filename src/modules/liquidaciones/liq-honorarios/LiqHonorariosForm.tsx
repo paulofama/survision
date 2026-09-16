@@ -133,6 +133,9 @@ export function LiqHonorariosForm({
     } else {
       clearForm();
     }
+    // Depende de QUÉ liquidación se edita, no de la identidad de `clearForm`:
+    // incluirla vaciaría el formulario mientras el usuario tipea.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingLiq]);
 
   // ─── Recalculate Caja on input change ─────────────────

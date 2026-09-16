@@ -398,8 +398,10 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
     }
   };
 
+  // Sólo al montar: recargar es una acción explícita del usuario.
   useEffect(() => {
     cargarUsuarios();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================

@@ -159,10 +159,13 @@ export const usePools = (): UsePoolsReturn => {
     loadPools();
   }, [loadPools]);
 
-  // Limpiar timeouts al desmontar
+  // Limpiar timeouts al desmontar.
+  // El ref se copia a una variable local: en la limpieza, `saveTimeoutRef.current`
+  // ya puede apuntar a otro objeto y quedarían timeouts vivos sin cancelar.
   useEffect(() => {
+    const timeouts = saveTimeoutRef.current;
     return () => {
-      Object.values(saveTimeoutRef.current).forEach(timeout => clearTimeout(timeout));
+      Object.values(timeouts).forEach(timeout => clearTimeout(timeout));
     };
   }, []);
 

@@ -670,6 +670,10 @@ export default function Presupuestador() {
       updateField("tipoCambio", tcData.venta);
     }
     // Presupuesto existente (editMode=true) → no tocar el TC histórico
+
+    // `updateField` depende de `preciosMap`: agregarlo haría que el TC se
+    // repise cada vez que cambia un precio, pisando el que el operador fijó.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tcData, editMode]);
 
   // ── DNI Autocomplete ──
@@ -1377,7 +1381,7 @@ export default function Presupuestador() {
       setPrestOpen(false);
       notify(`Presupuesto ${presup.numero_presupuesto} cargado para edición`, "info");
     },
-    [notify]
+    [notify, setSection]
   );
 
   // ── Cargar presupuesto desde BusquedaPresupuestosPage (via location.state) ──
@@ -1506,7 +1510,7 @@ export default function Presupuestador() {
     } finally {
       setAnalisisLoading(false);
     }
-  }, [buildAnalisisQuery]);
+  }, [buildAnalisisQuery, notify]);
 
   const loadAnalisisStats = useCallback(async () => {
     try {

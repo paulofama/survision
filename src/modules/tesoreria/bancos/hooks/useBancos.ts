@@ -160,6 +160,10 @@ export function useBancos() {
     }
   }, [filtros]);
 
+  // Arranque: primero la cuenta, después sus movimientos. `cargarMovimientos`
+  // cambia con los filtros y volvería a pedir la cuenta cada vez; de los
+  // cambios de filtro se ocupa el efecto de abajo.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { cargarBase().then((c) => { if (c) cargarMovimientos(); }); }, [cargarBase]);
   useEffect(() => { if (cuentaRef.current) cargarMovimientos(); }, [cargarMovimientos]);
 

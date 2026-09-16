@@ -114,8 +114,10 @@ export default function CostosFijosPage() {
   // CARGAR DATOS AL MONTAR
   // ============================================
 
+  // Sólo al montar: el resto de las recargas las dispara el usuario.
   useEffect(() => {
     cargarErogaciones();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cerrar menú con Escape

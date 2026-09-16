@@ -362,14 +362,19 @@ const Sidebar: React.FC = () => {
   }, []);
 
   // Expandir menú cuando cambia la ruta
+  // Abre el menú que contiene la ruta actual. La comprobación de "ya está
+  // abierto" va DENTRO del setter: leer `expandedMenus` desde afuera obligaba a
+  // tenerlo como dependencia, y entonces el efecto se re-ejecutaba cada vez que
+  // se abría o cerraba un menú a mano.
   useEffect(() => {
     const currentPath = location.pathname;
-    navItems.forEach(item => {
-      if (item.subItems?.some(sub => currentPath === sub.path || currentPath.startsWith(sub.path + '/'))) {
-        if (!expandedMenus.includes(item.path)) {
-          setExpandedMenus(prev => [...prev, item.path]);
-        }
-      }
+    const aAbrir = navItems
+      .filter(item => item.subItems?.some(sub => currentPath === sub.path || currentPath.startsWith(sub.path + '/')))
+      .map(item => item.path);
+    if (!aAbrir.length) return;
+    setExpandedMenus(prev => {
+      const nuevos = aAbrir.filter(p => !prev.includes(p));
+      return nuevos.length ? [...prev, ...nuevos] : prev;
     });
   }, [location.pathname]);
 

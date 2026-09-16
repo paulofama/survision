@@ -24,11 +24,16 @@ const PagosProveedoresPage: React.FC = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 50;
 
+  // Al montar. `fetchMovimientos` depende de `filtros`: incluirla duplicaría
+  // la consulta del efecto de abajo.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchMovimientos(); }, []);
 
+  // Recarga por estos filtros; ver el comentario de arriba.
   useEffect(() => {
     fetchMovimientos();
     setPaginaActual(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros.fechaDesde, filtros.fechaHasta, filtros.tipo]);
 
   // Búsqueda local sobre lo ya traído

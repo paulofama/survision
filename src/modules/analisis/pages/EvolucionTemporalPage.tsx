@@ -64,8 +64,11 @@ const EvolucionTemporalPage: React.FC = () => {
     }
   };
 
+  // Recarga cuando cambia el rango. `loadData` se redefine en cada render, así
+  // que incluirla dispararía una consulta por render.
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meses]);
 
   // Formatear moneda

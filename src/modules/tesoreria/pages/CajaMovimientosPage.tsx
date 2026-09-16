@@ -42,16 +42,20 @@ const CajaMovimientosPage: React.FC = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 50;
 
-  // Cargar datos al montar
+  // Cargar datos al montar. Las dos funciones dependen de `filtros`, así que
+  // incluirlas duplicaría la consulta que ya hace el efecto de abajo.
   useEffect(() => {
     fetchTiposComprobante();
     fetchMovimientos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Recargar cuando cambian filtros
+  // Recargar cuando cambian ESTOS filtros. `fetchMovimientos` depende de
+  // `filtros` entero, así que incluirla recargaría también por los demás.
   useEffect(() => {
     fetchMovimientos();
     setPaginaActual(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros.fechaDesde, filtros.fechaHasta, filtros.tipoComprobante]);
 
   // Calcular saldo acumulado

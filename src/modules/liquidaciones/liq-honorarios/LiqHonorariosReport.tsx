@@ -3,7 +3,7 @@
 // Reporte imprimible — diseño profesional minimalista
 // ============================================================
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { Printer, Download } from 'lucide-react';
 import { calcularFacturacionDetails } from './useCajaCalculation';
 import type { LiqHonorarioConPrestador, FacturacionDetails } from './types';
@@ -25,7 +25,11 @@ export function LiqHonorariosReport({ liquidacion: liq }: Props) {
   });
 
   const numeroLiq = 'LIQ-' + liq.id.substring(0, 8).toUpperCase();
-  const fechaLiq  = new Date(liq.fecha + 'T12:00:00');
+  // En useMemo porque `handlePrint` la usa como dependencia: construido en el
+  // cuerpo, era un Date nuevo en cada render y rearmaba el callback siempre.
+  // Mediodía a propósito: `new Date("2026-09-13")` es medianoche UTC y en
+  // Argentina cae el día anterior.
+  const fechaLiq  = useMemo(() => new Date(liq.fecha + 'T12:00:00'), [liq.fecha]);
   const periodo   = fechaLiq.toLocaleDateString('es-AR', { month: 'numeric', year: 'numeric' });
   const fechaFmt  = fechaLiq.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 

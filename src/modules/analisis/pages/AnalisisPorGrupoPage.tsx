@@ -66,6 +66,9 @@ const AnalisisPorGrupoPage: React.FC = () => {
     if (!filtros.anio && !filtros.mes) {
       aplicarFiltros({ anio: anioActual, mes: mesActual });
     }
+    // Sólo al montar. Con `filtros` como dependencia, limpiar los filtros
+    // volvería a imponer el mes en curso y el usuario no podría verlos vacíos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================

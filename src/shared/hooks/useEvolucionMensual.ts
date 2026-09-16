@@ -772,6 +772,9 @@ const useEvolucionMensual = (
         setLoading(false);
       }
     }
+  // `recetas` va como dependencia a propósito (ver el comentario de abajo):
+  // es la señal de que alguien editó una receta y hay que recalcular.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     anioDesde, mesDesde, anioFin, mesFin,
     segmento, osSigla, prestador, topPrestacionesPorSegmento,
