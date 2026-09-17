@@ -101,7 +101,7 @@ export function generarReporteSueldosPDF(d: DatosReporteMes): void {
 
   const afterTable = () => {
     // lastAutoTable lo agrega el plugin jspdf-autotable (no tipado)
-    y = ((doc as any).lastAutoTable?.finalY ?? y) + 16;
+    y = (doc.lastAutoTable?.finalY ?? y) + 16;
   };
 
   // ---- 1. ENCABEZADO ----------------------------------------------------

@@ -419,8 +419,7 @@ function seccionUltimoMes(
     },
     didDrawPage: (d) => { if (d.pageNumber > 1) membreteDe(L); },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 7;
+  L.y = L.doc.lastAutoTable.finalY + 7;
 
   // ── Lectura por reglas ──
   if (!prev) {
@@ -615,8 +614,7 @@ function seccionEstadoResultados(
     // Las hojas que abre autoTable por su cuenta necesitan su membrete.
     didDrawPage: (d) => { if (d.pageNumber > 1) membreteDe(L); },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 5;
+  L.y = L.doc.lastAutoTable.finalY + 5;
 
   if (sinLiquidacion.length) {
     parrafo(L,
@@ -744,8 +742,7 @@ function seccionEvolucion(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[]) 
     // no, sale una página suelta sin identificación institucional.
     didDrawPage: (d) => { if (d.pageNumber > 1) membreteDe(L); },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
 }
 
 // ── 4 · Punto de equilibrio y apalancamiento ─────────────────────────────────
@@ -855,8 +852,7 @@ function seccionEquilibrio(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[])
     },
     didDrawPage: (d) => { if (d.pageNumber > 1) membreteDe(L); },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 6;
+  L.y = L.doc.lastAutoTable.finalY + 6;
 
   // ── Sensibilidad del resultado del último mes ──
   if (eqUlt.gaoValido) {
@@ -902,8 +898,7 @@ function seccionEquilibrio(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[])
       },
       didDrawPage: (d) => { if (d.pageNumber > 1) membreteDe(L); },
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    L.y = (L.doc as any).lastAutoTable.finalY + 6;
+    L.y = L.doc.lastAutoTable.finalY + 6;
   }
 
   // ── Lectura ──

@@ -348,8 +348,7 @@ function seccionResumen(L: Lienzo, d: DatosInformeMensual) {
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 7;
+  L.y = L.doc.lastAutoTable.finalY + 7;
 
   // ── Seis indicadores ──
   const cmp = (act: number, anterior: number | undefined, prom: number | undefined, esPct = false) => {
@@ -507,8 +506,7 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 7;
+  L.y = L.doc.lastAutoTable.finalY + 7;
 
   // ── Por prestador ──
   asegurar(L, 40);
@@ -530,8 +528,7 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: any) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
   if (d.porPrestador.length > prestadores.length) {
     parrafo(L, `Se listan los ${prestadores.length} prestadores de mayor facturación. Quedan ${d.porPrestador.length - prestadores.length} más, que suman ${fmt(d.porPrestador.slice(12).reduce((s, x) => s + x.facturacion, 0))}.`, { size: 7.5, color: C.medium });
   }
@@ -605,8 +602,7 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
       if (h.section === 'body' && h.row.index === 0) h.cell.styles.textColor = C.cyan;
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
   if (cols.some(c => c.tieneEstimados)) {
     parrafo(L, '* Mes con costo laboral estimado, no liquidado.', { size: 7.5, color: C.amber });
   }
@@ -674,8 +670,7 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
 
   parrafo(L,
     puenteCierra(puente)
@@ -732,8 +727,7 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
 
   if (rk.omitidas > 0) {
     parrafo(L,
@@ -852,8 +846,7 @@ function seccionPrestaciones(L: Lienzo, d: DatosInformeMensual) {
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
 
   const resto = d.porPrestacion.length - top.length;
   if (resto > 0) {
@@ -912,8 +905,7 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 6;
+  L.y = L.doc.lastAutoTable.finalY + 6;
 
   if (!a) {
     parrafo(L, 'Sin mes anterior cargado no se pueden identificar subas ni bajas.', { size: 8, color: C.medium });
@@ -956,8 +948,7 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
       if (h.section === 'body' && (h.column.index === 5)) h.cell.styles.textColor = C.red;
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
   parrafo(L, 'Ordenadas por variación de facturación contra el mes anterior. La columna de atenciones es la variación de cantidad, para poder distinguir si el movimiento fue de volumen.', { size: 7.5, color: C.medium });
 }
 
@@ -993,8 +984,7 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 7;
+  L.y = L.doc.lastAutoTable.finalY + 7;
 
   // ── Fijos por categoría ──
   asegurar(L, 45);
@@ -1045,8 +1035,7 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 5;
+  L.y = L.doc.lastAutoTable.finalY + 5;
 
   if (m.tieneEstimados && d.simulacion) {
     aviso(L,
@@ -1073,8 +1062,7 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       didParseCell: (h: any) => alinear(h, { 4: 'right' }),
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    L.y = (L.doc as any).lastAutoTable.finalY + 4;
+    L.y = L.doc.lastAutoTable.finalY + 4;
   } else {
     parrafo(L,
       'No se listan comprobantes: ninguna categoría de costo fijo se desvió lo ' +
@@ -1168,8 +1156,7 @@ function seccionCalidad(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme
       }
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 6;
+  L.y = L.doc.lastAutoTable.finalY + 6;
 
   parrafo(L,
     'Las cifras de este informe salen de las mismas fuentes que alimentan Evolución ' +
@@ -1199,6 +1186,5 @@ function anexo(L: Lienzo, d: DatosInformeMensual) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: any) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 4;
+  L.y = L.doc.lastAutoTable.finalY + 4;
 }

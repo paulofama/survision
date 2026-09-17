@@ -309,8 +309,7 @@ export function docCronograma(L: Lienzo, ctx: SobreCtx, abrirHoja: (L: Lienzo) =
     // Red de seguridad: si aun así se abriera una hoja, que lleve el membrete.
     didDrawPage: (d) => { if (d.pageNumber > 1) membrete(L); },
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.y = (L.doc as any).lastAutoTable.finalY + 6;
+  L.y = L.doc.lastAutoTable.finalY + 6;
 
   // El instructivo va en HOJA PROPIA: es lo que garantiza que el cronograma
   // nunca compita por espacio con él.
@@ -839,8 +838,7 @@ export function docRecetaCostos(L: Lienzo, ctx: SobreCtx) {
       didParseCell: (d: any) => alinear(d, { 2: "right", 3: "right", 4: "right" }),
       didDrawPage: (d) => { if (d.pageNumber > 1) membrete(L); },
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    L.y = (L.doc as any).lastAutoTable.finalY + 5;
+    L.y = L.doc.lastAutoTable.finalY + 5;
   }
 
   // ── Pools ──

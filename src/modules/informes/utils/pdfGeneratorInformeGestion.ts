@@ -786,7 +786,7 @@ function dibujarTablaResumenComparativo(
     },
   });
 
-  return (doc as any).lastAutoTable.finalY + 5;
+  return doc.lastAutoTable.finalY + 5;
 }
 
 // ============================================================
@@ -856,7 +856,7 @@ function dibujarTablaOS(
     },
   });
 
-  return (doc as any).lastAutoTable.finalY + 3;
+  return doc.lastAutoTable.finalY + 3;
 }
 
 // ============================================================
@@ -965,7 +965,7 @@ function dibujarTablaComparativa(
     },
   });
 
-  return (doc as any).lastAutoTable.finalY + 3;
+  return doc.lastAutoTable.finalY + 3;
 }
 
 function dibujarTablaPrestadores(
@@ -1030,7 +1030,7 @@ function dibujarTablaPrestadores(
     },
   });
 
-  return (doc as any).lastAutoTable.finalY + 3;
+  return doc.lastAutoTable.finalY + 3;
 }
 
 
@@ -1088,7 +1088,7 @@ function dibujarTablaPracticas(
     },
   });
 
-  return (doc as any).lastAutoTable.finalY + 3;
+  return doc.lastAutoTable.finalY + 3;
 }
 
 // ============================================================
