@@ -136,15 +136,77 @@ interface DatosCompletos {
     informacionAdicional?: string;
   };
   insumos?: Insumo[];
-  servicios?: Array<{ codigo: string; descripcion: string }>;
+  /**
+   * Los presupuestos viejos guardaban cada servicio como texto plano; los
+   * nuevos, como objeto. El union lo declara en vez de castear al leerlo.
+   */
+  servicios?: Array<ServicioSnapshot>;
   formasPago?: Array<{ codigo: string; descripcion: string }>;
-  precios?: Record<string, number>;
+  precios?: PreciosSnapshot;
   tratamientosExtra?: TratamientoExtra[];
   contacto?: {
     metodoPreferido?: string;
     horarioPreferido?: string;
     comentarios?: string;
   };
+}
+
+/**
+ * LA CADENA DE PRECIOS DEL PRESUPUESTO, CONGELADA AL GUARDAR.
+ *
+ * Es el snapshot del que salen TODOS los papeles: el PDF del presupuesto, el
+ * comprobante de caja y el Sobre Quirúrgico. Ninguno recalcula — leen de acá.
+ *
+ * El orden de los campos es el de la cuenta, que conviene tener a la vista
+ * porque es donde se esconden los errores de plata:
+ *
+ *     montoUSD × tipoCambio            = subtotalOriginal
+ *     subtotalOriginal − coberturaOS   = subtotalDespuesCobertura
+ *     − descuento (porcentajeDescuento) = neto  (= subtotalConGastos)
+ *     + iva                             = total
+ *
+ * Estaba declarado como `Record<string, number>`, que acepta cualquier nombre
+ * de campo y no garantiza ninguno: un typo en una clave no lo marcaba nadie, y
+ * como el default era `{}` cada lectura necesitaba un cast a `any`. Eran 20 en
+ * este archivo.
+ *
+ * Todo opcional porque los presupuestos viejos no traen todas las claves.
+ */
+/** Fila del catálogo de insumos que alimenta el selector del presupuesto. */
+interface FilaInsumoCatalogo {
+  codigo: string;
+  descripcion: string | null;
+  precio_unitario: number | string | null;
+  unidad: string | null;
+}
+
+/** Un servicio del snapshot: texto suelto en los presupuestos viejos. */
+type ServicioSnapshot = string | { codigo: string; descripcion: string };
+
+interface PreciosSnapshot {
+  /** Importe en dólares antes de todo. */
+  montoUSD?: number;
+  montoOriginalUSD?: number;
+  subtotalUSD?: number;
+  /** Cotización usada. Se congela: editar el TC después NO cambia el papel. */
+  tipoCambio?: number;
+  /** montoUSD × tipoCambio. */
+  subtotalOriginal?: number;
+  /** Lo que cubre la obra social, ya descontado en los pasos siguientes. */
+  coberturaOS?: number;
+  /** Base a cargo del paciente, ANTES del descuento autorizado. */
+  subtotalDespuesCobertura?: number;
+  porcentajeDescuento?: number;
+  descuento?: number;
+  /** Neto = base − descuento + insumos. Mismo valor que `subtotalConGastos`. */
+  neto?: number;
+  subtotalConGastos?: number;
+  totalInsumos?: number;
+  gastosCirculoUSD?: number;
+  gastosMontoBase8USD?: number;
+  iva?: number;
+  /** Lo que el paciente paga, con IVA. Es el `total_final` de la fila. */
+  total?: number;
 }
 
 interface TratamientoExtra {
@@ -886,7 +948,7 @@ export default function Presupuestador() {
         setPrestaciones((prest as Prestacion[]) || []);
         setAgrupaciones((agrup as Agrupacion[]) || []);
         setInsumosCatalogo(
-          ((insumosCat as any[]) || []).map((i) => ({
+          ((insumosCat as FilaInsumoCatalogo[]) || []).map((i) => ({
             codigo: i.codigo,
             descripcion: i.descripcion || "",
             precio_unitario: Number(i.precio_unitario) || 0,
@@ -1355,7 +1417,12 @@ export default function Presupuestador() {
         coberturaOS: prec.coberturaOS || 0,
         porcentajeDescuento: prec.porcentajeDescuento || 0,
         insumos: dc.insumos || [],
-        servicios: (dc.servicios || []).map((s) => s.codigo),
+        // Los dos formatos, igual que el PDF. Antes acá se leía `s.codigo` a
+        // secas: si un presupuesto tuviera los servicios como texto —el formato
+        // viejo que el PDF sí contempla—, al editarlo se perderían en silencio.
+        // Hoy no hay ninguno así (0 de 1.079, medido el 17/09/2026), pero que
+        // los dos lugares lean distinto el mismo campo es la grieta.
+        servicios: (dc.servicios || []).map((s) => (typeof s === "string" ? s : s.codigo)),
         formasPago: (dc.formasPago || []).map((f) => f.codigo),
         metodoContacto: cont.metodoPreferido || "whatsapp",
         horario: cont.horarioPreferido || "manana",
@@ -1838,7 +1905,7 @@ export default function Presupuestador() {
                           setPrestSearch(e.target.value);
                           if (!prestOpen) setPrestOpen(true);
                           if (form.prestacionCodigo && e.target.value !== `${selectedPrestacion?.codigo} - ${selectedPrestacion?.practica}`) {
-                            updateField("prestacionCodigo", "" as any);
+                            updateField("prestacionCodigo", "");
                           }
                         }}
                         onFocus={() => {
@@ -1856,7 +1923,7 @@ export default function Presupuestador() {
                           <button
                             type="button"
                             onClick={() => {
-                              updateField("prestacionCodigo", "" as any);
+                              updateField("prestacionCodigo", "");
                               setPrestSearch("");
                               setPrestOpen(false);
                             }}
@@ -1894,7 +1961,7 @@ export default function Presupuestador() {
                                   key={p.codigo}
                                   type="button"
                                   onClick={() => {
-                                    updateField("prestacionCodigo", p.codigo as any);
+                                    updateField("prestacionCodigo", p.codigo);
                                     setPrestSearch("");
                                     setPrestOpen(false);
                                   }}
@@ -3067,54 +3134,56 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
     // Si es vista previa sin guardar: usar el form en memoria.
     const src = yaGuardado && datosGuardados ? datosGuardados : null;
 
-    const srcPrecios = src?.precios ?? {};
-    const srcPaciente = src?.paciente ?? {};
-    const srcTratamiento = src?.tratamiento ?? {};
+    // Tipados aunque estén vacíos: con `{}` a secas, TypeScript no conoce
+    // ninguna propiedad y cada lectura necesitaba un cast.
+    const srcPrecios: PreciosSnapshot = src?.precios ?? {};
+    const srcPaciente: NonNullable<DatosCompletos["paciente"]> = src?.paciente ?? {};
+    const srcTratamiento: NonNullable<DatosCompletos["tratamiento"]> = src?.tratamiento ?? {};
     const srcInsumos = src?.insumos ?? form.insumos;
     const srcServicios = src?.servicios ?? form.servicios.map((s) => ({ codigo: s, descripcion: SERVICIOS.find((sv) => sv.id === s)?.label || s }));
     const srcExtras = src?.tratamientosExtra ?? form.tratamientosExtra;
 
-    const tc = (srcPrecios as any).tipoCambio || form.tipoCambio || DEFAULT_TC;
+    const tc = srcPrecios.tipoCambio || form.tipoCambio || DEFAULT_TC;
     const freshCalcs = calcular({
-      montoUSD: (srcPrecios as any).montoUSD ?? (form.montoUSD + form.tratamientosExtra.reduce((s, t) => s + (t.montoUSD || 0), 0)),
+      montoUSD: srcPrecios.montoUSD ?? (form.montoUSD + form.tratamientosExtra.reduce((s, t) => s + (t.montoUSD || 0), 0)),
       tipoCambio: tc,
-      coberturaOS: (srcPrecios as any).coberturaOS ?? form.coberturaOS,
+      coberturaOS: srcPrecios.coberturaOS ?? form.coberturaOS,
       circuloMedico: srcPaciente.circuloMedico ?? form.circuloMedico,
       montoBase8: srcPaciente.montoBase8 ?? form.montoBase8,
-      porcentajeDescuento: (srcPrecios as any).porcentajeDescuento ?? form.porcentajeDescuento,
+      porcentajeDescuento: srcPrecios.porcentajeDescuento ?? form.porcentajeDescuento,
       insumos: srcInsumos,
     });
 
     // Datos del paciente para el PDF
-    const pdfApellido = (srcPaciente as any).apellido || toTitleCase(form.apellido);
-    const pdfNombre = (srcPaciente as any).nombre || toTitleCase(form.nombre);
-    const pdfDocumento = (srcPaciente as any).documento || form.documento;
-    const pdfTelefono = (srcPaciente as any).telefono || form.telefono;
-    const pdfFechaNac = (srcPaciente as any).fechaNacimiento || form.fechaNacimiento;
-    const pdfObraSocial = (srcPaciente as any).obraSocial || toTitleCase(form.obraSocial);
-    const pdfAfiliado = (srcPaciente as any).numeroAfiliado || form.numeroAfiliado;
-    const pdfCoberturaOS = (srcPrecios as any).coberturaOS ?? form.coberturaOS;
+    const pdfApellido = srcPaciente.apellido || toTitleCase(form.apellido);
+    const pdfNombre = srcPaciente.nombre || toTitleCase(form.nombre);
+    const pdfDocumento = srcPaciente.documento || form.documento;
+    const pdfTelefono = srcPaciente.telefono || form.telefono;
+    const pdfFechaNac = srcPaciente.fechaNacimiento || form.fechaNacimiento;
+    const pdfObraSocial = srcPaciente.obraSocial || toTitleCase(form.obraSocial);
+    const pdfAfiliado = srcPaciente.numeroAfiliado || form.numeroAfiliado;
+    const pdfCoberturaOS = srcPrecios.coberturaOS ?? form.coberturaOS;
 
-    const pdfCirujanoValue = (srcTratamiento as any).cirujano || form.cirujano;
+    const pdfCirujanoValue = srcTratamiento.cirujano || form.cirujano;
     const pdfCirujanoLabel = CIRUJANOS_FALLBACK.find((c) => c.value === pdfCirujanoValue)?.label || pdfCirujanoValue;
-    const pdfAdminValue = (srcTratamiento as any).administrativa || form.administrativa;
+    const pdfAdminValue = srcTratamiento.administrativa || form.administrativa;
     const pdfAdminLabel = nombreAdmin(pdfAdminValue);
     const pdfAdminNormKey = pdfAdminLabel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
     const pdfAdminTel = adminTelefonoMap[pdfAdminValue] ?? adminTelefonoMap[pdfAdminNormKey] ?? "";
-    const pdfDerivadorValue = (srcTratamiento as any).derivador || form.derivador;
+    const pdfDerivadorValue = srcTratamiento.derivador || form.derivador;
     const pdfDerivadorLabel = DERIVADORES.find((d) => d.value === pdfDerivadorValue)?.label || pdfDerivadorValue || "";
-    const pdfPrestDesc = (srcTratamiento as any).prestacionDescripcion || prestaciones.find((p) => p.codigo === ((srcTratamiento as any).prestacionCodigo || form.prestacionCodigo))?.practica || "";
-    const pdfOjo = (srcTratamiento as any).ojoTratar || form.ojoTratar;
+    const pdfPrestDesc = srcTratamiento.prestacionDescripcion || prestaciones.find((p) => p.codigo === (srcTratamiento.prestacionCodigo || form.prestacionCodigo))?.practica || "";
+    const pdfOjo = srcTratamiento.ojoTratar || form.ojoTratar;
 
     // Fecha: usar fecha de creación guardada, no la actual
-    const fechaCreacionGuardada = (src as any)?.fechaCreacion || null;
+    const fechaCreacionGuardada = src?.fechaCreacion || null;
     const fechaStr = fechaCreacionGuardada
       ? new Date(fechaCreacionGuardada).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })
       : new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
     const numeroStr = numeroPresupuesto || "NUEVO";
 
-    const serviciosParaPDF = srcServicios.map((s: any) => typeof s === "string"
+    const serviciosParaPDF = srcServicios.map((s: ServicioSnapshot) => typeof s === "string"
       ? SERVICIOS.find((sv) => sv.id === s)?.label || s
       : s.descripcion
     ).filter(Boolean);
@@ -3296,7 +3365,7 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
 
               <!-- Monto USD con IVA incluido -->
               ${tieneExtras
-                ? `<tr><td>Trat. 1 — ${pdfPrestDesc || "Prestación"}</td><td>${fmtUSD((srcPrecios as any).montoUSD ?? form.montoUSD)}</td></tr>
+                ? `<tr><td>Trat. 1 — ${pdfPrestDesc || "Prestación"}</td><td>${fmtUSD(srcPrecios.montoUSD ?? form.montoUSD)}</td></tr>
                   ${srcExtras.map((t: TratamientoExtra, i: number) => {
                     const pD = prestaciones.find((p) => p.codigo === t.prestacionCodigo)?.practica || t.prestacionCodigo || "Prestación";
                     return `<tr><td>Trat. ${i + 2} — ${pD}</td><td>${fmtUSD(t.montoUSD || 0)}</td></tr>`;
