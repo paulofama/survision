@@ -47,6 +47,22 @@ import { cargarCostoLaboralRango, claveMes } from '@shared/services/costoLaboral
 import { normalizarNombre, detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 import { traerTodo } from '@shared/lib/traerTodo';
+import type { AliasNombre } from '@shared/utils/buscadorRecetas';
+import type { FilaMovimientoDetalle, FilaRecetaCosto } from '../types/filasEspejo';
+
+/**
+ * Erogación clasificada, con el nombre de su categoría de costo fijo.
+ *
+ * `categorias_costo_fijo` es el JOIN de PostgREST: viene como objeto, o null si
+ * la erogación no es fija o no tiene categoría asignada.
+ */
+interface FilaErogacionClasificada {
+  anio: number;
+  mes: number;
+  monto: number | null;
+  tipo_costo: string | null;
+  categorias_costo_fijo: { nombre: string | null } | null;
+}
 
 // ============================================
 // CONFIGURACIÓN
@@ -140,32 +156,23 @@ const useEvolucionMensual = (
     const { anio, mes: mesN } = parseMesKey(mes);
     // Lee del espejo Supabase (movimientos_geclisa, 1 fila por atención =
     // es_principal). Antes pegaba a /api/movimientos; ahora anda desde afuera.
-    const filas: AtencionRaw[] = [];
-    let from = 0;
-    for (;;) {
-      const { data, error } = await supabase
-        .from('movimientos_geclisa')
-        .select('fecha, practica_codigo, practica_nombre, prestador_nombre, os_sigla, os_nombre, total')
-        .eq('anio', anio)
-        .eq('mes', mesN)
-        .eq('es_principal', true)
-        .range(from, from + 999);
-      if (error) throw new Error(`${error.message} (atenciones de ${mes})`);
-      for (const r of data || []) {
-        filas.push({
-          fecha: (r as any).fecha ?? '',
-          prestacion: (r as any).practica_nombre ?? '',
-          codigo: (r as any).practica_codigo ?? '',
-          prestador: (r as any).prestador_nombre ?? null,
-          os_sigla: (r as any).os_sigla ?? null,
-          os_nombre: (r as any).os_nombre ?? null,
-          total: Number((r as any).total) || 0,
-        });
-      }
-      if (!data || data.length < 1000) break;
-      from += 1000;
-    }
-    return filas;
+    const crudas = await traerTodo<FilaMovimientoDetalle>((desde) => supabase
+      .from('movimientos_geclisa')
+      .select('fecha, practica_codigo, practica_nombre, prestador_nombre, os_sigla, os_nombre, total')
+      .eq('anio', anio)
+      .eq('mes', mesN)
+      .eq('es_principal', true)
+      .range(desde, desde + 999));
+
+    return crudas.map((r) => ({
+      fecha: r.fecha ?? '',
+      prestacion: r.practica_nombre ?? '',
+      codigo: r.practica_codigo ?? '',
+      prestador: r.prestador_nombre ?? null,
+      os_sigla: r.os_sigla ?? null,
+      os_nombre: r.os_nombre ?? null,
+      total: Number(r.total) || 0,
+    }));
   }, []);
 
   // ============================================
@@ -203,7 +210,7 @@ const useEvolucionMensual = (
     // creciendo. Sin paginar, PostgREST devolvía 1.000 y descartaba el resto
     // sin error: el costo fijo salía menos de lo real y el resultado operativo
     // más, con un desvío que cambiaba entre cargas. Ver `traerTodo`.
-    const dataFijos = await traerTodo<any>((desde) =>
+    const dataFijos = await traerTodo<FilaErogacionClasificada>((desde) =>
       supabase
         .from('erogaciones_clasificacion')
         .select('anio, mes, monto, tipo_costo, categorias_costo_fijo(nombre)')
@@ -226,7 +233,7 @@ const useEvolucionMensual = (
       sinClasificarPorMes[m] = 0;
     });
 
-    (dataFijos || []).forEach((r: any) => {
+    dataFijos.forEach((r) => {
       const mesKey = toMesKey(r.anio, r.mes);
       if (!fijosPorMes[mesKey]) return;
       const monto = Number(r.monto) || 0;
@@ -235,7 +242,7 @@ const useEvolucionMensual = (
       const rawTipo = String(r.tipo_costo || '').replace(/^"|"$/g, '').trim();
 
       if (rawTipo === 'fijo') {
-        const catNombre = (r.categorias_costo_fijo as any)?.nombre || 'Sin categoría';
+        const catNombre = r.categorias_costo_fijo?.nombre || 'Sin categoría';
         // Switch por mes: si el módulo cubre el mes, NO contamos la erogación
         // "Sueldos y Cargas" (la reemplazan las líneas del módulo, abajo).
         if (catNombre === CAT_EROGACION_SUELDOS && costoLab.has(claveMes(r.anio, r.mes))) return;
@@ -343,7 +350,7 @@ const useEvolucionMensual = (
 
       // Mapas auxiliares. Los alias de nombre siguen haciendo falta como
       // respaldo para lo que no tiene código utilizable (nomencladores 2024).
-      const mapeosNombre = await traerTodo<any>((desde) =>
+      const mapeosNombre = await traerTodo<AliasNombre>((desde) =>
         supabase
           .from('prestaciones_nombre_mapping')
           .select('nombre_geclisa, nombre_receta')
@@ -355,7 +362,7 @@ const useEvolucionMensual = (
       // de milésimas que, acumuladas sobre las ~1.500 prestaciones de un mes,
       // hacían que el margen de contribución de julio difiriera en $3 contra
       // Por Prestación. Una sola fuente, un solo número.
-      const recetasVista = await traerTodo<any>((desde) =>
+      const recetasVista = await traerTodo<FilaRecetaCosto>((desde) =>
         supabase
           .from('v_recetas_costos_por_pool')
           .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos')

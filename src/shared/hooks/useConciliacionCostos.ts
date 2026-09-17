@@ -29,33 +29,14 @@ import type { Mes } from '../types/evolucionTemporal';
 import { parseMesKey, toMesKey } from '../types/evolucionTemporal';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
-import type { RecetaIndexable, AliasNombre } from '@shared/utils/buscadorRecetas';
+import type { AliasNombre } from '@shared/utils/buscadorRecetas';
 import { traerTodo } from '../lib/traerTodo';
 import type { ConfigSegmentoHonorario } from '@shared/utils/honorariosPrestador';
+import type {
+  FilaMovimiento, FilaPrestador, FilaHonorarioConfig, FilaRecetaCosto,
+} from '../types/filasEspejo';
 
-// ── Formas de las filas que se traen ──────────────────────────────────────────
-// Una por consulta, con exactamente las columnas que pide su `select`. Viven acá
-// y no en `types/` porque no son entidades del dominio: son el recorte que
-// necesita esta conciliación.
-
-interface FilaMovimiento {
-  anio: number;
-  mes: number;
-  practica_codigo: string | null;
-  practica_nombre: string | null;
-  prestador_nombre: string | null;
-  total: number | null;
-}
-
-interface FilaPrestador {
-  nombre: string | null;
-  es_socio: boolean | null;
-}
-
-interface FilaHonorarioConfig extends ConfigSegmentoHonorario {
-  segmento: string;
-}
-
+/** El recorte de erogaciones que clasifica esta conciliación. */
 interface FilaErogacion {
   anio: number;
   mes: number;
@@ -64,13 +45,6 @@ interface FilaErogacion {
   descripcion: string | null;
 }
 
-/** Las dos columnas de costo que esta pantalla suma de la vista de recetas. */
-interface FilaReceta extends RecetaIndexable {
-  costo_total_pools: number | null;
-  costo_insumos_directos: number | null;
-}
-
-type FilaAlias = AliasNombre;
 
 /** Médicos prestadores, por apellido + nombre para no confundir homónimos. */
 const MEDICOS: Array<[string, string]> = [
@@ -129,9 +103,9 @@ export function useConciliacionCostos(meses: Mes[], activo: boolean): Conciliaci
         traerTodo<FilaMovimiento>((d) => supabase.from('movimientos_geclisa')
           .select('anio, mes, practica_codigo, practica_nombre, prestador_nombre, total')
           .eq('es_principal', true).or(orM).range(d, d + 999)),
-        traerTodo<FilaReceta>((d) => supabase.from('v_recetas_costos_por_pool')
+        traerTodo<FilaRecetaCosto>((d) => supabase.from('v_recetas_costos_por_pool')
           .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos').range(d, d + 999)),
-        traerTodo<FilaAlias>((d) => supabase.from('prestaciones_nombre_mapping')
+        traerTodo<AliasNombre>((d) => supabase.from('prestaciones_nombre_mapping')
           .select('nombre_geclisa, nombre_receta').range(d, d + 999)),
         traerTodo<FilaPrestador>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
         traerTodo<FilaHonorarioConfig>((d) => supabase.from('honorarios_config')

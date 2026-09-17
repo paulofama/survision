@@ -43,6 +43,46 @@ import { parseMesKey, toMesKey } from '../types/evolucionTemporal';
 import { cuadrarDetalle } from '../utils/cuadraturaDetalle';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import type { RecetaIndexable, AliasNombre } from '@shared/utils/buscadorRecetas';
+import type { ConfigSegmentoHonorario } from '@shared/utils/honorariosPrestador';
+import { traerTodo } from '../lib/traerTodo';
+import type {
+  FilaMovimiento, FilaPrestador, FilaHonorarioConfig, FilaRecetaCosto,
+} from '../types/filasEspejo';
+
+/** Un comprobante de costo fijo, tal como lo pide su `select`. */
+interface FilaErogacionFija {
+  id: string;
+  anio: number;
+  mes: number;
+  fecha: string | null;
+  monto: number | null;
+  proveedor_nombre: string | null;
+  descripcion: string | null;
+  categoria_costo_fijo_id: string | null;
+}
+
+/** Facturación de una prestación abierta por obra social. */
+interface FilaFacturacionOS {
+  anio: number;
+  mes: number;
+  os_sigla: string | null;
+  os_nombre: string | null;
+  total: number | null;
+}
+
+/** El último nivel del detalle: la atención concreta, con paciente. */
+interface FilaAtencion {
+  atencion_id: number;
+  anio: number;
+  mes: number;
+  fecha: string | null;
+  paciente: string | null;
+  paciente_documento: string | null;
+  prestador_nombre: string | null;
+  os_sigla: string | null;
+  total: number | null;
+}
 
 /** Tope de filas por agrupación. Por encima se trunca y se avisa explícitamente. */
 export const TOPE_FILAS_DETALLE = 200;
@@ -82,20 +122,6 @@ const filtroMeses = (meses: Mes[]): string =>
 const vacio = (meses: Mes[]): Record<Mes, number> =>
   Object.fromEntries(meses.map((m) => [m, 0])) as Record<Mes, number>;
 
-/** Trae todas las páginas de una consulta ya construida. */
-async function traerTodo<T>(build: (desde: number) => any): Promise<T[]> {
-  const out: T[] = [];
-  let from = 0;
-  for (;;) {
-    const { data, error } = await build(from);
-    if (error) throw new Error(error.message);
-    out.push(...((data || []) as T[]));
-    if (!data || data.length < 1000) break;
-    from += 1000;
-  }
-  return out;
-}
-
 // ============================================================
 // CARGADORES POR BLOQUE
 // ============================================================
@@ -115,9 +141,9 @@ interface Agrupado {
 async function cargarCostosFijos(p: ParamsDetalle): Promise<Agrupado[]> {
   const cats = await supabase.from('categorias_costo_fijo').select('id,nombre');
   if (cats.error) throw new Error(cats.error.message);
-  const catId = (cats.data || []).find((c: any) => c.nombre === p.clave)?.id;
+  const catId = (cats.data || []).find((c) => c.nombre === p.clave)?.id;
 
-  const filas = await traerTodo<any>((desde) => {
+  const filas = await traerTodo<FilaErogacionFija>((desde) => {
     let q = supabase.from('erogaciones_clasificacion')
       .select('id, anio, mes, fecha, monto, proveedor_nombre, descripcion, categoria_costo_fijo_id')
       .eq('tipo_costo', 'fijo')
@@ -157,7 +183,7 @@ export const SEP_CLAVE = '␟';
 
 /** Obras sociales de una prestación (nivel 3 de facturación). */
 async function cargarFacturacionPorOS(p: ParamsDetalle): Promise<Agrupado[]> {
-  const filas = await traerTodo<any>((desde) =>
+  const filas = await traerTodo<FilaFacturacionOS>((desde) =>
     supabase.from('movimientos_geclisa')
       .select('anio, mes, os_sigla, os_nombre, total')
       .eq('es_principal', true)
@@ -197,7 +223,7 @@ async function cargarFacturacionPorOS(p: ParamsDetalle): Promise<Agrupado[]> {
 async function cargarAtenciones(p: ParamsDetalle): Promise<Agrupado[]> {
   const [practica, osSigla] = p.clave.split(SEP_CLAVE);
 
-  const filas = await traerTodo<any>((desde) => {
+  const filas = await traerTodo<FilaAtencion>((desde) => {
     let q = supabase.from('movimientos_geclisa')
       .select('atencion_id, anio, mes, fecha, paciente, paciente_documento, prestador_nombre, os_sigla, total')
       .eq('es_principal', true)
@@ -240,19 +266,20 @@ async function cargarAtenciones(p: ParamsDetalle): Promise<Agrupado[]> {
 /** Prestaciones que componen honorarios / pools / insumos. */
 async function cargarCostosVariables(p: ParamsDetalle): Promise<Agrupado[]> {
   const [mov, rec, maps, pres, cfg] = await Promise.all([
-    traerTodo<any>((d) => supabase.from('movimientos_geclisa')
+    traerTodo<FilaMovimiento>((d) => supabase.from('movimientos_geclisa')
       .select('anio, mes, practica_codigo, practica_nombre, prestador_nombre, total')
       .eq('es_principal', true).or(filtroMeses(p.meses)).range(d, d + 999)),
-    traerTodo<any>((d) => supabase.from('v_recetas_costos_por_pool')
+    traerTodo<FilaRecetaCosto>((d) => supabase.from('v_recetas_costos_por_pool')
       .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos').range(d, d + 999)),
-    traerTodo<any>((d) => supabase.from('prestaciones_nombre_mapping').select('nombre_geclisa, nombre_receta').range(d, d + 999)),
-    traerTodo<any>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
-    traerTodo<any>((d) => supabase.from('honorarios_config').select('segmento, porcentaje_socio, porcentaje_no_socio').range(d, d + 999)),
+    traerTodo<AliasNombre>((d) => supabase.from('prestaciones_nombre_mapping').select('nombre_geclisa, nombre_receta').range(d, d + 999)),
+    traerTodo<FilaPrestador>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
+    traerTodo<FilaHonorarioConfig>((d) => supabase.from('honorarios_config').select('segmento, porcentaje_socio, porcentaje_no_socio').range(d, d + 999)),
   ]);
 
   const rm = crearIndiceRecetas(rec, maps);
   const pm = new Map(pres.map((x) => [String(x.nombre).toUpperCase(), x]));
-  const cs: Record<string, any> = {}; cfg.forEach((c) => cs[c.segmento] = c);
+  const cs: Record<string, ConfigSegmentoHonorario> = {};
+  cfg.forEach((c) => { cs[c.segmento] = c; });
 
   const acum = new Map<string, Agrupado>();
   mov.forEach((r) => {
@@ -280,10 +307,10 @@ async function cargarCostosVariables(p: ParamsDetalle): Promise<Agrupado[]> {
 /** Prestaciones facturadas sin receta cargada. */
 async function cargarSinReceta(p: ParamsDetalle): Promise<Agrupado[]> {
   const [mov, rec, maps] = await Promise.all([
-    traerTodo<any>((d) => supabase.from('movimientos_geclisa')
+    traerTodo<FilaMovimiento>((d) => supabase.from('movimientos_geclisa')
       .select('anio, mes, practica_codigo, practica_nombre, total').eq('es_principal', true).or(filtroMeses(p.meses)).range(d, d + 999)),
-    traerTodo<any>((d) => supabase.from('v_recetas_costos_por_pool').select('codigo_practica, nombre_practica').range(d, d + 999)),
-    traerTodo<any>((d) => supabase.from('prestaciones_nombre_mapping').select('nombre_geclisa, nombre_receta').range(d, d + 999)),
+    traerTodo<RecetaIndexable>((d) => supabase.from('v_recetas_costos_por_pool').select('codigo_practica, nombre_practica').range(d, d + 999)),
+    traerTodo<AliasNombre>((d) => supabase.from('prestaciones_nombre_mapping').select('nombre_geclisa, nombre_receta').range(d, d + 999)),
   ]);
   const S = crearIndiceRecetas(rec, maps);
 
