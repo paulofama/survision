@@ -60,6 +60,22 @@ export async function traerTodo<T>(
     // Una página incompleta significa que no hay más.
     if (filas.length < PAGINA) break;
     desde += PAGINA;
+
+    // SI EL CONSTRUCTOR SE OLVIDÓ EL `.range()`, ACÁ SE FRENA.
+    // Sin `.range()`, PostgREST devuelve siempre las mismas 1.000 primeras
+    // filas: la condición de corte de arriba nunca se cumple y este bucle
+    // pediría la misma página para siempre, acumulando duplicados hasta colgar
+    // la pestaña. Es un error de programación, no un caso de datos, así que
+    // conviene que explote con un mensaje que diga qué hacer en vez de quedar
+    // girando. El tope está alto a propósito: 500.000 filas es más de lo que
+    // cualquier pantalla pide, y bastante más que la tabla más grande que hay.
+    if (desde >= PAGINA * 500) {
+      throw new Error(
+        'traerTodo superó las 500.000 filas. Casi seguro que la consulta no ' +
+        'aplica `.range(desde, desde + 999)` con el `desde` que recibe, así que ' +
+        'devuelve siempre la misma página.',
+      );
+    }
   }
 
   return salida;

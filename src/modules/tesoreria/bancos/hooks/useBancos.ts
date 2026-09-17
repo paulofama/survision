@@ -6,6 +6,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@shared/lib/supabase';
+import { traerTodo } from '@shared/lib/traerTodo';
 // Core isomórfico (compartido con el CLI diario)
 import { ingestarExtracto } from '../core/ingesta.mjs';
 import type { IngestaResult } from '../core/ingesta.mjs';
@@ -33,7 +34,36 @@ export interface ImportacionRow {
   total_creditos: number; total_debitos: number; cant_movimientos: number;
   cant_nuevos: number; cant_duplicados: number; estado: string; motivo: string | null;
   origen: string; usuario: string | null; archivo_nombre: string | null;
-  detalle_impositivo: any; created_at: string;
+  detalle_impositivo: DetalleImpositivo | null; created_at: string;
+}
+
+/**
+ * Los impuestos del extracto, tal como los deja el parser en la hoja de
+ * impuestos (es la fuente autoritativa, no se recalculan acá).
+ *
+ * Todo opcional: un extracto puede no traer la hoja, y entonces la fila se
+ * guarda con el objeto vacío. La pantalla ya lo contempla (`|| {}`).
+ */
+export interface DetalleImpositivo {
+  ley25413_creditos?: number;
+  ley25413_debitos?: number;
+  sircreb_total?: number;
+  computable_creditos_33?: number;
+  computable_debitos_33?: number;
+}
+
+/**
+ * Regla de categorización de `banco_reglas`. La forma la fija `categorizar()`
+ * en el core isomórfico; acá se declara igual para que la UI y el CLI no
+ * discrepen.
+ */
+export interface ReglaCategorizacion {
+  orden: number;
+  patron: string;
+  signo: string | null;
+  categoria: string;
+  marca_solo_banco: boolean;
+  activa: boolean;
 }
 
 export interface Filtros {
@@ -56,19 +86,6 @@ export function formatDateTime(s: string | null | undefined): string {
   return new Date(s).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-async function traerTodo(build: (from: number) => any): Promise<any[]> {
-  const filas: any[] = [];
-  let from = 0;
-  for (;;) {
-    const { data, error } = await build(from).range(from, from + 999);
-    if (error) throw new Error(error.message);
-    filas.push(...(data || []));
-    if (!data || data.length < 1000) break;
-    from += 1000;
-  }
-  return filas;
-}
-
 async function emailUsuario(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   return data?.user?.email || null;
@@ -76,7 +93,7 @@ async function emailUsuario(): Promise<string | null> {
 
 export function useBancos() {
   const [cuenta, setCuenta] = useState<CuentaBanco | null>(null);
-  const [reglas, setReglas] = useState<any[]>([]);
+  const [reglas, setReglas] = useState<ReglaCategorizacion[]>([]);
   const [movimientos, setMovimientos] = useState<MovimientoRow[]>([]);
   const [geclisaPendientes, setGeclisaPendientes] = useState<GeclisaValorRow[]>([]);
   const [importaciones, setImportaciones] = useState<ImportacionRow[]>([]);
@@ -115,7 +132,9 @@ export function useBancos() {
     setLoading(true);
     setError(null);
     try {
-      const movs = await traerTodo(() => {
+      // El `.range()` va en el constructor porque `lib/traerTodo` lo espera ahí
+      // (la copia local que había acá lo aplicaba por su cuenta).
+      const movs = await traerTodo((desde) => {
         let q = supabase.from('banco_movimientos')
           .select('id, fecha, anio, mes, posicion_dia, nro_comprobante, concepto, descripcion, contraparte_nombre, contraparte_cuit, importe, saldo_resultante, categoria, estado_conciliacion, importacion_id')
           .eq('cuenta_id', c.id)
@@ -127,7 +146,7 @@ export function useBancos() {
           const t = filtros.busqueda.replace(/[%,]/g, ' ').trim();
           q = q.or(`descripcion.ilike.%${t}%,contraparte_nombre.ilike.%${t}%,contraparte_cuit.ilike.%${t}%`);
         }
-        return q;
+        return q.range(desde, desde + 999);
       });
       setMovimientos(movs as MovimientoRow[]);
 
@@ -135,10 +154,13 @@ export function useBancos() {
       const buffer = 5 * 86400000;
       const gd = new Date(new Date(filtros.fechaDesde + 'T00:00:00Z').getTime() - buffer).toISOString().slice(0, 10);
       const gh = new Date(new Date(filtros.fechaHasta + 'T00:00:00Z').getTime() + buffer).toISOString().slice(0, 10);
-      const gv = await traerTodo(() => supabase.from('geclisa_valores')
+      // Paginado de verdad, no por las dudas: hay 3.758 valores pendientes y un
+      // rango de un trimestre ya trae 1.060 (medido el 17/09/2026).
+      const gv = await traerTodo((desde) => supabase.from('geclisa_valores')
         .select('id, fecha, importe, tercero_nombre, tercero_cuit, medio_nombre, comprobante, estado_conciliacion')
         .eq('estado_conciliacion', 'pendiente').gte('fecha', gd).lte('fecha', gh)
-        .order('fecha', { ascending: true }));
+        .order('fecha', { ascending: true })
+        .range(desde, desde + 999));
       setGeclisaPendientes(gv as GeclisaValorRow[]);
 
       // Contadores del período (sobre el conjunto cargado)
