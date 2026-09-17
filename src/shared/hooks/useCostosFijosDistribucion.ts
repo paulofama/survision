@@ -21,6 +21,23 @@ import { cargarCostoLaboralRango, claveMes } from '@shared/services/costoLaboral
 import { traerTodo } from '@shared/lib/traerTodo';
 import { RangoPeriodo, mesesDelRango, rangoMesUnico } from '@modules/analisis-marginal/utils/periodo';
 
+/**
+ * Erogación fija con los datos de su categoría.
+ *
+ * `categorias_costo_fijo` es el JOIN de PostgREST: llega como objeto, o null si
+ * la erogación no tiene categoría asignada. Acá se piden nombre Y color porque
+ * la distribución los pinta; en Evolución Mensual, que sólo agrupa, se pide
+ * nada más el nombre — por eso cada una declara su propia forma en vez de
+ * compartir una interface que mienta sobre lo que trae el `select`.
+ */
+interface FilaErogacionFijaConColor {
+  anio: number;
+  mes: number;
+  monto: number | null;
+  categoria_costo_fijo_id: string | null;
+  categorias_costo_fijo: { nombre: string | null; color: string | null } | null;
+}
+
 // ============================================
 // TIPOS
 // ============================================
@@ -130,7 +147,7 @@ export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<R
   // PostgREST, pero eso es circunstancial — con dos años cargados se pasa y el
   // truncado no da error, devuelve de menos en silencio. Es el bug que tuvo la
   // Evolución Temporal hasta el 27/08/2026. Ver `traerTodo`.
-  const dataErog = await traerTodo<any>((desde) =>
+  const dataErog = await traerTodo<FilaErogacionFijaConColor>((desde) =>
     supabase
       .from('erogaciones_clasificacion')
       .select(`anio, mes, monto, categoria_costo_fijo_id, categorias_costo_fijo ( nombre, color )`)
@@ -144,9 +161,9 @@ export async function calcularCostosFijosPeriodo(rango: RangoPeriodo): Promise<R
   // Agregar por categoría (período total).
   const porCatMap = new Map<string, { nombre: string; color: string; total: number }>();
 
-  (dataErog || []).forEach((r: any) => {
-    const nombre = (r.categorias_costo_fijo as any)?.nombre || 'Sin categoría';
-    const color = (r.categorias_costo_fijo as any)?.color || '#6B7280';
+  dataErog.forEach((r) => {
+    const nombre = r.categorias_costo_fijo?.nombre || 'Sin categoría';
+    const color = r.categorias_costo_fijo?.color || '#6B7280';
     const monto = Number(r.monto) || 0;
     // Switch por mes: si el módulo cubre este mes, NO contamos la erogación
     // "Sueldos y Cargas" (la reemplazan las líneas del módulo, abajo).

@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import type { NuevaPrestacion } from '../types';
 
 // ============================================
 // INTERFACES Y TIPOS
@@ -50,8 +51,8 @@ interface UsePrestacionesReturn {
   setSelectedAgrupacion: (agrupacion: string) => void;
   
   // Operaciones CRUD (deshabilitadas para servidor local - solo lectura)
-  createPrestacion: (data: any) => Promise<void>;
-  updatePrestacion: (id: string, data: any) => Promise<void>;
+  createPrestacion: (data: NuevaPrestacion) => Promise<void>;
+  updatePrestacion: (id: string, data: Partial<PrestacionConAgrupacion>) => Promise<void>;
   deletePrestacion: (id: string) => Promise<void>;
   
   // Funciones especiales
@@ -213,12 +214,12 @@ export const usePrestaciones = (): UsePrestacionesReturn => {
   // OPERACIONES CRUD (Solo lectura - deshabilitadas)
   // ============================================
 
-  const createPrestacion = useCallback(async (_data: any) => {
+  const createPrestacion = useCallback(async (_data: NuevaPrestacion) => {
     console.warn('⚠️ Operación no permitida: El sistema está en modo solo lectura (servidor local)');
     throw new Error('Operación no permitida. Los datos provienen del servidor local y son de solo lectura.');
   }, []);
 
-  const updatePrestacion = useCallback(async (_id: string, _data: any) => {
+  const updatePrestacion = useCallback(async (_id: string, _data: Partial<PrestacionConAgrupacion>) => {
     console.warn('⚠️ Operación no permitida: El sistema está en modo solo lectura (servidor local)');
     throw new Error('Operación no permitida. Los datos provienen del servidor local y son de solo lectura.');
   }, []);

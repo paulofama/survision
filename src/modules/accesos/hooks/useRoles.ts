@@ -99,9 +99,9 @@ export const useRoles = (): UseRolesReturn => {
       setRoles(rolesConPermisos);
       // Invalidar cache de roles para que el sidebar se refresque en próximo login
       localStorage.removeItem(STORAGE_KEYS.ROLES_CACHE);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error cargando roles:', err);
-      setError(err.message || 'Error al cargar roles');
+      setError((err instanceof Error ? err.message : null) || 'Error al cargar roles');
     } finally {
       setLoading(false);
     }
@@ -144,9 +144,9 @@ export const useRoles = (): UseRolesReturn => {
 
       // Recargar datos frescos
       await cargarRoles();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creando rol:', err);
-      throw new Error(err.message || 'Error al crear rol');
+      throw new Error((err instanceof Error ? err.message : null) || 'Error al crear rol');
     }
   };
 
@@ -197,9 +197,9 @@ export const useRoles = (): UseRolesReturn => {
 
       // Recargar datos frescos
       await cargarRoles();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error actualizando rol:', err);
-      throw new Error(err.message || 'Error al actualizar rol');
+      throw new Error((err instanceof Error ? err.message : null) || 'Error al actualizar rol');
     }
   };
 
@@ -247,9 +247,9 @@ export const useRoles = (): UseRolesReturn => {
 
       // Recargar datos frescos
       await cargarRoles();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error eliminando rol:', err);
-      throw new Error(err.message || 'Error al eliminar rol');
+      throw new Error((err instanceof Error ? err.message : null) || 'Error al eliminar rol');
     }
   };
 
@@ -273,9 +273,9 @@ export const useRoles = (): UseRolesReturn => {
 
       // Recargar datos frescos
       await cargarRoles();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error cambiando estado:', err);
-      throw new Error(err.message || 'Error al cambiar estado');
+      throw new Error((err instanceof Error ? err.message : null) || 'Error al cambiar estado');
     }
   };
 

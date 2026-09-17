@@ -42,7 +42,11 @@ export interface DiferenciaNueva {
 interface LineaConcepto { concepto_codigo: string; monto: number | null }
 interface Bloque { tipo: string; lineas_concepto?: LineaConcepto[] }
 interface LiquidacionCompleta { bloques?: Bloque[] }
-type F931Like = Record<string, number | null | undefined>;
+// El F.931 trae además columnas de texto (estado, CUIT, período). Lo que la
+// conciliación usa son los códigos numéricos, pero el tipo tiene que admitir
+// la fila entera: declararlo sólo numérico obligaba a que el cargador
+// devolviera `any`, y ahí se perdía el chequeo de todo lo demás.
+type F931Like = Record<string, number | string | null | undefined>;
 
 function num(v: unknown): number {
   const n = Number(v);

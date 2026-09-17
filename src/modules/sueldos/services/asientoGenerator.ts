@@ -40,7 +40,9 @@ interface LineaConcepto { concepto_codigo: string; monto: number | null }
 interface Bloque { tipo: string; lineas_empleado?: LineaEmpleado[]; lineas_concepto?: LineaConcepto[] }
 interface LiquidacionCompleta { id: string; anio: number; mes: number; bloques?: Bloque[] }
 type F931Like = Record<string, number | string | null | undefined> & { id?: string };
-type EmpleadosMap = Map<string, { area?: string; cuenta_contable?: string }>;
+// Nulables porque las columnas de `empleados` lo son: un empleado puede no
+// tener área ni cuenta asignada, y el generador ya cae al valor por defecto.
+type EmpleadosMap = Map<string, { area?: string | null; cuenta_contable?: string | null }>;
 
 export interface AsientoLinea {
   orden: number; seccion: 'recibo' | 'facturado'; cuenta_codigo: string | null; cuenta_nombre: string;
