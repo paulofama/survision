@@ -14,7 +14,11 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { DatosInformeGestion, MetricasResumen } from '@shared/types/informes';
+import type {
+  DatosInformeGestion, MetricasResumen,
+  DesglosePorOS, DesglosePorPrestador, DesglosePorPractica,
+  SerieEvolucion, MesEvolucion, CruceOSxPracticas,
+} from '@shared/types/informes';
 
 // ============================================================
 // EVOLUCIÓN 12 MESES — Tipos para gráficos de líneas
@@ -28,54 +32,6 @@ import type { DatosInformeGestion, MetricasResumen } from '@shared/types/informe
 // calculan desde MovEnca (atenciones para OS/Prestador) y MovPrac
 // (cantidad de prácticas para Top 10 prácticas), sin importes.
 // ============================================================
-
-interface MesEvolucion {
-  anio: number;
-  mes: number;       // 1-12
-  label: string;     // ej: "May 25"
-}
-
-interface SerieEvolucion {
-  nombre: string;    // sigla de OS / nombre prestador / nombre práctica
-  total: number;     // suma de los 12 meses (para ordenar y truncar)
-  serie: number[];   // 12 valores (cantidades), uno por mes en orden
-}
-
-interface EvolucionMensual12M {
-  meses: MesEvolucion[];                    // 12 elementos, orden cronológico
-  obrasSociales: SerieEvolucion[];          // ya filtrado: top 10 por total
-  prestadores: SerieEvolucion[];            // todos los activos
-  practicas: SerieEvolucion[];              // ya filtrado: top 10 por total
-}
-
-// ============================================================
-// CRUCE PRÁCTICAS × OBRAS SOCIALES (matriz mes actual)
-// ============================================================
-interface ColumnaOS {
-  osId: number;
-  sigla: string;
-  nombre: string;
-}
-
-interface CeldaCruce {
-  cantidad: number;
-  facturado: number;
-}
-
-interface FilaPracticaCruce {
-  nomId: number;
-  nomCod: string;
-  nomNombre: string;
-  totalCantidad: number;
-  totalFacturado: number;
-  // Map por clave: osId (número como string) o "OTRAS"
-  celdas: { [key: string]: CeldaCruce };
-}
-
-interface CruceOSxPracticas {
-  columnasOS: ColumnaOS[];          // top 10 OS por facturación del mes
-  filasPracticas: FilaPracticaCruce[]; // todas las prácticas, ordenadas DESC por facturación
-}
 
 // ---- Constantes de diseño ----
 const COLORS = {
@@ -239,7 +195,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   });
 
   // OS - Gráfico Evolución 12 meses (cantidades)
-  const evolucion12M = (datos as any).evolucion12Meses as EvolucionMensual12M | undefined;
+  const evolucion12M = datos.evolucion12Meses;
   if (evolucion12M?.obrasSociales?.length) {
     yPos += 4;
     yPos = dibujarGraficoEvolucion12M(doc, yPos, {
@@ -387,7 +343,7 @@ export const generarPDFInformeGestion = (datos: DatosInformeGestion): void => {
   // ============================================================
   // SECCIÓN: OBRAS SOCIALES × PRESTACIONES (matriz cruzada)
   // ============================================================
-  const cruceOSxPracticas = (datos as any).cruceOSxPracticas as CruceOSxPracticas | undefined;
+  const cruceOSxPracticas = datos.cruceOSxPracticas;
   if (cruceOSxPracticas?.filasPracticas?.length && cruceOSxPracticas?.columnasOS?.length) {
     dibujarSeccionCruceOSxPracticas(doc, datos.periodo.label, cruceOSxPracticas);
   }
@@ -797,7 +753,7 @@ function dibujarTablaResumenComparativo(
 function dibujarTablaOS(
   doc: jsPDF,
   y: number,
-  osData: any[],
+  osData: DesglosePorOS[],
   periodo: string
 ): number {
   doc.setTextColor(...COLORS.textDark);
@@ -864,18 +820,20 @@ function dibujarTablaOS(
 // Usada para las 6 tablas: OS/Prestadores/Prácticas x Mensual/Anual
 // Formato: # | Entidad | Cant Act | Cant Ant | Var% | Fact Act | Fact Ant | Var%
 // ============================================================
-function dibujarTablaComparativa(
+function dibujarTablaComparativa<T>(
   doc: jsPDF,
   y: number,
   config: {
     titulo: string;
-    datosBase: any[];
-    datosComparar: any[];
-    idField: string;
-    idField2?: string; // Para claves compuestas (ej: nomId + nomCod)
-    getName: (item: any) => string;
-    cantField: string;
-    factField: string;
+    datosBase: T[];
+    datosComparar: T[];
+    // `keyof T`: los campos se siguen eligiendo por nombre, pero un nombre que
+    // no exista en el desglose ya no compila.
+    idField: keyof T;
+    idField2?: keyof T; // Para claves compuestas (ej: nomId + nomCod)
+    getName: (item: T) => string;
+    cantField: keyof T;
+    factField: keyof T;
     colCantLabel: [string, string];
     colFactLabel: [string, string];
     maxRows: number;
@@ -889,8 +847,8 @@ function dibujarTablaComparativa(
   y += 7;
 
   const filas = config.datosBase.slice(0, config.maxRows).map((item, i) => {
-    const cantAct = item[config.cantField] || 0;
-    const factAct = item[config.factField] || 0;
+    const cantAct = Number(item[config.cantField]) || 0;
+    const factAct = Number(item[config.factField]) || 0;
 
     // Soporte para clave compuesta (ej: Nomenclador usa nom_id + nom_cod)
     const itemAnt = config.datosComparar.find(c => {
@@ -898,8 +856,8 @@ function dibujarTablaComparativa(
       if (!config.idField2) return match1;
       return match1 && String(c[config.idField2]).trim() === String(item[config.idField2]).trim();
     });
-    const cantAnt = itemAnt?.[config.cantField] || 0;
-    const factAnt = itemAnt?.[config.factField] || 0;
+    const cantAnt = Number(itemAnt?.[config.cantField]) || 0;
+    const factAnt = Number(itemAnt?.[config.factField]) || 0;
 
     const varCant = cantAnt > 0
       ? ((cantAct - cantAnt) / cantAnt) * 100 : 0;
@@ -971,7 +929,7 @@ function dibujarTablaComparativa(
 function dibujarTablaPrestadores(
   doc: jsPDF,
   y: number,
-  prestadores: any[],
+  prestadores: DesglosePorPrestador[],
   periodo: string
 ): number {
   doc.setTextColor(...COLORS.textDark);
@@ -1037,7 +995,7 @@ function dibujarTablaPrestadores(
 function dibujarTablaPracticas(
   doc: jsPDF,
   y: number,
-  practicas: any[],
+  practicas: DesglosePorPractica[],
   periodo: string
 ): number {
   doc.setTextColor(...COLORS.textDark);
@@ -1106,8 +1064,8 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   const bloques: BloqueAnalisis[] = [];
   const m = datos.resumenMensual;
   const a = datos.resumenAcumulado;
-  const pctM = m.variacionPct || {} as any;
-  const pctA = a.variacionPct || {} as any;
+  const pctM = m.variacionPct;
+  const pctA = a.variacionPct;
   const act = m.actual;
   const ant = m.anterior;
   const acumAct = a.actual;
@@ -1188,12 +1146,12 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   const preAnt = datos.porPrestador?.mesAnterior || [];
   if (preAct.length > 0 && preAnt.length > 0) {
     const crecieron = preAct.filter(p => {
-      const prev = preAnt.find((a: any) => a.preId === p.preId);
+      const prev = preAnt.find((a) => a.preId === p.preId);
       return prev && p.atenciones > prev.atenciones;
     });
     if (crecieron.length > 0) {
       const top = crecieron.sort((a, b) => b.atenciones - a.atenciones)[0];
-      const prev = preAnt.find((a: any) => a.preId === top.preId);
+      const prev = preAnt.find((a) => a.preId === top.preId);
       if (prev) {
         const varPre = prev.atenciones > 0 ? ((top.atenciones - prev.atenciones) / prev.atenciones) * 100 : 0;
         positivas.push(`${top.preNombre?.trim()} destaca con ${pct(varPre)} de crecimiento en atenciones.`);
@@ -1225,11 +1183,11 @@ function generarBloques(datos: DatosInformeGestion): BloqueAnalisis[] {
   // Prestadores con caída
   if (preAct.length > 0 && preAnt.length > 0) {
     const cayeron = preAct.filter(p => {
-      const prev = preAnt.find((a: any) => a.preId === p.preId);
+      const prev = preAnt.find((a) => a.preId === p.preId);
       return prev && prev.atenciones > 0 && p.atenciones < prev.atenciones * 0.8;
     });
     cayeron.forEach(p => {
-      const prev = preAnt.find((a: any) => a.preId === p.preId);
+      const prev = preAnt.find((a) => a.preId === p.preId);
       if (prev) {
         const varP = ((p.atenciones - prev.atenciones) / prev.atenciones) * 100;
         alertas.push(`${p.preNombre?.trim()}: caida del ${pct(varP)} en atenciones respecto al mes anterior.`);

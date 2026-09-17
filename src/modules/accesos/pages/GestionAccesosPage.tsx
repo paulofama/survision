@@ -66,6 +66,25 @@ interface UsuarioConRol extends Usuario {
   es_admin: boolean;
 }
 
+/**
+ * Fila cruda de `usuarios` con su rol traído por el JOIN de PostgREST.
+ *
+ * `roles` llega como objeto —o null, si el usuario no tiene rol asignado—, y de
+ * ahí se aplanan `rol_nombre` y `es_admin` para la tabla.
+ */
+interface FilaUsuarioConRol {
+  id: string;
+  username: string;
+  nombre_completo: string;
+  telefono: string | null;
+  email: string | null;
+  rol_id: string | null;
+  activo: boolean;
+  ultimo_acceso: string | null;
+  created_at: string;
+  roles: { nombre: string | null; es_admin: boolean | null } | null;
+}
+
 // ============================================
 // CONFIGURACIÓN DE MÓDULOS PARA UI
 // ============================================
@@ -375,7 +394,15 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
 
       if (error) throw error;
 
-      const usuariosConRol: UsuarioConRol[] = (data || []).map((u: any) => ({
+      // El cast es para corregir a supabase-js, no para evadir el chequeo.
+      // Sobre un JOIN a-uno como `roles:rol_id (...)` PostgREST devuelve un
+      // OBJETO —verificado contra la base el 17/09/2026—, pero la inferencia de
+      // tipos del cliente no deduce la cardinalidad del FK y lo declara array.
+      // Si fuera array de verdad, `u.roles?.nombre` daría undefined y la
+      // pantalla no mostraría ningún rol. Después del cast, los campos siguen
+      // chequeados uno por uno.
+      const filas = (data || []) as unknown as FilaUsuarioConRol[];
+      const usuariosConRol: UsuarioConRol[] = filas.map((u) => ({
         id: u.id,
         username: u.username,
         nombre_completo: u.nombre_completo,
@@ -526,9 +553,9 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
 
       handleCloseModal();
       await cargarUsuarios();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error guardando usuario:', err);
-      showError(err.message || 'Error al guardar usuario');
+      showError((err instanceof Error ? err.message : null) || 'Error al guardar usuario');
     } finally {
       setSaving(false);
     }
@@ -550,8 +577,8 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
       setShowPasswordModal(false);
       setEditingUser(null);
       setNewPassword('');
-    } catch (err: any) {
-      showError(err.message || 'Error al cambiar contraseña');
+    } catch (err) {
+      showError((err instanceof Error ? err.message : null) || 'Error al cambiar contraseña');
     } finally {
       setSaving(false);
     }
@@ -566,8 +593,8 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
 
       if (error) throw error;
       await cargarUsuarios();
-    } catch (err: any) {
-      showError(err.message || 'Error al cambiar estado');
+    } catch (err) {
+      showError((err instanceof Error ? err.message : null) || 'Error al cambiar estado');
     }
   };
 
@@ -586,8 +613,8 @@ const TabUsuarios: React.FC<TabProps> = ({ showSuccess, showError }) => {
       showSuccess('Usuario eliminado correctamente');
       setDeletingUser(null);
       await cargarUsuarios();
-    } catch (err: any) {
-      showError(err.message || 'Error al eliminar usuario');
+    } catch (err) {
+      showError((err instanceof Error ? err.message : null) || 'Error al eliminar usuario');
     } finally {
       setSaving(false);
     }
@@ -1118,8 +1145,8 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
       }
       setShowModal(false);
       await refetch();
-    } catch (err: any) {
-      showError(err.message || 'Error al guardar');
+    } catch (err) {
+      showError((err instanceof Error ? err.message : null) || 'Error al guardar');
     } finally {
       setSaving(false);
     }
@@ -1139,8 +1166,8 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
       showSuccess('Rol eliminado correctamente');
       setDeleteConfirm(null);
       await refetch();
-    } catch (err: any) {
-      showError(err.message || 'Error al eliminar');
+    } catch (err) {
+      showError((err instanceof Error ? err.message : null) || 'Error al eliminar');
     }
   };
 
@@ -1156,8 +1183,8 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
     try {
       await toggleActivo(rolId, !rol.activo);
       await refetch();
-    } catch (err: any) {
-      showError(err.message || 'Error al cambiar estado');
+    } catch (err) {
+      showError((err instanceof Error ? err.message : null) || 'Error al cambiar estado');
     }
   };
 
@@ -1182,8 +1209,8 @@ const TabRoles: React.FC<TabProps> = ({ showSuccess, showError }) => {
       });
       
       await refetch();
-    } catch (err: any) {
-      showError(err.message || 'Error al cambiar permiso');
+    } catch (err) {
+      showError((err instanceof Error ? err.message : null) || 'Error al cambiar permiso');
     } finally {
       setSavingPermiso(null);
     }

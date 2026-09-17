@@ -110,6 +110,11 @@ export interface DatosInformeGestion {
   resumenMensual: MetricasComparativas;      // mes actual vs mes anterior
   resumenAcumulado: MetricasComparativas;    // acum actual vs acum anterior
 
+  /** Series de 12 meses para los gráficos. Ausente en snapshots viejos. */
+  evolucion12Meses?: EvolucionMensual12M;
+  /** Matriz prácticas × obras sociales del mes. Ausente en snapshots viejos. */
+  cruceOSxPracticas?: CruceOSxPracticas;
+
   // Sección 2: Desglose por OS
   porObraSocial: {
     mesActual: DesglosePorOS[];
@@ -232,3 +237,62 @@ export const crearFiltros = (mes: number, anio: number): FiltrosInforme => {
     },
   };
 };
+
+// ============================================================
+// SECCIONES EXTRA DEL INFORME (evolución 12 meses y cruce OS × prácticas)
+// ============================================================
+// Las produce `informesExtractor.js` y viajan dentro del snapshot, pero vivían
+// declaradas dentro del generador de PDF. Al no estar en `DatosInformeGestion`,
+// el generador las leía con `(datos as any).evolucion12Meses`, o sea que el
+// contrato del informe no incluía dos de sus secciones. Acá quedan donde
+// corresponde, y el compilador verifica que lo que manda el extractor sea lo
+// que el PDF espera.
+// ============================================================
+
+export interface MesEvolucion {
+  anio: number;
+  mes: number;       // 1-12
+  label: string;     // ej: "May 25"
+}
+
+export interface SerieEvolucion {
+  nombre: string;    // sigla de OS / nombre prestador / nombre práctica
+  total: number;     // suma de los 12 meses (para ordenar y truncar)
+  serie: number[];   // 12 valores (cantidades), uno por mes en orden
+}
+
+export interface EvolucionMensual12M {
+  meses: MesEvolucion[];                    // 12 elementos, orden cronológico
+  obrasSociales: SerieEvolucion[];          // ya filtrado: top 10 por total
+  prestadores: SerieEvolucion[];            // todos los activos
+  practicas: SerieEvolucion[];              // ya filtrado: top 10 por total
+}
+
+// ============================================================
+// CRUCE PRÁCTICAS × OBRAS SOCIALES (matriz mes actual)
+// ============================================================
+export interface ColumnaOS {
+  osId: number;
+  sigla: string;
+  nombre: string;
+}
+
+export interface CeldaCruce {
+  cantidad: number;
+  facturado: number;
+}
+
+export interface FilaPracticaCruce {
+  nomId: number;
+  nomCod: string;
+  nomNombre: string;
+  totalCantidad: number;
+  totalFacturado: number;
+  // Map por clave: osId (número como string) o "OTRAS"
+  celdas: { [key: string]: CeldaCruce };
+}
+
+export interface CruceOSxPracticas {
+  columnasOS: ColumnaOS[];          // top 10 OS por facturación del mes
+  filasPracticas: FilaPracticaCruce[]; // todas las prácticas, ordenadas DESC por facturación
+}
