@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTesoreriaCaja } from '../hooks/useTesoreriaCaja';
+import { aFecha } from '@shared/utils';
 
 const CajaMovimientosPage: React.FC = () => {
   const {
@@ -89,7 +90,7 @@ const CajaMovimientosPage: React.FC = () => {
   const exportarCSV = () => {
     const headers = ['Fecha', 'Comprobante', 'Nombre', 'Observaciones', 'Ingreso', 'Egreso', 'Saldo'];
     const rows = movimientosConSaldo.map(mov => [
-      new Date(mov.fecha).toLocaleDateString('es-AR'),
+      aFecha(mov.fecha).toLocaleDateString('es-AR'),
       formatComprobante(mov),
       mov.nombre || '',
       mov.observaciones || '',
@@ -273,7 +274,7 @@ const CajaMovimientosPage: React.FC = () => {
                   {movimientosFiltrados.map((mov, idx) => (
                     <tr key={mov.id || idx} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {new Date(mov.fecha).toLocaleDateString('es-AR')}
+                        {aFecha(mov.fecha).toLocaleDateString('es-AR')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 font-mono">
                         {formatComprobante(mov)}

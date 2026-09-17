@@ -25,9 +25,36 @@ export const formatPriceARS = (price: number): string => {
   }).format(price);
 };
 
+/**
+ * CONVIERTE A Date SIN CORRER EL DÍA. Usar SIEMPRE esto, nunca `new Date(s)`.
+ *
+ * EL BUG QUE EVITA
+ * ----------------
+ * `new Date("2026-09-17")` NO es el 17 a la mañana: el estándar manda
+ * interpretar una fecha sin hora como **medianoche UTC**. En Argentina
+ * (UTC−3) eso son las 21:00 del 16, así que `toLocaleDateString('es-AR')`
+ * imprime **16/9/2026**. Un timestamp completo no tiene el problema, porque
+ * trae su hora.
+ *
+ * TODAS las columnas `fecha` del proyecto son `date` —caja, proveedores,
+ * erogaciones, movimientos, entregas, liquidaciones, turnos, banco—, así que el
+ * error aparece en cada pantalla que las muestre. Verificado el 17/09/2026: un
+ * movimiento de caja fechado 2026-09-17 se veía como 16/9/2026.
+ *
+ * El mediodía es a propósito: deja 12 horas de margen para cualquier huso, así
+ * que la fecha no se corre ni en UTC−11 ni en UTC+13.
+ */
+export const aFecha = (date: string | Date): Date => {
+  if (typeof date !== 'string') return date;
+  // 'YYYY-MM-DD' a secas: le ponemos el mediodía local.
+  return /^\d{4}-\d{2}-\d{2}$/.test(date.trim())
+    ? new Date(`${date.trim()}T12:00:00`)
+    : new Date(date);
+};
+
 // Formatear fecha
 export const formatDate = (date: string | Date): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = aFecha(date);
   return new Intl.DateTimeFormat('es-AR', {
     day: '2-digit',
     month: '2-digit',
@@ -37,7 +64,7 @@ export const formatDate = (date: string | Date): string => {
 
 // Formatear fecha y hora
 export const formatDateTime = (date: string | Date): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = aFecha(date);
   return new Intl.DateTimeFormat('es-AR', {
     day: '2-digit',
     month: '2-digit',
@@ -49,7 +76,7 @@ export const formatDateTime = (date: string | Date): string => {
 
 // Formatear fecha relativa (hace x tiempo)
 export const formatRelativeDate = (date: string | Date): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = aFecha(date);
   const now = new Date();
   const diff = now.getTime() - dateObj.getTime();
   

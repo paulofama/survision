@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Save, X, AlertTriangle, Info } from 'lucide-react';
 import { useCajaCalculation, calcularOS, calcularTotales } from './useCajaCalculation';
 import type { LiqPrestador, LiqHonorarioConPrestador } from './types';
+import { aFecha } from '@shared/utils';
 
 // ─── FMT helper (necesario antes de los componentes) ───────
 const NUM = (v: string | number): number => {
@@ -235,7 +236,7 @@ export function LiqHonorariosForm({
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-600" />
             <span className="text-sm font-medium text-amber-800">
-              Editando liquidación de {editingLiq.prestador_nombre} — {new Date(editingLiq.fecha).toLocaleDateString('es-AR')}
+              Editando liquidación de {editingLiq.prestador_nombre} — {aFecha(editingLiq.fecha).toLocaleDateString('es-AR')}
             </span>
           </div>
           <button

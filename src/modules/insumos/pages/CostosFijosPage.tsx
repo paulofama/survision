@@ -37,6 +37,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import useErogaciones, { Erogacion, TipoCosto, SubcategoriaVariable } from '@shared/hooks/useErogaciones';
+import { aFecha } from '@shared/utils';
 
 // ===========================================================
 // HELPERS
@@ -54,7 +55,7 @@ const formatCurrency = (amount: number): string => {
 const formatDate = (fecha: string): string => {
   if (!fecha) return '-';
   try {
-    const d = new Date(fecha);
+    const d = aFecha(fecha);
     return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
   } catch {
     return fecha;

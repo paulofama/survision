@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTesoreriaProveedores } from '../hooks/useTesoreriaProveedores';
+import { aFecha } from '@shared/utils';
 
 const PagosProveedoresPage: React.FC = () => {
   const {
@@ -56,7 +57,7 @@ const PagosProveedoresPage: React.FC = () => {
   const exportarCSV = () => {
     const headers = ['Fecha', 'Comprobante', 'Proveedor', 'CUIT', 'Observaciones', 'Egreso'];
     const rows = movimientosFiltrados.map(m => [
-      new Date(m.fecha).toLocaleDateString('es-AR'),
+      aFecha(m.fecha).toLocaleDateString('es-AR'),
       formatComprobante(m),
       m.proveedor || '',
       m.cuit || '',
@@ -200,7 +201,7 @@ const PagosProveedoresPage: React.FC = () => {
                   ) : movimientosPaginados.map((mov, idx) => (
                     <tr key={mov.id || idx} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                        {new Date(mov.fecha).toLocaleDateString('es-AR')}
+                        {aFecha(mov.fecha).toLocaleDateString('es-AR')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 font-mono whitespace-nowrap">
                         <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mr-2 ${mov.tipo_comprobante === 'OP' ? 'bg-rose-100 text-rose-700' : 'bg-orange-100 text-orange-700'}`}>

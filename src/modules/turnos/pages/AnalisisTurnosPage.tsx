@@ -23,6 +23,7 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
+import { aFecha } from '@shared/utils';
 
 // ============================================
 // TIPOS
@@ -141,7 +142,7 @@ const AnalisisTurnosPage: React.FC = () => {
   // ============================================
 
   const formatFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-AR', {
+    return aFecha(fecha).toLocaleDateString('es-AR', {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit'

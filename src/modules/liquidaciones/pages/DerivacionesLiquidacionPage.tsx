@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import jsPDF from 'jspdf';
+import { aFecha } from '@shared/utils';
 
 // ============================================
 // TIPOS
@@ -76,7 +77,7 @@ const formatCurrency = (amount: number): string => {
 
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  const date = aFecha(dateStr);
   return date.toLocaleDateString('es-AR', {
     day: '2-digit',
     month: '2-digit',
