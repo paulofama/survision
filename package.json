@@ -17,7 +17,8 @@
     "lint": "eslint src --report-unused-disable-directives",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint:real": "eslint src --no-inline-config"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
