@@ -19,6 +19,7 @@
 // ============================================================
 
 import jsPDF from 'jspdf';
+import type { CellHookData } from 'jspdf-autotable';
 
 // ── Geometría A4 ─────────────────────────────────────────────────────────────
 
@@ -117,7 +118,7 @@ export const vari = (actual: number, anterior: number): Variacion => {
 /** Alinea los encabezados de autoTable con los datos de su columna. */
 export type HAlign = 'left' | 'center' | 'right';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const alinear = (d: any, aligns: Record<number, HAlign>) => {
+export const alinear = (d: CellHookData, aligns: Record<number, HAlign>) => {
   if (d.section === 'head') {
     const a = aligns[d.column.index];
     if (a) d.cell.styles.halign = a;
@@ -204,8 +205,7 @@ export function seccion(L: Lienzo, titulo: string, opts: { hojaNueva?: boolean; 
   if (opts.hojaNueva) nuevaHoja(L, titulo);
   else asegurar(L, (opts.alto ?? 20) + 12);
   L.seccion = titulo;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  L.indice.push({ titulo, pagina: (L.doc as any).getCurrentPageInfo().pageNumber });
+  L.indice.push({ titulo, pagina: L.doc.getCurrentPageInfo().pageNumber });
 
   const { doc } = L;
   doc.setFontSize(12);
@@ -547,8 +547,7 @@ export function graficoPuente(L: Lienzo, barras: BarraPuente[], opts: { alto?: n
  * jspdf-autotable por su cuenta, que no pasan por `nuevaHoja`.
  */
 export function cerrar(L: Lienzo, leyendaPie: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const doc = L.doc as any;
+  const doc = L.doc;
   const total: number = doc.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);

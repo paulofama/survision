@@ -28,6 +28,7 @@
 // ============================================================
 
 import autoTable from 'jspdf-autotable';
+import type { CellHookData } from 'jspdf-autotable';
 import {
   Lienzo, C, M, CW, PW, PH, Y_CONTENIDO, RGB,
   nuevoLienzo, membrete, seccion, parrafo, vinieta, aviso, kpi,
@@ -117,11 +118,12 @@ export function armarInformeMensual(
   // Se inserta como página 2 recién ahora, cuando ya se sabe cuántas páginas
   // hay y en cuál cayó cada sección. Insertar corre todo una posición, así que
   // los números registrados se ajustan en +1.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anyDoc = doc as any;
-  if (anyDoc.getNumberOfPages() > 4) {
-    anyDoc.insertPage(2);
-    anyDoc.setPage(2);
+  // jsPDF ya declara getNumberOfPages/insertPage/setPage en sus tipos: el cast
+  // a any que había acá nunca hizo falta.
+  const docPaginas = doc;
+  if (docPaginas.getNumberOfPages() > 4) {
+    docPaginas.insertPage(2);
+    docPaginas.setPage(2);
     L.seccion = 'Índice';
     membrete(L);
     L.y = Y_CONTENIDO;
@@ -335,7 +337,7 @@ function seccionResumen(L: Lienzo, d: DatosInformeMensual) {
       3: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right' });
       if (h.section === 'body' && h.row.index === 3) {
         h.cell.styles.fillColor = C.primaryLight;
@@ -493,7 +495,7 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
       3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right' });
       if (h.section === 'body' && h.row.index === 3) {
         h.cell.styles.fillColor = C.primaryLight;
@@ -526,7 +528,7 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
       2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
+    didParseCell: (h: CellHookData) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
   });
   L.y = L.doc.lastAutoTable.finalY + 4;
   if (d.porPrestador.length > prestadores.length) {
@@ -593,7 +595,7 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
     headStyles: { ...TABLA_BASE.headStyles, fontSize: 6.6 },
     columnStyles: { 0: { cellWidth: 36, fontStyle: 'bold' } },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       if (h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section === 'body' && (h.row.index === 5 || h.row.index === 7)) {
         h.cell.styles.fillColor = C.primaryLight;
@@ -660,7 +662,7 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       2: { halign: 'right', cellWidth: 16 }, 3: { fontSize: 7 },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right' });
       if (h.section === 'body' && h.row.index === 4) {
         h.cell.styles.fillColor = C.primaryLight;
@@ -720,7 +722,7 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       3: { halign: 'right' }, 4: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' });
       if (h.section === 'body' && h.column.index === 3) {
         h.cell.styles.textColor = String(h.cell.raw).startsWith('+') ? C.green : C.red;
@@ -838,7 +840,7 @@ function seccionPrestaciones(L: Lienzo, d: DatosInformeMensual) {
       5: { halign: 'right' }, 6: { halign: 'right' }, 7: { halign: 'right' }, 8: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right', 6: 'right', 7: 'right', 8: 'right' });
       // Resultado operativo negativo en rojo.
       if (h.section === 'body' && (h.column.index === 7 || h.column.index === 8)) {
@@ -896,7 +898,7 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
       2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right' });
       if (h.section === 'body' && (h.column.index === 2 || h.column.index === 4)) {
         const t = String(h.cell.raw);
@@ -942,7 +944,7 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
       3: { cellWidth: 38 }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 4: 'right', 5: 'right' });
       if (h.section === 'body' && (h.column.index === 2)) h.cell.styles.textColor = C.green;
       if (h.section === 'body' && (h.column.index === 5)) h.cell.styles.textColor = C.red;
@@ -976,7 +978,7 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
     ],
     columnStyles: { 0: { cellWidth: 62 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right' });
       if (h.section === 'body' && h.row.index === 3) {
         h.cell.styles.fillColor = C.primaryLight;
@@ -1023,7 +1025,7 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
     ],
     columnStyles: { 0: { cellWidth: 56 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' });
       const ultima = h.row.index === m.costosFijosPorCategoria.length;
       if (h.section === 'body' && ultima) {
@@ -1060,7 +1062,7 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
       headStyles: { ...TABLA_BASE.headStyles, fontSize: 6.8 },
       columnStyles: { 0: { cellWidth: 34 }, 1: { cellWidth: 16 }, 2: { cellWidth: 38 }, 4: { halign: 'right', cellWidth: 26 } },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      didParseCell: (h: any) => alinear(h, { 4: 'right' }),
+      didParseCell: (h: CellHookData) => alinear(h, { 4: 'right' }),
     });
     L.y = L.doc.lastAutoTable.finalY + 4;
   } else {
@@ -1150,7 +1152,7 @@ function seccionCalidad(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme
     body: alertas.map(a => [a.tema, a.detalle]),
     columnStyles: { 0: { cellWidth: 44, fontStyle: 'bold' }, 1: { fontSize: 7 } },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       if (h.section === 'body' && alertas[h.row.index]?.critico && h.column.index === 0) {
         h.cell.styles.textColor = C.red;
       }
@@ -1184,7 +1186,7 @@ function anexo(L: Lienzo, d: DatosInformeMensual) {
       2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
+    didParseCell: (h: CellHookData) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
   });
   L.y = L.doc.lastAutoTable.finalY + 4;
 }

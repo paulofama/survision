@@ -44,6 +44,7 @@
 // ============================================================
 
 import autoTable from 'jspdf-autotable';
+import type { CellHookData } from 'jspdf-autotable';
 import type { FilaEvolucion, Mes } from '@shared/types/evolucionTemporal';
 import { labelMesCorto, parseMesKey } from '@shared/types/evolucionTemporal';
 import {
@@ -403,7 +404,7 @@ function seccionUltimoMes(
       4: { halign: 'right' }, 5: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section !== 'body') return;
       // Margen y resultado, resaltados: son las dos líneas que se miran.
@@ -588,7 +589,7 @@ function seccionEstadoResultados(
       [meses.length + 2]: { halign: 'right' as const, textColor: C.medium },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (d: any) => {
+    didParseCell: (d: CellHookData) => {
       if (d.section !== 'body') return;
       const f = meta[d.row.index];
       // Fila de porcentaje: en itálica y gris, para que se lea como lo que es
@@ -732,7 +733,7 @@ function seccionEvolucion(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[]) 
       4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' }, 6: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section === 'body' && (h.column.index === 5 || h.column.index === 6)) {
         h.cell.styles.textColor = String(h.cell.raw).includes('-') ? C.red : C.green;
@@ -844,7 +845,7 @@ function seccionEquilibrio(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[])
       3: { halign: 'right', fontStyle: 'bold' }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (h: any) => {
+    didParseCell: (h: CellHookData) => {
       if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section === 'body' && (h.column.index === 3 || h.column.index === 4)) {
         h.cell.styles.textColor = String(h.cell.raw).includes('-') ? C.red : C.green;
@@ -890,7 +891,7 @@ function seccionEquilibrio(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[])
         3: { halign: 'right', fontStyle: 'bold' }, 4: { halign: 'right' },
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      didParseCell: (h: any) => {
+      didParseCell: (h: CellHookData) => {
         if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
         if (h.section === 'body' && (h.column.index === 3 || h.column.index === 4)) {
           h.cell.styles.textColor = String(h.cell.raw).includes('-') ? C.red : C.green;

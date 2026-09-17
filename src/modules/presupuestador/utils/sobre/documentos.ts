@@ -15,6 +15,7 @@
 // ============================================================
 
 import autoTable from "jspdf-autotable";
+import type { CellHookData } from 'jspdf-autotable';
 import {
   Lienzo, M, alinear,
   titulo, subtitulo, parrafo, vinieta, campo, campo2, espacio, rp, checkbox, firmas,
@@ -305,7 +306,7 @@ export function docCronograma(L: Lienzo, ctx: SobreCtx, abrirHoja: (L: Lienzo) =
     alternateRowStyles: { fillColor: [244, 247, 252] },
     columnStyles: { 0: { cellWidth: 22, halign: "center", fontStyle: "bold" } },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    didParseCell: (d: any) => alinear(d, { 0: "center", 1: "left", 2: "left", 3: "left" }),
+    didParseCell: (d: CellHookData) => alinear(d, { 0: "center", 1: "left", 2: "left", 3: "left" }),
     // Red de seguridad: si aun así se abriera una hoja, que lleve el membrete.
     didDrawPage: (d) => { if (d.pageNumber > 1) membrete(L); },
   });
@@ -835,7 +836,7 @@ export function docRecetaCostos(L: Lienzo, ctx: SobreCtx) {
         4: { cellWidth: 28, halign: "right" },
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      didParseCell: (d: any) => alinear(d, { 2: "right", 3: "right", 4: "right" }),
+      didParseCell: (d: CellHookData) => alinear(d, { 2: "right", 3: "right", 4: "right" }),
       didDrawPage: (d) => { if (d.pageNumber > 1) membrete(L); },
     });
     L.y = L.doc.lastAutoTable.finalY + 5;
