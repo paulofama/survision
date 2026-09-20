@@ -45,3 +45,6 @@ backups/
 _backup_pre_modular_*.zip
 *_VERIF.pdf
 Reporte_Sueldos_*.pdf
+
+# PDFs generados al probar informes desde tests (jsPDF escribe en el cwd)
+/Seguimiento-*.pdf

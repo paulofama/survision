@@ -8,7 +8,8 @@
 // ============================================================
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PhoneCall, MessageCircle, RefreshCw, Bell } from "lucide-react";
+import { PhoneCall, MessageCircle, RefreshCw, Bell, BarChart3 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@shared/context/AuthContext";
 import { sbGet, sbInsert, sbUpsert } from "../utils/circuito";
 import {
@@ -118,6 +119,12 @@ export default function SeguimientoPage() {
             <span className="text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg">
               {cola.length} llamado{cola.length !== 1 ? "s" : ""} pendiente{cola.length !== 1 ? "s" : ""}
             </span>
+            <Link
+              to="/presupuestos/seguimiento/informe"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <BarChart3 className="h-4 w-4" /> Informe mensual
+            </Link>
             <button onClick={cargar} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Actualizar
             </button>
