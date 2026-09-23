@@ -31,6 +31,8 @@ export interface Diagnostico {
   solicitud: string;
   lleva_lio: boolean;
   activo: boolean;
+  /** De dónde salió y qué duda tiene. No se imprime (migración 52). */
+  nota_interna?: string | null;
 }
 
 /** Una práctica del catálogo con su diagnóstico (si lo tiene) y su volumen. */
@@ -90,11 +92,14 @@ export const faltaElOjo = (diagnostico: string): boolean =>
 /**
  * Orden de la lista: **primero lo que falta, y dentro de eso lo que más se
  * presupuesta**, que es donde conviene empezar. Después lo ya cargado.
+ *
+ * "Falta" se mide por ACTIVO, no por tener fila: una propuesta sin activar
+ * imprime el renglón igual de vacío, así que ordena con las que faltan.
  */
 export function ordenarPorPrioridad(filas: PracticaConDx[]): PracticaConDx[] {
   return [...filas].sort((a, b) => {
-    const faltaA = a.dx ? 1 : 0;
-    const faltaB = b.dx ? 1 : 0;
+    const faltaA = a.dx?.activo ? 1 : 0;
+    const faltaB = b.dx?.activo ? 1 : 0;
     if (faltaA !== faltaB) return faltaA - faltaB;
     if (b.aceptados !== a.aceptados) return b.aceptados - a.aceptados;
     if (b.presupuestos !== a.presupuestos) return b.presupuestos - a.presupuestos;
@@ -102,14 +107,25 @@ export function ordenarPorPrioridad(filas: PracticaConDx[]): PracticaConDx[] {
   });
 }
 
-export type FiltroCarga = 'todas' | 'sin' | 'con';
+/**
+ * Una PROPUESTA es un diagnóstico cargado pero APAGADO, con la nota de dónde
+ * salió: todavía no se imprime, está esperando que alguien lo lea y lo active.
+ * Es distinta de una fila apagada a propósito, que ya fue revisada y se bajó.
+ */
+export const esPropuesta = (d: Diagnostico | null | undefined): boolean =>
+  !!d && !d.activo && !!String(d.nota_interna || '').trim();
+
+export type FiltroCarga = 'todas' | 'sin' | 'con' | 'propuestas';
 
 /** Filtro de la pantalla: texto libre sobre código y nombre + estado de carga. */
 export function filtrar(filas: PracticaConDx[], texto: string, carga: FiltroCarga): PracticaConDx[] {
   const q = String(texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
   return filas.filter((f) => {
-    if (carga === 'sin' && f.dx) return false;
-    if (carga === 'con' && !f.dx) return false;
+    // "Sin diagnóstico" incluye las propuestas: mientras no se activen, el
+    // pedido sale igual de vacío que si no hubiera nada cargado.
+    if (carga === 'sin' && f.dx?.activo) return false;
+    if (carga === 'con' && !f.dx?.activo) return false;
+    if (carga === 'propuestas' && !esPropuesta(f.dx)) return false;
     if (!q) return true;
     const heno = (f.codigo + ' ' + f.nombre + ' ' + (f.dx?.diagnostico || ''))
       .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -164,7 +180,7 @@ export async function cargarPanelDiagnosticos(): Promise<PanelDiagnosticos> {
       supabase.from('prestaciones').select('codigo,practica').range(desde, desde + 999)),
     traerTodo<Diagnostico>((desde) =>
       supabase.from('presupuestos_diagnosticos')
-        .select('codigo_practica,diagnostico,solicitud,lleva_lio,activo')
+        .select('codigo_practica,diagnostico,solicitud,lleva_lio,activo,nota_interna')
         .range(desde, desde + 999)),
     traerTodo<{ id: string; prestacion_codigo: string | null }>((desde) =>
       supabase.from('presupuestos').select('id,prestacion_codigo').range(desde, desde + 999)),
@@ -209,6 +225,7 @@ export async function guardarDiagnostico(d: Diagnostico): Promise<void> {
         solicitud: String(d.solicitud).trim(),
         lleva_lio: !!d.lleva_lio,
         activo: !!d.activo,
+        nota_interna: String(d.nota_interna || '').trim() || null,
       },
       { onConflict: 'codigo_practica' },
     );

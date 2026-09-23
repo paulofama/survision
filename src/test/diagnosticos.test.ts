@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import {
   conOjo,
   cruzar,
+  esPropuesta,
   esQuirurgica,
   faltaElOjo,
   filtrar,
@@ -123,6 +124,37 @@ describe('ordenarPorPrioridad', () => {
     ordenarPorPrioridad(entrada);
     expect(entrada[0].codigo).toBe('030002');
   });
+
+  it('una PROPUESTA ordena con las que faltan, no con las cargadas', () => {
+    // Si no, la propuesta se hundiría al fondo de la lista justo cuando es lo
+    // que hay que ir a revisar.
+    const r = ordenarPorPrioridad([
+      fila({ codigo: '030501', dx: dx({ activo: true }), presupuestos: 500 }),
+      fila({ codigo: '030002', dx: dx({ codigo_practica: '030002', activo: false, nota_interna: 'PROPUESTO.' }), presupuestos: 91 }),
+      fila({ codigo: '030601', dx: null, presupuestos: 189 }),
+    ]);
+    expect(r.map((f) => f.codigo)).toEqual(['030601', '030002', '030501']);
+  });
+});
+
+describe('esPropuesta — apagada CON nota, esperando que alguien la lea', () => {
+  it('una fila apagada con nota es una propuesta', () => {
+    expect(esPropuesta(dx({ activo: false, nota_interna: 'PROPUESTO, sin revisar. Confirmar.' }))).toBe(true);
+  });
+
+  it('una fila apagada SIN nota no es una propuesta: fue revisada y se bajó', () => {
+    expect(esPropuesta(dx({ activo: false, nota_interna: null }))).toBe(false);
+    expect(esPropuesta(dx({ activo: false, nota_interna: '   ' }))).toBe(false);
+  });
+
+  it('una fila activa nunca es una propuesta, tenga nota o no', () => {
+    expect(esPropuesta(dx({ activo: true, nota_interna: 'Lo confirmó el Dr. Mercado.' }))).toBe(false);
+  });
+
+  it('sin fila no hay propuesta', () => {
+    expect(esPropuesta(null)).toBe(false);
+    expect(esPropuesta(undefined)).toBe(false);
+  });
 });
 
 describe('filtrar', () => {
@@ -152,6 +184,23 @@ describe('filtrar', () => {
 
   it('busca también dentro del diagnóstico cargado', () => {
     expect(filtrar(filas, 'catarata', 'todas').map((f) => f.codigo)).toEqual(['030501']);
+  });
+
+  it('una PROPUESTA cuenta como "sin diagnóstico": imprime el renglón igual de vacío', () => {
+    const conPropuesta = [
+      ...filas,
+      fila({ codigo: '030002', nombre: 'Yag Laser - Capsulotomia',
+             dx: dx({ codigo_practica: '030002', activo: false, nota_interna: 'PROPUESTO, sin revisar.' }) }),
+    ];
+    expect(filtrar(conPropuesta, '', 'sin').map((f) => f.codigo)).toContain('030002');
+    expect(filtrar(conPropuesta, '', 'con').map((f) => f.codigo)).not.toContain('030002');
+    expect(filtrar(conPropuesta, '', 'propuestas').map((f) => f.codigo)).toEqual(['030002']);
+  });
+
+  it('una fila apagada sin nota no aparece entre las propuestas', () => {
+    const apagada = [fila({ codigo: '030999', dx: dx({ codigo_practica: '030999', activo: false, nota_interna: null }) })];
+    expect(filtrar(apagada, '', 'propuestas')).toHaveLength(0);
+    expect(filtrar(apagada, '', 'sin')).toHaveLength(1);
   });
 });
 
