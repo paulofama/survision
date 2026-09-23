@@ -283,6 +283,11 @@ const useEvolucionMensual = (
       // Normalización de tipo_costo (misma lógica que useErogaciones)
       const rawTipo = String(r.tipo_costo || '').replace(/^"|"$/g, '').trim();
 
+      // 'variable' y 'no_es_gasto' no entran al estado de resultados, y es a
+      // propósito: los costos variables los calcula el modelo (fórmula de
+      // honorarios + recetas) y un movimiento de fondos no es un costo. Sí
+      // cuentan como CLASIFICADAS para el aviso de costos incompletos, porque
+      // alguien las miró y decidió.
       if (rawTipo === 'fijo') {
         const catNombre = r.categorias_costo_fijo?.nombre || 'Sin categoría';
         // Switch por mes: si el módulo cubre el mes, NO contamos la erogación

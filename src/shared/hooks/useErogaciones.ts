@@ -14,7 +14,23 @@ import { traerTodo } from '../lib/traerTodo';
 // TIPOS
 // ============================================
 
-export type TipoCosto = 'sin_clasificar' | 'fijo' | 'variable';
+/**
+ * Qué se decidió sobre una erogación.
+ *
+ *   fijo           suma al costo fijo del mes.
+ *   variable       se pagó, pero el resultado lo calcula el modelo (fórmula de
+ *                  honorarios + recetas), así que NO suma al estado de
+ *                  resultados; sirve para la conciliación pagado vs calculado.
+ *   no_es_gasto    movimiento de fondos —rendiciones de caja, depósitos,
+ *                  transferencias a tesorería—: alguien lo MIRÓ y decidió que
+ *                  no corresponde al resultado (migración 53).
+ *   sin_clasificar todavía nadie lo miró.
+ *
+ * La diferencia entre `no_es_gasto` y `sin_clasificar` es la que importa: uno
+ * es una decisión y el otro una tarea pendiente, y hasta la migración 53 se
+ * veían igual.
+ */
+export type TipoCosto = 'sin_clasificar' | 'fijo' | 'variable' | 'no_es_gasto';
 
 export interface CategoriaCostoFijo {
   id: string;
@@ -173,7 +189,7 @@ interface PendienteGuardarDefault {
 const normalizeTipoCosto = (valor: unknown): TipoCosto => {
   if (!valor) return 'sin_clasificar';
   const str = String(valor).replace(/^"|"$/g, '').trim();
-  if (str === 'fijo' || str === 'variable' || str === 'sin_clasificar') {
+  if (str === 'fijo' || str === 'variable' || str === 'sin_clasificar' || str === 'no_es_gasto') {
     return str as TipoCosto;
   }
   return 'sin_clasificar';
@@ -603,6 +619,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       const mensajes: Record<TipoCosto, string> = {
         'fijo': 'Marcado como Costo Fijo',
         'variable': 'Marcado como Variable',
+        'no_es_gasto': 'Marcado como movimiento de fondos: no suma al resultado',
         'sin_clasificar': 'Clasificación removida'
       };
       mostrarMensaje(mensajes[nuevoTipo], 'success');

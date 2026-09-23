@@ -34,7 +34,8 @@ import {
   Trash2,
   HelpCircle,
   ChevronRight as ChevronRightSmall,
-  RotateCcw
+  RotateCcw,
+  Ban
 } from 'lucide-react';
 import useErogaciones, { Erogacion, TipoCosto, SubcategoriaVariable } from '@shared/hooks/useErogaciones';
 import { aFecha } from '@shared/utils';
@@ -241,6 +242,7 @@ export default function CostosFijosPage() {
     const configs: Record<TipoCosto, { icon: React.ReactNode; hoverBg: string }> = {
       'fijo': { icon: <CheckSquare className="w-5 h-5 text-blue-600" />, hoverBg: 'hover:bg-blue-100' },
       'variable': { icon: <MinusSquare className="w-5 h-5 text-amber-600" />, hoverBg: 'hover:bg-amber-100' },
+      'no_es_gasto': { icon: <Ban className="w-5 h-5 text-slate-500" />, hoverBg: 'hover:bg-slate-100' },
       'sin_clasificar': { icon: <Square className="w-5 h-5 text-gray-400" />, hoverBg: 'hover:bg-gray-200' },
     };
     const c = configs[tipo] || configs['sin_clasificar'];
@@ -309,6 +311,20 @@ export default function CostosFijosPage() {
               <span>Variable</span>
             </div>
             <ChevronRightSmall className="w-3.5 h-3.5 text-gray-400" />
+          </button>
+
+          {/* Opción: No es gasto (rendiciones, depósitos, transferencias) */}
+          <button
+            onClick={() => handleSeleccionarTipo(erogacion, 'no_es_gasto')}
+            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+              tipoActual === 'no_es_gasto'
+                ? 'bg-slate-100 text-slate-700 font-medium'
+                : 'hover:bg-gray-50 text-gray-700'
+            }`}
+            title="Movimiento de fondos: no suma a ninguna línea del estado de resultados"
+          >
+            <Ban className="w-4 h-4 text-slate-500" />
+            <span>No es gasto</span>
           </button>
 
           {/* Separador + Opción: Sin clasificar (solo si ya está clasificado) */}
