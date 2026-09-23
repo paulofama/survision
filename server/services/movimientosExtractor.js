@@ -23,6 +23,7 @@
 
 const { executeQuery } = require('../config/database');
 const { supabase } = require('../config/supabase'); // service_role -> bypassa RLS
+const { rangoSync, motivoParaNoEscribir } = require('./ventanaSync');
 
 // LEFT JOINs para conservar atenciones sin práctica/prestador (las muestra el
 // listado). El monto sale de MovEnca. es_principal y cant_prestadores se
@@ -142,7 +143,8 @@ async function extraerMovimientos(desde, hasta) {
 }
 
 /**
- * Rango por defecto del daemon: desde el 1-ene del año en curso hasta hoy.
+ * Rango por defecto del daemon: lo define `ventanaSync` (1-ene del año
+ * ANTERIOR hasta hoy). Ver ahí por qué no alcanza con el año en curso.
  * Cubre ediciones tardías de meses ya cerrados (p. ej. un derivante que se carga
  * el mes siguiente y de otro modo nunca se re-sincronizaría).
  */
@@ -167,12 +169,23 @@ async function sincronizarMovimientos({ write = false, historico = false, desde,
       rDesde = '2024-01-01';
       rHasta = new Date().toISOString().split('T')[0];
     } else {
-      ({ desde: rDesde, hasta: rHasta } = rangoAnioEnCurso());
+      ({ desde: rDesde, hasta: rHasta } = rangoSync());
     }
   }
 
   const filas = await extraerMovimientos(rDesde, rHasta);
   if (!write) return { total: filas.length, desde: rDesde, hasta: rHasta, escrito: false };
+
+  // GUARDA: el refresco es DELETE + INSERT y la ventana ahora abarca dos años.
+  // Una lectura que vuelve corta borraría historia que nadie está mirando.
+  const { count: guardadas, error: cntErr } = await supabase
+    .from('movimientos_geclisa')
+    .select('atencion_id', { count: 'exact', head: true })
+    .gte('fecha', rDesde)
+    .lte('fecha', rHasta);
+  if (cntErr) throw new Error('conteo previo: ' + cntErr.message);
+  const motivo = motivoParaNoEscribir({ leidas: filas.length, guardadas: guardadas || 0 });
+  if (motivo) throw new Error('ABORTADO sin escribir: ' + motivo);
 
   // DELETE del rango (por fecha) antes de reinsertar -> idempotente
   const { error: delErr } = await supabase

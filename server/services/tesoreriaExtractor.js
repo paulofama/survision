@@ -263,7 +263,7 @@ async function sincronizarTesoreria({ write = false, historico = false, anioEnCu
   if (historico) {
     desde = '2018-01-01';
   } else if (anioEnCurso) {
-    desde = `${new Date().getFullYear()}-01-01`;
+    desde = require('./ventanaSync').rangoSync().desde;
   } else {
     const d = new Date();
     d.setMonth(d.getMonth() - 1); // mes en curso + anterior

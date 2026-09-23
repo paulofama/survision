@@ -40,16 +40,11 @@ const { sincronizarTurnosFuturos } = require('../services/turnosFuturosExtractor
 const { correrMatch } = require('../services/matchPracticasService');
 const { correrCierres } = require('../services/seguimientoJob');
 
-// Períodos YYYY-MM del año en curso (ene..mes actual) para el ETL fiscal del IVA.
-// Cubre cargas tardías de meses ya cerrados (antes solo mes actual + anterior).
-function periodosIvaAnioEnCurso() {
-  const hoy = new Date();
-  const y = hoy.getFullYear();
-  const mActual = hoy.getMonth() + 1;
-  const periodos = [];
-  for (let m = 1; m <= mActual; m++) periodos.push(`${y}-${String(m).padStart(2, '0')}`);
-  return periodos;
-}
+// Períodos YYYY-MM de la ventana de sincronización, para el ETL fiscal del IVA.
+// La ventana la define `services/ventanaSync` y arranca en enero del año
+// ANTERIOR: un mes cerrado se sigue corrigiendo, y el salto de diciembre a
+// enero dejaba esas correcciones afuera para siempre.
+const { periodosSync } = require('../services/ventanaSync');
 
 // ------------------------------------------------------------
 // Registro de sincronizaciones (agregar más módulos acá)
@@ -79,7 +74,7 @@ const SYNCS = [
     nombre: 'iva fiscal (GECLISA→Supabase)',
     fn: async () => {
       let filas = 0;
-      for (const per of periodosIvaAnioEnCurso()) {
+      for (const per of periodosSync()) {
         const r = await sincronizarIvaPeriodo(per);
         filas += (r.v?.filas || 0) + (r.c?.filas || 0);
       }

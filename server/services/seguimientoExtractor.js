@@ -405,11 +405,7 @@ async function mesesConDatos() {
 async function sincronizarSeguimiento({ write = false, soloRecientes = true, anioEnCurso = false } = {}) {
   let objetivos;
   if (anioEnCurso) {
-    const hoy = new Date();
-    const anio = hoy.getFullYear();
-    const mesActual = hoy.getMonth() + 1;
-    objetivos = [];
-    for (let m = 1; m <= mesActual; m++) objetivos.push({ anio, mes: m });
+    objetivos = require('./ventanaSync').mesesSync();
   } else if (soloRecientes) {
     const hoy = new Date();
     const anio = hoy.getFullYear();

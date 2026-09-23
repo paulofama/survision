@@ -442,8 +442,9 @@ async function sincronizarInformes({ write = false, soloRecientes = true, anioEn
 
   let objetivos;
   if (anioEnCurso) {
-    objetivos = [];
-    for (let m = 1; m <= mesActual; m++) objetivos.push({ anio: anioActual, mes: m });
+    // La ventana la define `ventanaSync`: el año anterior también se refresca,
+    // porque es la base del comparativo y se lo sigue corrigiendo.
+    objetivos = require('./ventanaSync').mesesSync();
   } else if (soloRecientes) {
     const mesAnt = mesActual === 1 ? 12 : mesActual - 1;
     const anioAnt = mesActual === 1 ? anioActual - 1 : anioActual;

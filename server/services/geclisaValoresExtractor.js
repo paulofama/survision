@@ -123,10 +123,8 @@ async function extraerPagos(desde, hasta) {
   });
 }
 
-function rangoAnioEnCurso() {
-  const hoy = new Date();
-  return { desde: `${hoy.getFullYear()}-01-01`, hasta: hoy.toISOString().split('T')[0] };
-}
+// La ventana la define `ventanaSync`, igual que el resto de los espejos.
+const { rangoSync } = require('./ventanaSync');
 
 /**
  * Sincroniza geclisa_valores (UPSERT por id_origen, preserva estado_conciliacion).
@@ -135,7 +133,7 @@ async function sincronizarGeclisaValores({ write = false, historico = false, des
   let rDesde = desde, rHasta = hasta;
   if (!rDesde || !rHasta) {
     if (historico) { rDesde = '2024-01-01'; rHasta = new Date().toISOString().split('T')[0]; }
-    else { ({ desde: rDesde, hasta: rHasta } = rangoAnioEnCurso()); }
+    else { ({ desde: rDesde, hasta: rHasta } = rangoSync()); }
   }
 
   const cobranzas = await extraerValores(rDesde, rHasta);
