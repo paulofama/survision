@@ -68,6 +68,13 @@ interface FilaErogacionClasificada {
 // CONFIGURACIÓN
 // ============================================
 
+/**
+ * Porcentaje del gasto del mes sin clasificar a partir del cual el estado de
+ * resultados deja de ser comparable. Exigente a propósito: los meses cerrados
+ * y revisados de 2026 cubren el 100%.
+ */
+const UMBRAL_EROGACIONES_SIN_CARGAR = 5;
+
 /** Umbral de cobertura de receta debajo del cual se emite advertencia. */
 const UMBRAL_COBERTURA_RECETA = 80; // %
 
@@ -194,7 +201,7 @@ const useEvolucionMensual = (
         fijosPorMes: {} as Record<Mes, { porCategoria: Record<string, number>; total: number }>,
         sinClasificarPorMes: {} as Record<Mes, number>,
         crudasPorMes: {} as Record<Mes, { filas: number; monto: number }>,
-        clasificadasPorMes: {} as Record<Mes, number>,
+        clasificadasPorMes: {} as Record<Mes, { filas: number; monto: number }>,
       };
     }
 
@@ -247,14 +254,14 @@ const useEvolucionMensual = (
     const sinClasificarPorMes: Record<Mes, number> = {};
     /** Lo que hay en el espejo crudo, esté clasificado o no. */
     const crudasPorMes: Record<Mes, { filas: number; monto: number }> = {};
-    /** Cuántas erogaciones de ese mes llegaron a clasificarse. */
-    const clasificadasPorMes: Record<Mes, number> = {};
+    /** Cuántas erogaciones de ese mes llegaron a clasificarse, y por cuánto. */
+    const clasificadasPorMes: Record<Mes, { filas: number; monto: number }> = {};
 
     meses.forEach(m => {
       fijosPorMes[m] = { porCategoria: {}, total: 0 };
       sinClasificarPorMes[m] = 0;
       crudasPorMes[m] = { filas: 0, monto: 0 };
-      clasificadasPorMes[m] = 0;
+      clasificadasPorMes[m] = { filas: 0, monto: 0 };
     });
 
     dataCrudas.forEach((r) => {
@@ -268,8 +275,10 @@ const useEvolucionMensual = (
     dataFijos.forEach((r) => {
       const mesKey = toMesKey(r.anio, r.mes);
       if (!fijosPorMes[mesKey]) return;
-      clasificadasPorMes[mesKey] += 1;
+      const cl = clasificadasPorMes[mesKey];
+      cl.filas += 1;
       const monto = Number(r.monto) || 0;
+      cl.monto += monto;
 
       // Normalización de tipo_costo (misma lógica que useErogaciones)
       const rawTipo = String(r.tipo_costo || '').replace(/^"|"$/g, '').trim();
@@ -773,20 +782,36 @@ const useEvolucionMensual = (
         // Medido el 23/09/2026: 2025 tiene 2.241 erogaciones por
         // $1.384.474.994 y UNA clasificada. El año entero mostraba 35% de
         // resultado operativo contra el 24,3% de 2026.
+        // SE MIDE POR PLATA, NO POR CANTIDAD DE FILAS.
+        //
+        // Un mes puede tener el 78% de los comprobantes clasificados y estar
+        // igual de roto si los que faltan son los grandes. Medido el
+        // 23/09/2026: agosto-2026 tenía 100 de 129 comprobantes (78%) pero
+        // $16.019.095 sin clasificar — con un umbral por cantidad no se
+        // hubiera avisado.
+        //
+        // El estándar de este sistema es 100%: los meses de 2026 que están
+        // cerrados y revisados cubren el 100% de la plata. Así que el umbral
+        // es exigente a propósito: 5% sin clasificar ya es material para un
+        // estado de resultados.
         const crudas = fijosData.crudasPorMes[m];
-        const clasif = fijosData.clasificadasPorMes[m] ?? 0;
-        if (crudas && crudas.filas > 0 && clasif < crudas.filas * 0.5) {
-          const faltan = crudas.filas - clasif;
-          advertencias.push({
-            mes: m,
-            tipo: 'erogaciones_sin_cargar',
-            severidad: 'error',
-            mensaje:
-              `${m}: ${faltan} de ${crudas.filas} erogaciones del ERP no están clasificadas ` +
-              `(hasta $ ${Math.round(crudas.monto).toLocaleString('es-AR')}). ` +
-              `El costo fijo del mes está incompleto y el resultado operativo sobrevaluado. ` +
-              `No compares este mes contra otro hasta clasificarlas.`,
-          });
+        const clasif = fijosData.clasificadasPorMes[m];
+        if (crudas && crudas.monto > 0) {
+          const sinCargar = crudas.monto - (clasif?.monto ?? 0);
+          const pctSinCargar = (sinCargar / crudas.monto) * 100;
+          if (pctSinCargar >= UMBRAL_EROGACIONES_SIN_CARGAR) {
+            const faltan = crudas.filas - (clasif?.filas ?? 0);
+            advertencias.push({
+              mes: m,
+              tipo: 'erogaciones_sin_cargar',
+              severidad: 'error',
+              mensaje:
+                `${m}: ${faltan} de ${crudas.filas} erogaciones del ERP sin clasificar, ` +
+                `$ ${Math.round(sinCargar).toLocaleString('es-AR')} (${pctSinCargar.toFixed(0)}% del gasto del mes). ` +
+                `El costo fijo está incompleto y el resultado operativo sobrevaluado. ` +
+                `No compares este mes contra otro hasta clasificarlas.`,
+            });
+          }
         }
       });
 
