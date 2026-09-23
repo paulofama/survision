@@ -42,6 +42,7 @@ import Presupuestador from '@modules/presupuestador/pages/Presupuestador';
 import BusquedaPresupuestosPage from '@modules/presupuestador/pages/BusquedaPresupuestosPage';
 import SeguimientoPage from '@modules/presupuestador/pages/SeguimientoPage';
 import InformeSeguimientoPage from '@modules/presupuestador/pages/InformeSeguimientoPage';
+import DiagnosticosPage from '@modules/presupuestador/pages/DiagnosticosPage';
 
 // ============================================
 // ANÁLISIS MARGINAL - MULTIPÁGINA
@@ -333,6 +334,7 @@ const App: React.FC = () => {
                       <Route path="/presupuestos/busqueda" element={<BusquedaPresupuestosPage />} />
                       <Route path="/presupuestos/seguimiento" element={<ProtectedRoute modulo="presupuestador:seguimiento"><SeguimientoPage /></ProtectedRoute>} />
                       <Route path="/presupuestos/seguimiento/informe" element={<ProtectedRoute modulo="presupuestador:seguimiento"><InformeSeguimientoPage /></ProtectedRoute>} />
+                      <Route path="/presupuestos/diagnosticos" element={<ProtectedRoute modulo="presupuestador:config"><DiagnosticosPage /></ProtectedRoute>} />
                       
                       {/* ============================================ */}
                       {/* ADMINISTRACIÓN - Gestión de Accesos Unificada */}

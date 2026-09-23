@@ -382,6 +382,16 @@ describe("Pedido de cirugía — el diagnóstico sale de la PRÁCTICA", () => {
     expect(t).toContain("Facoemulsificacion");
   });
 
+  it("la práctica se solicita SIN el prefijo del código", () => {
+    // Algunos registros traen la descripción como "030503 - Facoemulsificacion
+    // ...". El código no va en el renglón que lee el médico de la obra social.
+    const sinDiag = { diagnostico: "", solicitud: "", llevaLio: false };
+    const conPrefijo = { ...P812, prestacion_descripcion: "030503 - " + P812.prestacion_descripcion };
+    const t = textoDe(construir(docPedidoCirugia, ctxDe(conPrefijo, osep, undefined, 0, RECETA, sinDiag)));
+    expect(t).toContain("Facoemulsificacion");
+    expect(t).not.toContain("030503 -");
+  });
+
   it("el {ojo} se reemplaza con el ojo de la ACEPTACIÓN", () => {
     const t = textoDe(construir(docPedidoCirugia, ctxDe(P812, { ...osep, ojo: "OI" })));
     expect(t).toContain("Catarata OI");

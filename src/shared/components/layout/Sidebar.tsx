@@ -285,7 +285,9 @@ const navItems: NavItem[] = [
       { path: '/presupuestos', label: 'Nuevo', icon: FilePlus },
       { path: '/presupuestos/busqueda', label: 'Búsqueda', icon: Search },
       { path: '/presupuestos/seguimiento', label: 'Seguimiento', icon: Bell },
-      { path: '/presupuestos/analisis', label: 'Análisis', icon: TrendingUp }
+      { path: '/presupuestos/analisis', label: 'Análisis', icon: TrendingUp },
+      // Catálogo de configuración: lo ve sólo quien puede editarlo.
+      { path: '/presupuestos/diagnosticos', label: 'Diagnósticos', icon: Stethoscope, requierePermiso: 'presupuestador:config' }
     ]
   },
 

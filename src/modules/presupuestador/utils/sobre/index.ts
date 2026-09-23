@@ -19,6 +19,7 @@ import {
 } from "./documentos";
 import { Aceptacion, Convenio, Lio, sbGet } from "../circuito";
 import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
+import { sinPrefijoCodigo } from '../nombrePrestacion';
 
 export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef, CopiaCaja, RecetaDeCostos } from "./documentos";
 export { LEYENDA_RESPONSABILIDAD_RECETA } from "./documentos";
@@ -314,7 +315,7 @@ export function armarContexto(args: {
       solicitud: args.diag?.solicitud || '',
       llevaLio: !!args.diag?.llevaLio,
     },
-    practicaDescripcion: String(p?.prestacion_descripcion || '').replace(/^d{6}s*-s*/, '').trim(),
+    practicaDescripcion: sinPrefijoCodigo(String(p?.prestacion_descripcion || '')),
     fmtARS,
   };
 }
