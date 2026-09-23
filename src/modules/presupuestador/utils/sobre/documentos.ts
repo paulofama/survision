@@ -105,7 +105,7 @@ export interface SobreCtx {
   caja: CajaOpts;
   /** Suma de las entregas ya registradas antes de ésta (migración 44). */
   entregasPrevias: number;
-  consentimiento: { titulo: string; cuerpo: string }[];
+  consentimiento: Consentimiento;
   /**
    * Receta de costos de la práctica presupuestada: qué insumos consume y qué
    * pools la alcanzan. `null` cuando la práctica no tiene receta cargada — la
@@ -125,6 +125,17 @@ export interface RecetaDeCostos {
   costoPools: number;
   costoInsumos: number;
   costoTotal: number;
+}
+
+/**
+ * Texto vigente del consentimiento informado.
+ *
+ * Mientras `esPlaceholder` sea true el documento avisa y NO imprime el bloque
+ * de firmas: que nadie firme un texto que no rige (migración 51).
+ */
+export interface Consentimiento {
+  secciones: { titulo: string; cuerpo: string }[];
+  esPlaceholder: boolean;
 }
 
 /** Diagnóstico y solicitud del pedido, resueltos por práctica (migración 48). */
@@ -922,12 +933,26 @@ export function docConsentimiento(L: Lienzo, ctx: SobreCtx) {
   parrafo(L, "Marco legal: Leyes 26.529 y 26.742 y Decreto Reglamentario 1089/2012. Modelo aprobado por el Consejo Argentino de Oftalmología.", { size: 8, color: [90, 90, 90] });
   espacio(L, 1);
 
-  for (const sec of ctx.consentimiento) {
+  for (const sec of ctx.consentimiento.secciones) {
     if (sec.titulo) subtitulo(L, sec.titulo);
     if (sec.cuerpo) parrafo(L, sec.cuerpo);
   }
 
   espacio(L, 3);
+
+  // SIN TEXTO DEFINITIVO NO HAY RENGLONES PARA FIRMAR.
+  // Esta hoja lleva membrete, nombre, DNI, ojo y fecha de cirugía: con dos
+  // firmas al pie parece un consentimiento válido aunque el cuerpo diga que no
+  // lo es. Mismo criterio que el diagnóstico del pedido (migración 48): un
+  // documento que avisa que le falta algo es seguro; uno que parece completo y
+  // no lo está, no.
+  if (ctx.consentimiento.esPlaceholder) {
+    parrafo(L, "ESTA HOJA NO SE FIRMA.", { size: 11, bold: true, color: [170, 60, 40] });
+    parrafo(L, "El texto del consentimiento informado todavía no está cargado en el sistema, así que este documento no tiene validez y no lleva renglones de firma. Usá el formulario en papel que corresponda hasta que el texto definitivo esté cargado.",
+      { size: 9, color: [150, 100, 30] });
+    return;
+  }
+
   parrafo(L, "Autorización del consentimiento informado: dejo constancia de que he comprendido la información brindada y autorizo la realización del procedimiento por el equipo médico interviniente.");
   campo(L, "Doctores del equipo", "");
   espacio(L, 4);

@@ -17,7 +17,7 @@ import {
 } from "../utils/circuito";
 import {
   CajaOpts, SobreCtx, RecetaDeCostos,
-  docsDelSobre, armarContexto, cargarConsentimiento, cargarRecetaDeCostos,
+  docsDelSobre, armarContexto, cargarConsentimiento, cargarRecetaDeCostos, type Consentimiento,
   cargarDiagnosticoPractica,
   generarDocumento, generarSobreCompleto,
   valorTotalCaja, requiereFactura, restaPagar,
@@ -85,7 +85,9 @@ export default function CircuitoPanel({
   const [aceptacion, setAceptacion] = useState<Aceptacion | null>(null);
   const [rows, setRows] = useState<ChecklistRow[]>([]);
   const [entregas, setEntregas] = useState<CajaEntrega[]>([]);
-  const [consentimiento, setConsentimiento] = useState<{ titulo: string; cuerpo: string }[]>([]);
+  // Arranca como placeholder: hasta que la consulta diga lo contrario, el
+  // consentimiento no se firma.
+  const [consentimiento, setConsentimiento] = useState<Consentimiento>({ secciones: [], esPlaceholder: true });
   const [receta, setReceta] = useState<RecetaDeCostos | null>(null);
   // Diagnóstico y solicitud de la práctica, para el pedido de cirugía.
   const [diag, setDiag] = useState<{ diagnostico: string; solicitud: string; llevaLio: boolean } | null>(null);

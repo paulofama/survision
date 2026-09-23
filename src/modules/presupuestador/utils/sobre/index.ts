@@ -12,7 +12,7 @@
 
 import { nuevoLienzo, nuevaHoja, cerrar, Lienzo, Orientacion } from "./pdfBase";
 import {
-  SobreCtx, CajaOpts, RecetaDeCostos,
+  SobreCtx, CajaOpts, RecetaDeCostos, Consentimiento,
   docPedidoCirugia, docIndicaciones, docCronograma, docRecetas,
   docAnalisisEcg, docCaja, docRecetaCostos, docTrazabilidad, docConsentimiento,
   recetasDelSobre,
@@ -21,7 +21,7 @@ import { Aceptacion, Convenio, Lio, sbGet } from "../circuito";
 import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
 import { sinPrefijoCodigo } from '../nombrePrestacion';
 
-export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef, CopiaCaja, RecetaDeCostos } from "./documentos";
+export type { SobreCtx, CajaOpts, ItemAdicional, DepositoModalidad, RecetaDef, CopiaCaja, RecetaDeCostos, Consentimiento } from "./documentos";
 export { LEYENDA_RESPONSABILIDAD_RECETA } from "./documentos";
 export {
   calcularDeposito, baseDeposito,
@@ -117,15 +117,30 @@ export async function cargarDiagnosticoPractica(
   }
 }
 
-export async function cargarConsentimiento(): Promise<{ titulo: string; cuerpo: string }[]> {
+/**
+ * Texto vigente del consentimiento informado.
+ *
+ * `esPlaceholder` NO es un detalle de presentación: mientras sea true el
+ * documento imprime el aviso y NO el bloque de firmas, para que nadie firme un
+ * texto que no rige (migración 51). Si la consulta falla también se considera
+ * placeholder — ante la duda, no se firma.
+ */
+export async function cargarConsentimiento(): Promise<Consentimiento> {
+  const respaldo: Consentimiento = {
+    secciones: [{ titulo: "", cuerpo: "[Texto del consentimiento pendiente de carga — placeholder]" }],
+    esPlaceholder: true,
+  };
   try {
-    const rows = await sbGet<{ contenido: { titulo: string; cuerpo: string }[] }>(
-      "presupuestos_textos_legales?clave=eq.consentimiento_catarata&vigente=eq.true&select=contenido",
+    const rows = await sbGet<{ contenido: { titulo: string; cuerpo: string }[]; es_placeholder: boolean }>(
+      "presupuestos_textos_legales?clave=eq.consentimiento_catarata&vigente=eq.true&select=contenido,es_placeholder",
     );
-    const cont = rows?.[0]?.contenido;
-    if (Array.isArray(cont) && cont.length) return cont;
-  } catch { /* usa fallback */ }
-  return [{ titulo: "", cuerpo: "[Texto del consentimiento pendiente de carga — placeholder]" }];
+    const fila = rows?.[0];
+    const cont = fila?.contenido;
+    if (Array.isArray(cont) && cont.length) {
+      return { secciones: cont, esPlaceholder: !!fila?.es_placeholder };
+    }
+  } catch { /* usa el respaldo */ }
+  return respaldo;
 }
 
 // ── Receta de costos de la práctica ───────────────────────────────────────────
@@ -198,7 +213,7 @@ export function armarContexto(args: {
   aceptacion: Aceptacion | null;
   convenios: Convenio[];
   lios: Lio[];
-  consentimiento: { titulo: string; cuerpo: string }[];
+  consentimiento: Consentimiento;
   /** Receta de costos de la práctica (ver `cargarRecetaDeCostos`). */
   receta?: RecetaDeCostos | null;
   /** Diagnóstico y solicitud de la práctica (ver `cargarDiagnosticoPractica`). */

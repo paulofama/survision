@@ -1,9 +1,9 @@
 # Circuito Quirúrgico — referencia
 
 > Instituto Dr. Mercado · Sistema de Gestión Integral
-> Última actualización: **2026-09-23** (diagnóstico por práctica, anulación de entregas)
+> Última actualización: **2026-09-23** (diagnóstico por práctica, anulación de entregas, consentimiento versionado)
 > Commits: `97b821c` correcciones Fases 1 y 2 · `10185ce` fecha de cirugía · `3df139a` pie sin crédito de desarrollo.
-> Migraciones: **33** (LIOs + caja), **34** (recetas por sistema), **38** (placeholder del consentimiento), **44** (entregas de caja + leyenda del LIO), **46** (registro de sobres generados), **47** (anulación de entregas), **48** (diagnóstico por práctica).
+> Migraciones: **33** (LIOs + caja), **34** (recetas por sistema), **38** (placeholder del consentimiento), **44** (entregas de caja + leyenda del LIO), **46** (registro de sobres generados), **47** (anulación de entregas), **48** (diagnóstico por práctica), **50-51** (RLS de catálogos + versionado del consentimiento).
 
 Cubre el tramo **Aceptar presupuesto → Circuito de cirugía → Sobre Quirúrgico → Ingreso de caja**, con las reglas que fijó Administración en los testeos funcionales del **10-11/08/2026** (tres coberturas) y del **31/08/2026** (FASE 3: comprobante de caja contra el papel real, sobre P-2026-813).
 
@@ -116,6 +116,20 @@ No es informativa: el costo de una práctica sale de una receta que alguien tien
 Los datos salen de `shared/services/costoPrestacion`, el **mismo** servicio que alimenta el panel de Prestaciones Realizadas: la pantalla y el papel no pueden mostrar costos distintos para la misma práctica.
 
 ⚠️ **El desglose de pools lleva una línea "Otros pools".** `costo_total_pools` suma todos los pools de la receta, pero las columnas por pool de la vista salen de un `ILIKE` por nombre que **no ignora acentos**: "Insumos Generales en Quirófano" no matchea `'%quirofano%'`. Medido el 10/09/2026: pasa en **54 de 103 recetas**, $104.288,49 acumulados. El residuo se muestra como línea propia para que el desglose sume el total; el arreglo de fondo es la vista (`migrations/42`), y no cambiaría ningún costo total, sólo repartiría mejor el detalle.
+
+### El consentimiento sin texto definitivo NO se firma (23/09/2026, migración 51)
+
+El texto legal del consentimiento nunca se cargó: sigue vigente el **placeholder v1 del 21/07/2026**, cuyo propio cuerpo dice *"NO utilizar para un consentimiento real"*. Y el sobre lo imprimía igual, en todos los casos.
+
+O sea que desde julio cada sobre lleva una hoja con el membrete del instituto, el nombre y DNI del paciente, el ojo, la fecha de cirugía... y **dos renglones de firma** —paciente y testigo— debajo de un texto que dice que no sirve. Una hoja así parece un consentimiento válido aunque el cuerpo lo niegue.
+
+Ahora la versión sabe que es relleno (`es_placeholder`) y **mientras lo sea el documento imprime "ESTA HOJA NO SE FIRMA" y omite el bloque de firmas, la frase de autorización y el renglón del equipo médico**. Los datos del paciente y el sello de archivo siguen saliendo: la hoja no desaparece del sobre, avisa. Mismo criterio que el diagnóstico del pedido (migración 48).
+
+Cuando se cargue el texto real, las firmas vuelven solas. Hay dos tests que fijan las dos mitades.
+
+**Pantalla:** `/presupuestos/consentimiento` (permiso `presupuestador:config`). **Una versión no se edita nunca** — guardar crea una nueva, porque el texto que firmó un paciente en agosto tiene que poder leerse tal como estaba en agosto. Activar va por la RPC `app_activar_texto_legal`: son dos escrituras con un índice único de por medio, y sueltas desde el navegador una falla dejaría la clave sin vigente.
+
+La pantalla muestra al costado los **seis incisos del art. 5 de la Ley 26.529** como guía de qué temas no pueden faltar. Es una guía, no una validación: el sistema no puede juzgar si un párrafo explica bien un riesgo.
 
 ### El diagnóstico sale de la PRÁCTICA (23/09/2026, migración 48)
 

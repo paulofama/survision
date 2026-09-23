@@ -58,9 +58,22 @@ const CONVENIOS = [
     config: { cupo: "", diag: "CATARATA {ojo}" }, activo: true, orden: 2 },
 ];
 
-const CONSENTIMIENTO = [
-  { titulo: "PLACEHOLDER — pendiente del texto legal definitivo", cuerpo: "Texto placeholder. ".repeat(30) },
-];
+/** El texto vigente hoy: un placeholder. Ver migración 51. */
+const CONSENTIMIENTO = {
+  secciones: [
+    { titulo: "PLACEHOLDER — pendiente del texto legal definitivo", cuerpo: "Texto placeholder. ".repeat(30) },
+  ],
+  esPlaceholder: true,
+};
+
+/** Cómo queda cuando Administración cargue el texto real. */
+const CONSENTIMIENTO_REAL = {
+  secciones: [
+    { titulo: "Procedimiento propuesto", cuerpo: "Facoemulsificación con implante de lente intraocular. ".repeat(8) },
+    { titulo: "Riesgos", cuerpo: "Infección, desprendimiento de retina, edema macular. ".repeat(8) },
+  ],
+  esPlaceholder: false,
+};
 
 // ── Presupuestos reales (recortados a lo que usa el sobre) ────────────────────
 
@@ -1019,6 +1032,52 @@ describe("Estructura del Sobre Quirúrgico", () => {
   it("el consentimiento conserva el placeholder (no se inventa texto legal)", () => {
     const ctx = ctxDe(P810, { rama_cobertura: "PARTICULAR", lio_id: "l5" });
     expect(textoDe(construir(docConsentimiento, ctx))).toContain("PLACEHOLDER");
+  });
+
+  describe("Consentimiento — sin texto definitivo NO hay dónde firmar", () => {
+    // La hoja lleva membrete, nombre, DNI, ojo y fecha de cirugía. Con dos
+    // renglones de firma al pie parece un consentimiento válido aunque el
+    // cuerpo diga que no lo es. Ver migración 51.
+    const ctxCon = (consentimiento: typeof CONSENTIMIENTO) =>
+      armarContexto({
+        presupuesto: P810,
+        aceptacion: aceptacionDe({ rama_cobertura: "PARTICULAR", lio_id: "l5" }),
+        convenios: CONVENIOS,
+        lios: LIOS,
+        consentimiento,
+        receta: RECETA,
+      });
+
+    it("con el placeholder vigente, NO imprime los renglones de firma", () => {
+      const t = textoDe(construir(docConsentimiento, ctxCon(CONSENTIMIENTO)));
+      expect(t).toContain("ESTA HOJA NO SE FIRMA");
+      expect(t).not.toContain("Firma del paciente");
+      expect(t).not.toContain("Firma del testigo");
+      // Tampoco la frase que declara que el paciente comprendió y autoriza,
+      // ni el renglón del equipo médico. (Marcadores de UNA palabra: el texto
+      // del PDF viene cortado en renglones y una frase larga no se encuentra
+      // aunque esté impresa.)
+      expect(t).not.toContain("Autorización");
+      expect(t).not.toContain("Doctores");
+    });
+
+    it("con el texto real cargado, vuelven las firmas y desaparece el aviso", () => {
+      const t = textoDe(construir(docConsentimiento, ctxCon(CONSENTIMIENTO_REAL)));
+      expect(t).toContain("Firma del paciente");
+      expect(t).toContain("Firma del testigo");
+      expect(t).toContain("Autorización");
+      expect(t).toContain("Doctores");
+      expect(t).not.toContain("ESTA HOJA NO SE FIRMA");
+      expect(t).toContain("Procedimiento propuesto");
+    });
+
+    it("los datos del paciente salen igual en los dos casos: la hoja sigue siendo del sobre", () => {
+      for (const c of [CONSENTIMIENTO, CONSENTIMIENTO_REAL]) {
+        const t = textoDe(construir(docConsentimiento, ctxCon(c)));
+        expect(t).toContain("ARCHIVAR EN QUIRÓFANO");
+        expect(t).toContain("26.529");
+      }
+    });
   });
 
   it("las indicaciones del paciente ya no arrastran trazabilidad ni consentimiento", () => {

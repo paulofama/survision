@@ -5,3 +5,4 @@ export { default as Presupuestador } from './pages/Presupuestador';
 export { default as BusquedaPresupuestosPage } from './pages/BusquedaPresupuestosPage';
 export { default as SeguimientoPage } from './pages/SeguimientoPage';
 export { default as DiagnosticosPage } from './pages/DiagnosticosPage';
+export { default as ConsentimientoPage } from './pages/ConsentimientoPage';
