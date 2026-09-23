@@ -53,7 +53,17 @@ const TPL = {
 };
 const SS_MAP = {
   'aporte seguridad social': 'APORTE_SS', 'contribucion seg social': 'CONTRIB_SS',
-  'aporte obra social': 'APORTE_OS', 'contribuicion obra social': 'CONTRIB_OS',
+  'aporte obra social': 'APORTE_OS',
+  // Las DOS grafías a propósito. La minuta traía "Contribuición" (con la i de
+  // más) desde el principio, y el mapeo se escribió copiando ese error. En
+  // 08-2026 el liquidador lo corrigió a "Contribución" y el concepto dejó de
+  // matchear: la carga se comió $818.093,26 de contribución de obra social sin
+  // más aviso que una línea de "salteo" en el log.
+  // Es el mismo bug de siempre: clasificar por nombre. Mientras el concepto se
+  // identifique por texto, hay que contemplar las variantes que la planilla
+  // realmente usó.
+  'contribuicion obra social': 'CONTRIB_OS',
+  'contribucion obra social': 'CONTRIB_OS',
   'art': 'ART', 'seguro': 'SCVO',
 };
 const ALIAS = { 'giulini claudia': 'giuliani claudia' };
