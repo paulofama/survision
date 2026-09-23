@@ -205,6 +205,32 @@ export interface DatosInformeMensual {
   generadoEn: Date;
   generadoPor: string;
   filtros: string[];
+  /**
+   * Cuándo se copió de GECLISA lo que este informe está contando (ISO), o null
+   * si ninguna fila lo trae.
+   *
+   * NO es lo mismo que `generadoEn`: ése dice cuándo se armó el PDF. Éste dice
+   * de cuándo son los datos, que es lo que hace falta para comparar dos
+   * impresiones del mismo mes — y hace falta, porque los meses cerrados
+   * SIGUEN CAMBIANDO en GECLISA. Medido el 23/09/2026: julio valía
+   * $100.679.832 el 04/09 y $98.278.976 el 23/09, porque el 17/09 le
+   * cambiaron la fecha a dos atenciones y se fueron a agosto.
+   */
+  datosAl: string | null;
+}
+
+/**
+ * El sello de sincronización más nuevo de las filas que se están contando.
+ * Se toma el MÁS NUEVO porque es el que responde "¿hasta cuándo sé?".
+ */
+export function ultimoSync(filas: { synced_at?: string | null }[]): string | null {
+  let max: string | null = null;
+  for (const f of filas) {
+    const s = f.synced_at;
+    if (!s) continue;
+    if (max === null || s > max) max = s;
+  }
+  return max;
 }
 
 // ============================================================
@@ -423,5 +449,9 @@ export function armarDatosInformeMensual(p: ArmarParams): DatosInformeMensual {
     generadoEn: new Date(),
     generadoPor: p.generadoPor,
     filtros: p.filtros,
+    // Sobre TODAS las filas traídas, no sólo las del mes del informe: el
+    // informe compara contra meses anteriores, así que el sello tiene que
+    // cubrir todo lo que se está contando.
+    datosAl: ultimoSync(movimientos),
   };
 }

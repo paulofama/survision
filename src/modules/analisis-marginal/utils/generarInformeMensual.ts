@@ -248,6 +248,7 @@ function portada(L: Lienzo, d: DatosInformeMensual) {
   const hh = String(f.getHours()).padStart(2, '0');
   const mi = String(f.getMinutes()).padStart(2, '0');
   linea('Emitido', `${dd}/${mm}/${f.getFullYear()} ${hh}:${mi}`);
+  linea('Datos al', fechaHora(d.datosAl) || 'sin sello de sincronización');
   linea('Generado por', d.generadoPor || 'no identificado');
   linea('Filtros', d.filtros.length ? d.filtros.join(' · ') : 'sin filtros');
   linea('Comparado con', ant0(d));
@@ -261,7 +262,18 @@ function portada(L: Lienzo, d: DatosInformeMensual) {
     'Este informe incluye únicamente meses cerrados. El mes en curso no se ' +
     'presenta en ninguna sección, ni entra en los promedios.', CW - 60) as string[];
   doc.text(nota, PW / 2, y, { align: 'center' });
-  y += nota.length * 4;
+  y += nota.length * 4 + 2;
+
+  // Un mes cerrado no queda quieto: se siguen cargando y moviendo atenciones
+  // después. Dos impresiones del mismo mes pueden no coincidir, y sin esta
+  // aclaración la diferencia se lee como un error del sistema.
+  const notaDatos = doc.splitTextToSize(
+    'Las cifras corresponden al estado de los datos en la fecha indicada arriba. ' +
+    'Un mes cerrado puede seguir recibiendo cargas y correcciones, así que dos ' +
+    'impresiones del mismo mes en fechas distintas pueden no coincidir.',
+    CW - 60) as string[];
+  doc.text(notaDatos, PW / 2, y, { align: 'center' });
+  y += notaDatos.length * 4;
 
   if (d.simulacion) {
     y += 4;
@@ -284,6 +296,15 @@ function portada(L: Lienzo, d: DatosInformeMensual) {
   doc.setFontSize(8);
   doc.setTextColor(...C.medium);
   doc.text('Uso interno — confidencial', PW / 2, PH - 24, { align: 'center' });
+}
+
+/** ISO -> "dd/mm/aaaa hh:mm". Vacío si no hay sello. */
+function fechaHora(iso: string | null): string {
+  if (!iso) return '';
+  const f = new Date(iso);
+  if (isNaN(f.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(f.getDate())}/${p(f.getMonth() + 1)}/${f.getFullYear()} ${p(f.getHours())}:${p(f.getMinutes())}`;
 }
 
 const ant0 = (d: DatosInformeMensual): string =>

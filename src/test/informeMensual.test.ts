@@ -15,6 +15,7 @@ import {
   type SimulacionSueldos,
 } from '../modules/analisis-marginal/utils/datosInformeMensual';
 import { armarInformeMensual, nombreArchivo } from '../modules/analisis-marginal/utils/generarInformeMensual';
+import { ultimoSync } from '../modules/analisis-marginal/utils/datosInformeMensual';
 
 const MESES: Mes[] = ['2026-05', '2026-06', '2026-07', '2026-08'];
 const EN_CURSO: Mes = '2026-09';
@@ -70,11 +71,16 @@ const movs = (anio: number, mes: number, n: number, codigoBase = '0101'): MovGec
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as any as MovGecRow[];
 
+const sellar = (filas: MovGecRow[], synced_at: string): MovGecRow[] =>
+  filas.map(f => ({ ...f, synced_at }));
+
 const MOVIMIENTOS: MovGecRow[] = [
-  ...movs(2026, 5, 120), ...movs(2026, 6, 140),
-  ...movs(2026, 7, 150), ...movs(2026, 8, 130),
+  ...sellar(movs(2026, 5, 120), '2026-09-23T08:00:00.000Z'),
+  ...sellar(movs(2026, 6, 140), '2026-09-23T08:00:00.000Z'),
+  ...sellar(movs(2026, 7, 150), '2026-09-23T09:15:00.000Z'),
+  ...sellar(movs(2026, 8, 130), '2026-09-23T08:00:00.000Z'),
   // Septiembre existe en la base pero NO tiene que entrar al informe.
-  ...movs(2026, 9, 40),
+  ...sellar(movs(2026, 9, 40), '2026-09-23T08:00:00.000Z'),
 ];
 
 const armar = (mes: Mes, sim: SimulacionSueldos | null = null) =>
@@ -271,5 +277,55 @@ describe('etiquetaMes', () => {
   it('arma la etiqueta en castellano', () => {
     expect(etiquetaMes('2026-07')).toBe('Julio 2026');
     expect(etiquetaMes('2026-12')).toBe('Diciembre 2026');
+  });
+});
+
+describe('"Datos al" — de cuándo son las cifras', () => {
+  // Un mes cerrado NO queda quieto: medido el 23/09/2026, julio valía
+  // $100.679.832 el 04/09 y $98.278.976 el 23/09 porque el 17/09 le cambiaron
+  // la fecha a dos atenciones y se fueron a agosto. Sin el sello, dos
+  // impresiones del mismo mes se ven como un error del sistema.
+
+  it('toma el sello MÁS NUEVO: responde hasta cuándo sé', () => {
+    expect(ultimoSync([
+      { synced_at: '2026-09-23T08:00:00.000Z' },
+      { synced_at: '2026-09-23T09:15:00.000Z' },
+      { synced_at: '2026-09-01T10:00:00.000Z' },
+    ])).toBe('2026-09-23T09:15:00.000Z');
+  });
+
+  it('ignora las filas sin sello en vez de romperse', () => {
+    expect(ultimoSync([{ synced_at: null }, { synced_at: '2026-09-23T08:00:00.000Z' }, {}]))
+      .toBe('2026-09-23T08:00:00.000Z');
+  });
+
+  it('sin ningún sello devuelve null, no una fecha inventada', () => {
+    expect(ultimoSync([])).toBeNull();
+    expect(ultimoSync([{ synced_at: null }, {}])).toBeNull();
+  });
+
+  it('el informe lo trae, y es el más nuevo de TODAS las filas traídas', () => {
+    // No sólo las del mes del informe: el informe compara contra meses
+    // anteriores, así que el sello tiene que cubrir todo lo que cuenta.
+    expect(armar('2026-07').datosAl).toBe('2026-09-23T09:15:00.000Z');
+    expect(armar('2026-08').datosAl).toBe('2026-09-23T09:15:00.000Z');
+  });
+
+  it('la portada imprime "Datos al" y la aclaración de que el mes puede cambiar', () => {
+    const t = textoDe(armarInformeMensual(armar('2026-07')).doc);
+    expect(t).toContain('Datos al');
+    expect(t).toContain('23/09/2026');
+    expect(t).toMatch(/cargas y correcciones/);
+  });
+
+  it('sin sello lo dice, en vez de imprimir la fecha de hoy como si fuera el dato', () => {
+    const sinSello = armarDatosInformeMensual({
+      evolucion: EVOLUCION,
+      movimientos: MOVIMIENTOS.map(m => ({ ...m, synced_at: null })),
+      mesInforme: '2026-07', simulacion: null, generadoPor: 'test', filtros: [],
+    });
+    expect(sinSello.datosAl).toBeNull();
+    const t = textoDe(armarInformeMensual(sinSello).doc);
+    expect(t).toContain('sin sello de sincronizaci');
   });
 });

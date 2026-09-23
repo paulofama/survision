@@ -50,6 +50,8 @@ export interface MovGecRow {
   total: number;
   cant_prestadores: number;
   es_principal: boolean;
+  /** Cuándo se copió esta fila de GECLISA. La usa el "Datos al" de los informes. */
+  synced_at?: string | null;
 }
 
 const num = (v: unknown) => Number(v) || 0;
