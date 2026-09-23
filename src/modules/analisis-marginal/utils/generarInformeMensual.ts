@@ -275,6 +275,36 @@ function portada(L: Lienzo, d: DatosInformeMensual) {
   doc.text(notaDatos, PW / 2, y, { align: 'center' });
   y += notaDatos.length * 4;
 
+  // COSTOS FIJOS INCOMPLETOS. Va antes del aviso de datos estimados porque es
+  // más grave: aquél ESTIMA un costo, éste directamente no lo tiene.
+  if (d.mesesCostosIncompletos.length) {
+    const soloLaBase = !d.mesesCostosIncompletos.includes(d.mes.mes);
+    y += 4;
+    const alto = 28;
+    doc.setFillColor(...C.amberLight);
+    doc.setDrawColor(...C.red);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(M + 12, y, CW - 24, alto, 2, 2, 'FD');
+    doc.setTextColor(...C.red);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('COSTOS FIJOS INCOMPLETOS', PW / 2, y + 7, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    const t = doc.splitTextToSize(
+      `Las erogaciones de ${d.mesesCostosIncompletos.length} mes(es) de este informe no están clasificadas, ` +
+      'así que su costo fijo sale incompleto y su resultado operativo sobrevaluado' +
+      (soloLaBase
+        ? '. El mes informado está completo, pero la COMPARACIÓN contra el mes anterior y contra el promedio no es válida.'
+        : ', el mes informado incluido.'),
+      CW - 34) as string[];
+    doc.text(t, PW / 2, y + 13, { align: 'center' });
+    doc.setFontSize(7);
+    doc.setTextColor(...C.medium);
+    doc.text(d.mesesCostosIncompletos.join('  '), PW / 2, y + 13 + t.length * 3.6 + 1.5, { align: 'center' });
+    y += alto;
+  }
+
   if (d.simulacion) {
     y += 4;
     doc.setFillColor(...C.amberLight);

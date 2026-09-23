@@ -202,6 +202,20 @@ export interface DatosInformeMensual {
   /** Sello de la simulación, si el mes del informe la tiene. */
   simulacion: SimulacionSueldos | null;
 
+  /**
+   * Meses de ESTE informe cuyas erogaciones del ERP no están clasificadas, así
+   * que su costo fijo está incompleto y su resultado operativo sobrevaluado.
+   *
+   * No alcanza con que el mes del informe esté bien: el informe compara contra
+   * el mes anterior y contra el promedio de los 6 previos. Si la BASE está
+   * incompleta la comparación miente aunque el mes mirado esté perfecto, y eso
+   * es peor, porque el número que se lee mal es el del mes que SÍ está bien.
+   * Medido el 23/09/2026: los 12 meses de 2025 tenían el costo fijo incompleto,
+   * así que el informe de enero-2026 se comparaba contra un promedio de jul-dic
+   * 2025 inventado por arriba.
+   */
+  mesesCostosIncompletos: Mes[];
+
   generadoEn: Date;
   generadoPor: string;
   filtros: string[];
@@ -446,6 +460,16 @@ export function armarDatosInformeMensual(p: ArmarParams): DatosInformeMensual {
     porPrestacionAnterior: anterior ? agregarPor(movsAnt, prestacionDe, anterior.facturacion) : [],
     porPrestador: agregarPor(movsMes, prestadorDe, mes.facturacion),
     simulacion: simulacion && simulacion.meses.includes(mesInforme) ? simulacion : null,
+    // Sólo los meses que este informe realmente usa: el del informe, el
+    // anterior y la serie. Un aviso sobre un mes que no sale es ruido.
+    mesesCostosIncompletos: (() => {
+      const usados = new Set<Mes>([mes.mes, ...(anterior ? [anterior.mes] : []), ...serie.map((c) => c.mes)]);
+      return [...new Set(
+        evolucion.advertencias
+          .filter((a) => a.tipo === 'erogaciones_sin_cargar' && usados.has(a.mes))
+          .map((a) => a.mes),
+      )].sort();
+    })(),
     generadoEn: new Date(),
     generadoPor: p.generadoPor,
     filtros: p.filtros,

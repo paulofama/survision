@@ -83,9 +83,23 @@ const MOVIMIENTOS: MovGecRow[] = [
   ...sellar(movs(2026, 9, 40), '2026-09-23T08:00:00.000Z'),
 ];
 
-const armar = (mes: Mes, sim: SimulacionSueldos | null = null) =>
+const armar = (
+  mes: Mes,
+  sim: SimulacionSueldos | null = null,
+  /** Meses cuyas erogaciones del ERP no se clasificaron (migración/aviso 23/09). */
+  sinCostos: Mes[] = [],
+) =>
   armarDatosInformeMensual({
-    evolucion: EVOLUCION, movimientos: MOVIMIENTOS, mesInforme: mes,
+    evolucion: {
+      ...EVOLUCION,
+      advertencias: sinCostos.map((m) => ({
+        mes: m,
+        tipo: 'erogaciones_sin_cargar' as const,
+        severidad: 'error' as const,
+        mensaje: `${m}: erogaciones sin clasificar`,
+      })),
+    },
+    movimientos: MOVIMIENTOS, mesInforme: mes,
     simulacion: sim, generadoPor: 'test', filtros: [],
   });
 
@@ -327,5 +341,35 @@ describe('"Datos al" — de cuándo son las cifras', () => {
     expect(sinSello.datosAl).toBeNull();
     const t = textoDe(armarInformeMensual(sinSello).doc);
     expect(t).toContain('sin sello de sincronizaci');
+  });
+});
+
+describe('costos fijos incompletos — el Informe Mensual tampoco puede callarlo', () => {
+  // El informe compara contra el mes anterior y contra el promedio de los 6
+  // previos. Si la BASE está incompleta la comparación miente aunque el mes
+  // informado esté perfecto, y eso es peor: el número que se lee mal es el del
+  // mes que SÍ está bien.
+
+  it('lista sólo los meses que el informe realmente usa', () => {
+    const d = armar('2026-07', null, ['2026-06', '2026-07', '2020-01']);
+    expect(d.mesesCostosIncompletos).toEqual(['2026-06', '2026-07']);
+  });
+
+  it('cuando sólo falla la BASE, avisa que la comparación no vale', () => {
+    const t = textoDe(armarInformeMensual(armar('2026-07', null, ['2026-06'])).doc);
+    expect(t).toContain('COSTOS FIJOS INCOMPLETOS');
+    expect(t).toMatch(/COMPARACI/);
+  });
+
+  it('cuando falla el mes informado, lo dice sin hablar de la comparación', () => {
+    const t = textoDe(armarInformeMensual(armar('2026-07', null, ['2026-07'])).doc);
+    expect(t).toContain('COSTOS FIJOS INCOMPLETOS');
+    expect(t).toContain('el mes informado incluido');
+  });
+
+  it('sin meses afectados no imprime nada: un aviso que sale siempre no se lee', () => {
+    const d = armar('2026-07');
+    expect(d.mesesCostosIncompletos).toEqual([]);
+    expect(textoDe(armarInformeMensual(d).doc)).not.toContain('COSTOS FIJOS INCOMPLETOS');
   });
 });
