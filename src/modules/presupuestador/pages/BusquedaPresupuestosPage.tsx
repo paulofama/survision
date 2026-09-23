@@ -17,6 +17,7 @@ import CircuitoPanel from "../components/CircuitoPanel";
 import MatchesRevisionModal from "../components/MatchesRevisionModal";
 import HistorialSeguimientoModal from "../components/HistorialSeguimientoModal";
 import { derivarSeguimiento, ESTADO_CONTACTO_META, Seguimiento } from "../utils/seguimiento";
+import { nombrePrestacionCorto } from "../utils/nombrePrestacion";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,15 @@ interface Presupuesto {
   datos_completos: any;
   // Embed 1:1 del seguimiento (o null si no hay fila).
   seg?: Seguimiento | Seguimiento[] | null;
+  /**
+   * Embed 1:1 de la aceptación, sólo para el ojo.
+   *
+   * Se muestra el de la ACEPTACIÓN y no el de `datos_completos`, porque es el
+   * que quedó congelado y el que sale impreso en el sobre: editar la ficha
+   * después no puede cambiar lo que dice el papel. Antes de aceptar todavía no
+   * existe, y ahí se cae al del presupuesto.
+   */
+  ace?: { ojo: string | null } | { ojo: string | null }[] | null;
 }
 
 type ToastType = "success" | "error" | "warning";
@@ -297,6 +307,49 @@ function TransicionBtn({ onClick, title, color, Icon }: { onClick: () => void; t
   );
 }
 
+/**
+ * Qué ojo se opera. Manda el de la ACEPTACIÓN: es el que quedó congelado y el
+ * que sale impreso en el sobre. Si todavía no se aceptó, se cae al del
+ * presupuesto (`datos_completos.tratamiento.ojoTratar`, texto libre).
+ */
+function ojoDe(p: Presupuesto): "OD" | "OI" | "AMBOS" | null {
+  const ace = Array.isArray(p.ace) ? (p.ace[0] ?? null) : (p.ace ?? null);
+  const dela = String(ace?.ojo || "").toUpperCase();
+  if (dela === "OD" || dela === "OI" || dela === "AMBOS") return dela;
+
+  const crudo = String(p.datos_completos?.tratamiento?.ojoTratar || "")
+    .toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (crudo.startsWith("der")) return "OD";
+  if (crudo.startsWith("izq")) return "OI";
+  if (crudo.startsWith("amb")) return "AMBOS";
+  return null;
+}
+
+/**
+ * El ojo, bien visible.
+ *
+ * Los colores son distintos entre sí a propósito, no decorativos: la tabla
+ * puede tener dos filas del mismo paciente con el mismo importe y la misma
+ * práctica, y el ojo es lo único que las diferencia. Pasó el 23/09/2026 y se
+ * canceló el presupuesto equivocado.
+ */
+function OjoBadge({ ojo }: { ojo: "OD" | "OI" | "AMBOS" | null }) {
+  if (!ojo) return <span className="text-gray-300 text-xs">—</span>;
+  const meta = {
+    OD: { label: "OD", titulo: "Ojo derecho", clase: "bg-sky-100 text-sky-800 ring-sky-300" },
+    OI: { label: "OI", titulo: "Ojo izquierdo", clase: "bg-violet-100 text-violet-800 ring-violet-300" },
+    AMBOS: { label: "AO", titulo: "Ambos ojos", clase: "bg-amber-100 text-amber-800 ring-amber-300" },
+  }[ojo];
+  return (
+    <span
+      title={meta.titulo}
+      className={`inline-block text-xs font-bold px-2 py-0.5 rounded ring-1 ${meta.clase}`}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
 // Badge de estado de contacto (seguimiento). Solo aplica a entregados; abre el historial al clic.
 function CeldaContacto({ p, onHistorial }: { p: Presupuesto; onHistorial: () => void }) {
   if (p.estado !== "entregado") return <span className="text-gray-300 text-xs">—</span>;
@@ -486,7 +539,8 @@ export default function BusquedaPresupuestosPage() {
       // Embed 1:1 del seguimiento; inner cuando se filtra por un estado persistido.
       const embedInner = !!con && con !== "pendiente";
       const embed = `seg:presupuestos_seguimiento${embedInner ? "!inner" : ""}(estado_contacto,ronda,intentos_ronda,whatsapp_enviado_at,rellamada_at,cerrado_at)`;
-      const parts: string[] = ["order=fecha_creacion.desc", `select=*,${embed}`];
+      const embedAce = "ace:presupuestos_aceptacion(ojo)";
+      const parts: string[] = ["order=fecha_creacion.desc", `select=*,${embed},${embedAce}`];
       const t = term.trim();
       if (t.length >= 2) {
         parts.push(
@@ -869,6 +923,7 @@ export default function BusquedaPresupuestosPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Entrega</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paciente</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">DNI</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ojo</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Prestación</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
@@ -907,12 +962,22 @@ export default function BusquedaPresupuestosPage() {
                           {p.paciente_documento || "—"}
                         </td>
 
-                        {/* Prestación */}
+                        {/* Ojo — sin esto, dos presupuestos del mismo paciente
+                            (uno por ojo) se ven IDÉNTICOS en la tabla. */}
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                          <OjoBadge ojo={ojoDe(p)} />
+                        </td>
+
+                        {/* Prestación: código + nombre corto. El completo va en
+                            el tooltip; el PDF sigue imprimiendo el largo. */}
                         <td
-                          className="px-4 py-3 text-gray-600 text-xs max-w-[200px] truncate"
-                          title={p.prestacion_descripcion}
+                          className="px-4 py-3 text-gray-600 text-xs max-w-[240px]"
+                          title={p.prestacion_descripcion || ""}
                         >
-                          {p.prestacion_descripcion || p.prestacion_codigo || "—"}
+                          <span className="font-mono text-gray-400 mr-1.5">{p.prestacion_codigo || ""}</span>
+                          <span className="font-medium text-gray-700">
+                            {nombrePrestacionCorto(p.prestacion_descripcion) || "—"}
+                          </span>
                         </td>
 
                         {/* Total */}
