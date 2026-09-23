@@ -18,6 +18,7 @@ import {
 import {
   CajaOpts, SobreCtx, RecetaDeCostos,
   docsDelSobre, armarContexto, cargarConsentimiento, cargarRecetaDeCostos,
+  cargarDiagnosticoPractica,
   generarDocumento, generarSobreCompleto,
   valorTotalCaja, requiereFactura, restaPagar,
 } from "../utils/sobre";
@@ -86,6 +87,8 @@ export default function CircuitoPanel({
   const [entregas, setEntregas] = useState<CajaEntrega[]>([]);
   const [consentimiento, setConsentimiento] = useState<{ titulo: string; cuerpo: string }[]>([]);
   const [receta, setReceta] = useState<RecetaDeCostos | null>(null);
+  // Diagnóstico y solicitud de la práctica, para el pedido de cirugía.
+  const [diag, setDiag] = useState<{ diagnostico: string; solicitud: string; llevaLio: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [pendienteCaja, setPendienteCaja] = useState<PendienteCaja | null>(null);
@@ -101,7 +104,7 @@ export default function CircuitoPanel({
     setError("");
     try {
       const practica = practicaDelPresupuesto(presupuesto);
-      const [a, ch, ent, cons, rec] = await Promise.all([
+      const [a, ch, ent, cons, rec, dx] = await Promise.all([
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&select=*`),
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
         cargarEntregas(presupuesto.id),
@@ -109,12 +112,14 @@ export default function CircuitoPanel({
         // La receta de costos de la práctica, para la hoja que se archiva en
         // quirófano. Si no hay, la hoja lo declara en vez de omitirse.
         cargarRecetaDeCostos(practica.codigo, practica.descripcion),
+        cargarDiagnosticoPractica(practica.codigo),
       ]);
       const acept = a[0] || null;
       setAceptacion(acept);
       setEntregas(ent || []);
       setConsentimiento(cons);
       setReceta(rec);
+      setDiag(dx);
       // Sólo los ítems que existen para esta cobertura (ej. "Orden autorizada"
       // no corresponde a un circuito Particular), en el orden fijo de la
       // definición. Filtrar acá corrige también los circuitos ya aceptados
@@ -168,7 +173,7 @@ export default function CircuitoPanel({
   const contexto = (caja?: CajaOpts): SobreCtx | null => {
     if (!aceptacion) return null;
     return armarContexto({
-      presupuesto, aceptacion, convenios, lios, consentimiento, receta, caja,
+      presupuesto, aceptacion, convenios, lios, consentimiento, receta, diag, caja,
       // Lo ya entregado: el comprobante nuevo descuenta de este saldo.
       entregasPrevias: sumaEntregas(entregas),
     });

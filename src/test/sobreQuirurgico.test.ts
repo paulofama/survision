@@ -141,6 +141,23 @@ const RECETA: RecetaDeCostos = {
   costoTotal: 212340,
 };
 
+/**
+ * Diagnóstico de una faco, como lo devuelve `presupuestos_diagnosticos`
+ * (migración 48). Todos los presupuestos de los fixtures son cataratas.
+ */
+const DIAG_CATARATA = {
+  diagnostico: "Catarata {ojo}",
+  solicitud: "Cirugía de catarata con técnica de facoemulsificación e implante de LIO plegable.",
+  llevaLio: true,
+};
+
+/** Una práctica que NO es catarata, para el caso que estaba roto. */
+const DIAG_PTERIGION = {
+  diagnostico: "Pterigión {ojo}",
+  solicitud: "Cirugía de pterigión con injerto de limbo.",
+  llevaLio: false,
+};
+
 const ctxDe = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   presupuesto: any,
@@ -149,6 +166,7 @@ const ctxDe = (
   caja?: SobreCtx["caja"],
   entregasPrevias = 0,
   receta: RecetaDeCostos | null = RECETA,
+  diag: SobreCtx["diag"] | null = DIAG_CATARATA,
 ): SobreCtx =>
   armarContexto({
     presupuesto,
@@ -157,6 +175,7 @@ const ctxDe = (
     lios: LIOS,
     consentimiento: CONSENTIMIENTO,
     receta,
+    diag,
     caja,
     entregasPrevias,
   });
@@ -325,6 +344,50 @@ describe("Cobertura impresa", () => {
 // ============================================================
 // 2. Checklist por cobertura
 // ============================================================
+describe("Pedido de cirugía — el diagnóstico sale de la PRÁCTICA", () => {
+  // Antes la solicitud era un texto fijo de facoemulsificación y el
+  // diagnóstico venía de `convenio.config.diag`, que en los tres convenios
+  // dice "Catarata". Un pterigión se pedía como catarata. Ver migración 48.
+  const osep = { rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" };
+
+  it("una catarata pide catarata, con su LIO", () => {
+    const t = textoDe(construir(docPedidoCirugia, ctxDe(P812, osep)));
+    expect(t).toContain("Catarata");
+    expect(t).toContain("facoemulsificaci");
+    expect(t).toContain("LIO indicado");
+  });
+
+  it("un PTERIGIÓN pide pterigión: ni catarata, ni faco, ni LIO", () => {
+    const t = textoDe(construir(docPedidoCirugia, ctxDe(P812, osep, undefined, 0, RECETA, DIAG_PTERIGION)));
+    expect(t).toContain("Pterigi");
+    expect(t).not.toContain("Catarata");
+    expect(t).not.toContain("facoemulsificaci");
+    // El renglón del lente no significa nada en un pterigión.
+    expect(t).not.toContain("LIO indicado");
+  });
+
+  it("sin diagnóstico cargado, el renglón va EN BLANCO y el pedido lo avisa", () => {
+    // Un blanco se nota y se completa a mano; un diagnóstico equivocado se
+    // firma y se presenta a la obra social.
+    const sinDiag = { diagnostico: "", solicitud: "", llevaLio: false };
+    const t = textoDe(construir(docPedidoCirugia, ctxDe(P812, osep, undefined, 0, RECETA, sinDiag)));
+    expect(t).not.toContain("Catarata");
+    expect(t).toContain("Completar el diagn");
+  });
+
+  it("sin solicitud cargada, se solicita la práctica por su nombre", () => {
+    const sinDiag = { diagnostico: "", solicitud: "", llevaLio: false };
+    const t = textoDe(construir(docPedidoCirugia, ctxDe(P812, osep, undefined, 0, RECETA, sinDiag)));
+    // P812 es una faco tórica: el nombre de la práctica es lo único cierto.
+    expect(t).toContain("Facoemulsificacion");
+  });
+
+  it("el {ojo} se reemplaza con el ojo de la ACEPTACIÓN", () => {
+    const t = textoDe(construir(docPedidoCirugia, ctxDe(P812, { ...osep, ojo: "OI" })));
+    expect(t).toContain("Catarata OI");
+  });
+});
+
 describe("Checklist por cobertura", () => {
   it("Particular NO incluye los trámites de obra social", () => {
     const claves = clavesAplicables({ rama_cobertura: "PARTICULAR", requiere_analisis_ecg: true });
@@ -368,7 +431,9 @@ describe("Pedido de cirugía", () => {
     expect(t).toContain("Ojo a operar");
     expect(t).toContain("N° de afiliado");
     expect(t).toContain("4400499/00");
-    expect(t).toContain("CATARATA OD");
+    // El diagnóstico ya NO sale del convenio (decía "CATARATA" para cualquier
+    // cirugía), sino de la práctica: ver el describe del pedido más arriba.
+    expect(t).toContain("Catarata OD");
   });
 
   it("Círculo Médico: con ojo, número de afiliado y la vía de autorización", () => {

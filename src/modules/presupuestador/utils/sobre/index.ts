@@ -88,6 +88,34 @@ const OJO_DIAG: Record<string, string> = { OD: "OD", OI: "OI", AMBOS: "AO" };
 
 // ── Consentimiento vigente (versionable) ──────────────────────────────────────
 
+/**
+ * Diagnóstico y solicitud de una práctica (migración 48).
+ *
+ * Devuelve todo vacío si la práctica no está cargada, y eso es deliberado: el
+ * pedido imprime el renglón en blanco para completar a mano en vez de asumir
+ * un diagnóstico. Antes se asumía "Catarata" para todas, y un pterigión salía
+ * pedido como catarata.
+ */
+export async function cargarDiagnosticoPractica(
+  codigo: string | null | undefined,
+): Promise<{ diagnostico: string; solicitud: string; llevaLio: boolean }> {
+  const vacio = { diagnostico: '', solicitud: '', llevaLio: false };
+  const cod = String(codigo || '').trim();
+  if (!cod) return vacio;
+  try {
+    const rows = await sbGet<{ diagnostico: string; solicitud: string; lleva_lio: boolean }>(
+      `presupuestos_diagnosticos?codigo_practica=eq.${encodeURIComponent(cod)}&activo=eq.true&select=diagnostico,solicitud,lleva_lio`,
+    );
+    const r = rows[0];
+    if (!r) return vacio;
+    return { diagnostico: r.diagnostico || '', solicitud: r.solicitud || '', llevaLio: !!r.lleva_lio };
+  } catch {
+    // Si la consulta falla, el pedido sale con el renglón en blanco. Preferible
+    // a caer a un diagnóstico por defecto que podría ser el equivocado.
+    return vacio;
+  }
+}
+
 export async function cargarConsentimiento(): Promise<{ titulo: string; cuerpo: string }[]> {
   try {
     const rows = await sbGet<{ contenido: { titulo: string; cuerpo: string }[] }>(
@@ -172,6 +200,8 @@ export function armarContexto(args: {
   consentimiento: { titulo: string; cuerpo: string }[];
   /** Receta de costos de la práctica (ver `cargarRecetaDeCostos`). */
   receta?: RecetaDeCostos | null;
+  /** Diagnóstico y solicitud de la práctica (ver `cargarDiagnosticoPractica`). */
+  diag?: { diagnostico: string; solicitud: string; llevaLio: boolean } | null;
   /** Datos de caja del operador. Si se omite, se usan los persistidos. */
   caja?: CajaOpts;
   /**
@@ -277,6 +307,14 @@ export function armarContexto(args: {
     entregasPrevias: num(args.entregasPrevias),
     consentimiento,
     receta: args.receta ?? null,
+    // El {ojo} se reemplaza acá, con el ojo de la ACEPTACIÓN, que es el que
+    // manda en todo el sobre.
+    diag: {
+      diagnostico: String(args.diag?.diagnostico || '').replace('{ojo}', ojo ? OJO_DIAG[ojo] : '').trim(),
+      solicitud: args.diag?.solicitud || '',
+      llevaLio: !!args.diag?.llevaLio,
+    },
+    practicaDescripcion: String(p?.prestacion_descripcion || '').replace(/^d{6}s*-s*/, '').trim(),
     fmtARS,
   };
 }

@@ -1,9 +1,9 @@
 # Circuito Quirúrgico — referencia
 
 > Instituto Dr. Mercado · Sistema de Gestión Integral
-> Última actualización: **2026-09-01** (correcciones FASE 3)
+> Última actualización: **2026-09-23** (diagnóstico por práctica, anulación de entregas)
 > Commits: `97b821c` correcciones Fases 1 y 2 · `10185ce` fecha de cirugía · `3df139a` pie sin crédito de desarrollo.
-> Migraciones: **33** (LIOs + caja), **34** (recetas por sistema), **38** (placeholder del consentimiento), **44** (entregas de caja + leyenda del LIO).
+> Migraciones: **33** (LIOs + caja), **34** (recetas por sistema), **38** (placeholder del consentimiento), **44** (entregas de caja + leyenda del LIO), **46** (registro de sobres generados), **47** (anulación de entregas), **48** (diagnóstico por práctica).
 
 Cubre el tramo **Aceptar presupuesto → Circuito de cirugía → Sobre Quirúrgico → Ingreso de caja**, con las reglas que fijó Administración en los testeos funcionales del **10-11/08/2026** (tres coberturas) y del **31/08/2026** (FASE 3: comprobante de caja contra el papel real, sobre P-2026-813).
 
@@ -116,6 +116,22 @@ No es informativa: el costo de una práctica sale de una receta que alguien tien
 Los datos salen de `shared/services/costoPrestacion`, el **mismo** servicio que alimenta el panel de Prestaciones Realizadas: la pantalla y el papel no pueden mostrar costos distintos para la misma práctica.
 
 ⚠️ **El desglose de pools lleva una línea "Otros pools".** `costo_total_pools` suma todos los pools de la receta, pero las columnas por pool de la vista salen de un `ILIKE` por nombre que **no ignora acentos**: "Insumos Generales en Quirófano" no matchea `'%quirofano%'`. Medido el 10/09/2026: pasa en **54 de 103 recetas**, $104.288,49 acumulados. El residuo se muestra como línea propia para que el desglose sume el total; el arreglo de fondo es la vista (`migrations/42`), y no cambiaría ningún costo total, sólo repartiría mejor el detalle.
+
+### El diagnóstico sale de la PRÁCTICA (23/09/2026, migración 48)
+
+El pedido de cirugía imprimía tres cosas que asumían que toda cirugía era una catarata: la solicitud (texto **fijo** de facoemulsificación), el diagnóstico (de `convenio.config.diag`, que en los tres convenios dice "Catarata") y el renglón "LIO indicado".
+
+Un pterigión se pedía con diagnóstico "Catarata" y solicitando una facoemulsificación. No es hipotético: de 991 presupuestos quirúrgicos, **92 son de pterigión** (el 2º más presupuestado) y 91 de Yag Láser. Ya salió al menos uno: **P-2026-733** (Ubilla Fabián, 31/07) era una Fotocoagulación Láser Diodo y su pedido decía "Catarata".
+
+Lo detectó Administración: *"en el pedido de cirugía tiene que ir el diagnóstico correspondiente a la cirugía que estás solicitando... catarata, pterigión, chalazión"*.
+
+⚠️ **Las RECETAS no cambian**: siguen con el Dx unificado "Cirugía ocular" (31/08). Son dos documentos con reglas distintas, y confundirlos fue el malentendido original del reporte.
+
+Ahora el diagnóstico, la solicitud y si lleva LIO salen de `presupuestos_diagnosticos` (PK = código de práctica), que se carga en `armarContexto` vía `cargarDiagnosticoPractica`. `config.diag` del convenio quedó **sin uso**; el convenio sigue aportando leyenda, renglones y cuenta. El marcador `{ojo}` se reemplaza con el ojo de la aceptación.
+
+**Sólo se sembró lo que el nombre de la práctica afirma** (10 códigos: facos → catarata, 030408/030409 → pterigión, 030302 → chalazión). Elegir la indicación de una inyección intravítrea (¿DMAE? ¿edema macular? ¿oclusión venosa?) o de una vitrectomía es una decisión médica, no de sistema.
+
+**Una práctica sin diagnóstico cargado imprime el renglón EN BLANCO, con un aviso para completarlo a mano, y solicita la práctica por su nombre.** Un blanco se nota y se llena; un diagnóstico equivocado se firma y se presenta a la obra social. Para cargar los que faltan: `INSERT` en `presupuestos_diagnosticos`, no hay pantalla.
 
 ### Pedido de cirugía — renglón CUPO / fecha
 

@@ -97,6 +97,10 @@ export interface SobreCtx {
    * emite la receta en papel de la medicación adicional.
    */
   recetasPorSistema: boolean;
+  /** Diagnóstico y solicitud de ESTA práctica (migración 48). */
+  diag: DiagnosticoPractica;
+  /** Nombre de la práctica presupuestada, respaldo de la solicitud. */
+  practicaDescripcion: string;
   /** Datos que carga el operador al generar el comprobante de caja. */
   caja: CajaOpts;
   /** Suma de las entregas ya registradas antes de ésta (migración 44). */
@@ -123,9 +127,21 @@ export interface RecetaDeCostos {
   costoTotal: number;
 }
 
-const TXT_SOLICITUD = "Cirugía de catarata con técnica de facoemulsificación implante de lio plegable.";
+/** Diagnóstico y solicitud del pedido, resueltos por práctica (migración 48). */
+export interface DiagnosticoPractica {
+  /** Ya con el {ojo} reemplazado. Vacío = no hay carga para esta práctica. */
+  diagnostico: string;
+  /** Qué se solicita. Vacío = se cae al nombre de la práctica. */
+  solicitud: string;
+  /** Si la práctica lleva lente intraocular. */
+  llevaLio: boolean;
+}
 
 const pesos = (ctx: SobreCtx, n: number): string => `$ ${ctx.fmtARS(n)}`;
+
+/** Respaldo de la solicitud: el nombre de la práctica, que siempre es cierto. */
+const conceptoDeLaPractica = (ctx: SobreCtx): string =>
+  ctx.practicaDescripcion ? `${ctx.practicaDescripcion}.` : "Completar la práctica solicitada.";
 
 /**
  * Qué está pagando el paciente, en el formato pedido por Administración:
@@ -161,16 +177,30 @@ export function docPedidoCirugia(L: Lienzo, ctx: SobreCtx) {
   campo(L, "Ojo a operar", ctx.ojoTexto);
   espacio(L, 2);
 
+  // EL DIAGNÓSTICO Y LA SOLICITUD SALEN DE LA PRÁCTICA, NO DEL CONVENIO.
+  // Antes la solicitud era un texto fijo de facoemulsificación y el
+  // diagnóstico venía de `convenio.config.diag`, que en los tres convenios
+  // dice "Catarata": un pterigión se pedía como catarata. Ver migración 48.
   subtitulo(L, "Solicito");
-  parrafo(L, TXT_SOLICITUD, { size: 10 });
+  parrafo(L, ctx.diag.solicitud || conceptoDeLaPractica(ctx), { size: 10 });
   espacio(L, 1);
 
-  const cfg = ctx.convenio?.config || {};
-  const diagRaw = String(cfg.diag || "Catarata");
-  const diag = diagRaw.replace("{ojo}", ctx.ojoDiag);
-  campo(L, "Diagnóstico", diag);
-  campo(L, "LIO indicado", ctx.lioNombre);
+  // Sin diagnóstico cargado va el renglón EN BLANCO, para completar a mano.
+  // Un blanco se nota y se llena; un diagnóstico equivocado se firma.
+  campo(L, "Diagnóstico", ctx.diag.diagnostico);
+  if (!ctx.diag.diagnostico) {
+    parrafo(L, "Completar el diagnóstico a mano: esta práctica todavía no lo tiene cargado en el sistema.",
+      { size: 7.5, color: [150, 100, 30] });
+  }
+  // El LIO sólo se imprime si la práctica lo lleva: en un pterigión el renglón
+  // no significa nada.
+  if (ctx.diag.llevaLio && ctx.lioNombre) campo(L, "LIO indicado", ctx.lioNombre);
   if (ctx.convenio?.codigo) campo(L, "Código", ctx.convenio.codigo);
+
+  // El convenio sigue aportando sus extras (leyenda, renglones a completar,
+  // cuenta). Lo que ya NO aporta es el diagnóstico: `config.diag` quedó sin uso
+  // desde la migración 48, porque decía "Catarata" para cualquier cirugía.
+  const cfg = ctx.convenio?.config || {};
 
   // Extras por convenio
   if (cfg.leyenda) { espacio(L, 1); parrafo(L, String(cfg.leyenda), { size: 9, bold: true }); }
