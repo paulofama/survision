@@ -158,6 +158,16 @@ export interface CajaEntrega {
   registrado_por: string | null;
   observaciones: string | null;
   created_at: string;
+  /**
+   * Anulación (migración 47). NULL = entrega vigente.
+   *
+   * La fila NO se borra: hubo un comprobante impreso y entregado al paciente,
+   * así que tiene que quedar rastro de qué se cargó y por qué se dio de baja.
+   * Las anuladas no suman al saldo.
+   */
+  anulada_at: string | null;
+  anulada_por: string | null;
+  anulacion_motivo: string | null;
 }
 
 /** Entregas ya registradas, de la más vieja a la más nueva. */
@@ -167,8 +177,35 @@ export async function cargarEntregas(presupuestoId: string): Promise<CajaEntrega
   );
 }
 
+/** Las entregas que cuentan: una anulada sigue en la lista pero no suma. */
+export const entregasVigentes = (entregas: CajaEntrega[]): CajaEntrega[] =>
+  entregas.filter((e) => !e.anulada_at);
+
+/**
+ * Lo efectivamente entregado. IGNORA las anuladas: si una entrega cargada por
+ * error siguiera sumando, el saldo que se le informa al paciente quedaría mal.
+ */
 export const sumaEntregas = (entregas: CajaEntrega[]): number =>
-  entregas.reduce((s, e) => s + (Number(e.monto) || 0), 0);
+  entregasVigentes(entregas).reduce((s, e) => s + (Number(e.monto) || 0), 0);
+
+/**
+ * Anula una entrega. El motivo es obligatorio y lo exige también la base
+ * (CHECK de la migración 47): una anulación sin explicación es indistinguible
+ * de un error nuevo.
+ */
+export async function anularEntrega(
+  entregaId: string,
+  usuario: string | null,
+  motivo: string,
+): Promise<void> {
+  const limpio = String(motivo || '').trim();
+  if (limpio.length < 3) throw new Error('Escribí el motivo de la anulación.');
+  await sbPatch(`presupuestos_caja_entregas?id=eq.${entregaId}`, {
+    anulada_at: new Date().toISOString(),
+    anulada_por: usuario,
+    anulacion_motivo: limpio,
+  });
+}
 
 export interface ChecklistRow {
   id: string;

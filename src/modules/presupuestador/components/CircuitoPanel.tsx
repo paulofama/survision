@@ -12,7 +12,7 @@ import {
   Aceptacion, ChecklistRow, Convenio, Lio, CajaEntrega,
   CHECKLIST_ITEMS, OJOS, SUB_RAMAS,
   clavesAplicables, listoParaCirugia, progresoChecklist,
-  cargarEntregas, sumaEntregas, practicaDelPresupuesto,
+  cargarEntregas, sumaEntregas, anularEntrega, practicaDelPresupuesto,
   sbGet, sbPatch, sbInsert,
 } from "../utils/circuito";
 import {
@@ -92,6 +92,9 @@ export default function CircuitoPanel({
   // Se guardan los DESTILDADOS, no los tildados: así un documento nuevo entra
   // al sobre por defecto en vez de quedar afuera sin que nadie lo note.
   const [excluidos, setExcluidos] = useState<string[]>([]);
+  // Entrega que se está anulando (abre el modal del motivo).
+  const [anulando, setAnulando] = useState<CajaEntrega | null>(null);
+  const [motivoAnulacion, setMotivoAnulacion] = useState("");
 
   const cargar = async () => {
     setLoading(true);
@@ -296,6 +299,19 @@ export default function CircuitoPanel({
   const ctxDocs = contexto();
   const docsDelContexto = ctxDocs ? docsDelSobre(ctxDocs) : [];
   const cantidadElegida = docsDelContexto.filter((d) => !excluidos.includes(d.clave)).length;
+
+  /** Confirma la anulación y recarga, para que el saldo se recalcule. */
+  const confirmarAnulacion = async () => {
+    if (!anulando) return;
+    try {
+      await anularEntrega(anulando.id, username, motivoAnulacion);
+      setAnulando(null);
+      setMotivoAnulacion("");
+      await cargar();
+    } catch (e) {
+      setError((e as Error).message || "No se pudo anular la entrega");
+    }
+  };
 
   const labelDe = (clave: string) => CHECKLIST_ITEMS.find((i) => i.clave === clave)?.label || clave;
   const convenioNombre = aceptacion?.convenio_id ? (convenios.find((c) => c.id === aceptacion.convenio_id)?.nombre || "—") : "—";
@@ -503,24 +519,47 @@ export default function CircuitoPanel({
                         Entregas registradas ({entregas.length})
                       </p>
                       <div className="space-y-1">
+                        {/* Las anuladas SIGUEN EN LA LISTA, tachadas: hubo un
+                            comprobante impreso y tiene que verse qué pasó con
+                            él. Lo que no hacen es sumar. */}
                         {entregas.map((e) => (
-                          <div key={e.id} className="flex items-center justify-between text-xs">
-                            <span className="text-gray-600">
-                              {fmtFecha(e.fecha)}
-                              <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                e.requiere_factura
-                                  ? "bg-blue-100 text-blue-700"
-                                  : "bg-orange-100 text-orange-700"
-                              }`}>
-                                {e.requiere_factura ? "C/IVA" : "S/IVA"}
+                          <div key={e.id} className="text-xs">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={e.anulada_at ? "text-gray-400 line-through" : "text-gray-600"}>
+                                {fmtFecha(e.fecha)}
+                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  e.anulada_at
+                                    ? "bg-gray-100 text-gray-500"
+                                    : e.requiere_factura
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-orange-100 text-orange-700"
+                                }`}>
+                                  {e.requiere_factura ? "C/IVA" : "S/IVA"}
+                                </span>
+                                {e.registrado_por && (
+                                  <span className="ml-2 text-gray-400">{e.registrado_por}</span>
+                                )}
                               </span>
-                              {e.registrado_por && (
-                                <span className="ml-2 text-gray-400">{e.registrado_por}</span>
-                              )}
-                            </span>
-                            <span className="font-medium text-gray-800 tabular-nums">
-                              $ {fmtImporte(Number(e.monto))}
-                            </span>
+                              <span className="flex items-center gap-2 shrink-0">
+                                <span className={`font-medium tabular-nums ${e.anulada_at ? "text-gray-400 line-through" : "text-gray-800"}`}>
+                                  $ {fmtImporte(Number(e.monto))}
+                                </span>
+                                {!e.anulada_at && (
+                                  <button
+                                    onClick={() => setAnulando(e)}
+                                    title="Anular esta entrega"
+                                    className="text-[10px] text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded px-1.5 py-0.5"
+                                  >
+                                    Anular
+                                  </button>
+                                )}
+                              </span>
+                            </div>
+                            {e.anulada_at && (
+                              <p className="text-[10px] text-gray-400 ml-1 mt-0.5">
+                                Anulada por {e.anulada_por || "—"} · {e.anulacion_motivo}
+                              </p>
+                            )}
                           </div>
                         ))}
                         <div className="flex items-center justify-between text-xs border-t border-gray-200 pt-1 mt-1">
@@ -556,6 +595,59 @@ export default function CircuitoPanel({
           </button>
         </div>
       </div>
+
+      {/* Anulación de una entrega de caja (migración 47).
+          El motivo es obligatorio y lo exige también la base: una anulación sin
+          explicación es indistinguible de un error nuevo. */}
+      {anulando && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => { e.stopPropagation(); setAnulando(null); setMotivoAnulacion(""); }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b bg-red-50 border-red-100">
+              <h3 className="font-bold text-gray-900">Anular entrega de caja</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {fmtFecha(anulando.fecha)} · $ {fmtImporte(Number(anulando.monto))}
+                {anulando.registrado_por ? ` · cargada por ${anulando.registrado_por}` : ""}
+              </p>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-gray-600">
+                La entrega deja de sumar al saldo, pero <strong>la fila no se borra</strong>: queda
+                registrada como anulada, con tu usuario y el motivo. Si ya se imprimió el
+                comprobante, conviene recuperarlo o avisarle al paciente que el saldo cambió.
+              </p>
+              <label className="block text-sm">
+                <span className="block text-gray-600 mb-1 font-medium">Motivo *</span>
+                <textarea
+                  value={motivoAnulacion}
+                  onChange={(e) => setMotivoAnulacion(e.target.value)}
+                  rows={3}
+                  autoFocus
+                  placeholder="Ej.: prueba del sistema, se cargó en el presupuesto equivocado, monto mal tipeado…"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                />
+              </label>
+            </div>
+            <div className="px-5 py-3 border-t flex justify-end gap-2">
+              <button
+                onClick={() => { setAnulando(null); setMotivoAnulacion(""); }}
+                className="text-sm px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+              >
+                Volver
+              </button>
+              <button
+                onClick={confirmarAnulacion}
+                disabled={motivoAnulacion.trim().length < 3}
+                className="text-sm px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white font-medium"
+              >
+                Anular entrega
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Datos que carga el operador para el comprobante de caja */}
       {pendienteCaja && ctxCaja && (
