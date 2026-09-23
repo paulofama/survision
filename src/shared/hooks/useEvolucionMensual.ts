@@ -193,6 +193,8 @@ const useEvolucionMensual = (
       return {
         fijosPorMes: {} as Record<Mes, { porCategoria: Record<string, number>; total: number }>,
         sinClasificarPorMes: {} as Record<Mes, number>,
+        crudasPorMes: {} as Record<Mes, { filas: number; monto: number }>,
+        clasificadasPorMes: {} as Record<Mes, number>,
       };
     }
 
@@ -217,6 +219,22 @@ const useEvolucionMensual = (
         .or(filtroOR)
         .range(desde, desde + 999));
 
+    // 1b. Erogaciones CRUDAS del espejo, para saber cuánto falta clasificar.
+    //
+    // Sin esto el módulo no puede distinguir "este mes no tuvo gastos" de
+    // "los gastos de este mes nunca se clasificaron": las dos cosas se ven
+    // igual desde `erogaciones_clasificacion`, que es lo único que miraba.
+    // Y la diferencia es enorme: 2025 tiene 2.241 erogaciones por
+    // $1.384.474.994 de las que UNA está clasificada, así que el informe
+    // mostraba el año con sólo los sueldos como costo fijo y un resultado
+    // operativo del 35%.
+    const dataCrudas = await traerTodo<{ anio: number; mes: number; monto: number }>((desde) =>
+      supabase
+        .from('erogaciones_geclisa')
+        .select('anio, mes, monto')
+        .or(filtroOR)
+        .range(desde, desde + 999));
+
     // 2. Costo laboral del módulo (bruto + cargas) por mes disponible.
     const idxs = meses.map(m => { const p = parseMesKey(m); return p.anio * 12 + p.mes; });
     const minI = Math.min(...idxs), maxI = Math.max(...idxs);
@@ -227,15 +245,30 @@ const useEvolucionMensual = (
     // Agregación
     const fijosPorMes: Record<Mes, { porCategoria: Record<string, number>; total: number }> = {};
     const sinClasificarPorMes: Record<Mes, number> = {};
+    /** Lo que hay en el espejo crudo, esté clasificado o no. */
+    const crudasPorMes: Record<Mes, { filas: number; monto: number }> = {};
+    /** Cuántas erogaciones de ese mes llegaron a clasificarse. */
+    const clasificadasPorMes: Record<Mes, number> = {};
 
     meses.forEach(m => {
       fijosPorMes[m] = { porCategoria: {}, total: 0 };
       sinClasificarPorMes[m] = 0;
+      crudasPorMes[m] = { filas: 0, monto: 0 };
+      clasificadasPorMes[m] = 0;
+    });
+
+    dataCrudas.forEach((r) => {
+      const mesKey = toMesKey(r.anio, r.mes);
+      const c = crudasPorMes[mesKey];
+      if (!c) return;
+      c.filas += 1;
+      c.monto += Number(r.monto) || 0;
     });
 
     dataFijos.forEach((r) => {
       const mesKey = toMesKey(r.anio, r.mes);
       if (!fijosPorMes[mesKey]) return;
+      clasificadasPorMes[mesKey] += 1;
       const monto = Number(r.monto) || 0;
 
       // Normalización de tipo_costo (misma lógica que useErogaciones)
@@ -268,7 +301,7 @@ const useEvolucionMensual = (
       }
     });
 
-    return { fijosPorMes, sinClasificarPorMes };
+    return { fijosPorMes, sinClasificarPorMes, crudasPorMes, clasificadasPorMes };
   }, []);
 
   // ============================================
@@ -327,7 +360,7 @@ const useEvolucionMensual = (
 
       // Costos fijos
       let fijosData: Awaited<ReturnType<typeof fetchCostosFijosMes>> = {
-        fijosPorMes: {}, sinClasificarPorMes: {},
+        fijosPorMes: {}, sinClasificarPorMes: {}, crudasPorMes: {}, clasificadasPorMes: {},
       };
       try {
         fijosData = await fetchCostosFijosMes(meses);
@@ -725,6 +758,34 @@ const useEvolucionMensual = (
             tipo: 'erogaciones_sin_clasificar',
             severidad: 'info',
             mensaje: `${m}: hay erogaciones sin clasificar por $ ${Math.round(fijosData.sinClasificarPorMes[m]).toLocaleString('es-AR')}. Clasificá en el módulo de erogaciones.`,
+          });
+        }
+
+        // EL MES TIENE GASTOS EN EL ERP QUE NUNCA SE CLASIFICARON.
+        //
+        // Distinto de "sin clasificar": aquéllas al menos entraron a
+        // `erogaciones_clasificacion` y se ven. Éstas están sólo en el espejo
+        // crudo, así que el informe no las conoce y el mes sale con los
+        // sueldos como único costo fijo. El resultado operativo queda
+        // inventado por arriba y NADA lo decía: la advertencia `sin_cf` mira
+        // si el costo fijo es CERO, y con los sueldos cargados nunca lo es.
+        //
+        // Medido el 23/09/2026: 2025 tiene 2.241 erogaciones por
+        // $1.384.474.994 y UNA clasificada. El año entero mostraba 35% de
+        // resultado operativo contra el 24,3% de 2026.
+        const crudas = fijosData.crudasPorMes[m];
+        const clasif = fijosData.clasificadasPorMes[m] ?? 0;
+        if (crudas && crudas.filas > 0 && clasif < crudas.filas * 0.5) {
+          const faltan = crudas.filas - clasif;
+          advertencias.push({
+            mes: m,
+            tipo: 'erogaciones_sin_cargar',
+            severidad: 'error',
+            mensaje:
+              `${m}: ${faltan} de ${crudas.filas} erogaciones del ERP no están clasificadas ` +
+              `(hasta $ ${Math.round(crudas.monto).toLocaleString('es-AR')}). ` +
+              `El costo fijo del mes está incompleto y el resultado operativo sobrevaluado. ` +
+              `No compares este mes contra otro hasta clasificarlas.`,
           });
         }
       });

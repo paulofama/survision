@@ -245,3 +245,29 @@ describe('forma del informe', () => {
     expect((t.match(/Margen contrib\./g) || []).length).toBe(1);
   });
 });
+
+describe('costos fijos incompletos — el PDF no puede callarlo', () => {
+  // 2025 tiene 2.241 erogaciones en el ERP y UNA clasificada: el año salía con
+  // los sueldos como único costo fijo y 35% de resultado operativo, sin que
+  // nada lo dijera. El PDF es lo que se muestra, y el que lo recibe no vio la
+  // pantalla.
+
+  it('declara los meses cuyas erogaciones nunca se clasificaron', () => {
+    const t = texto({ mesesSinErogaciones: ['2026-06', '2026-07'] });
+    expect(t).toContain('COSTOS FIJOS INCOMPLETOS');
+    expect(t).toMatch(/NO COMPARAR/);
+  });
+
+  it('sin meses afectados no dice nada: un aviso que sale siempre no se lee', () => {
+    const t = texto({ mesesSinErogaciones: [] });
+    expect(t).not.toContain('COSTOS FIJOS INCOMPLETOS');
+    expect(texto()).not.toContain('COSTOS FIJOS INCOMPLETOS');
+  });
+
+  it('ignora meses que no están en el informe', () => {
+    // El mes en curso y cualquier otro fuera del rango no tienen por qué
+    // disparar un aviso sobre un informe donde no salen.
+    const t = texto({ mesesSinErogaciones: ['2024-03'] });
+    expect(t).not.toContain('COSTOS FIJOS INCOMPLETOS');
+  });
+});

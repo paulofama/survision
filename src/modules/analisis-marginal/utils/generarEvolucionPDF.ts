@@ -95,6 +95,13 @@ export interface DatosEvolucionPDF {
   /** Facturación por mes — denominador del modo porcentaje. */
   facturacionPorMes: Record<Mes, number>;
   ultimaActualizacion: string;
+  /**
+   * Meses cuyas erogaciones están en el ERP pero nunca se clasificaron: su
+   * costo fijo sale incompleto y el resultado operativo sobrevaluado. No
+   * alcanza con avisarlo en pantalla — el PDF es lo que se muestra, y el que
+   * lo recibe no vio la pantalla.
+   */
+  mesesSinErogaciones?: Mes[];
 }
 
 /** Aplana el árbol respetando qué está abierto. Solo baja hasta nivel 2. */
@@ -320,6 +327,17 @@ function portada(
       'comprobante o por atención. Ese nivel no entra en el PDF y se consulta en pantalla.',
     );
   }
+  const sinEro = (datos.mesesSinErogaciones || []).filter(m => meses.includes(m)).sort();
+  if (sinEro.length) {
+    notas.push(
+      `COSTOS FIJOS INCOMPLETOS en ${sinEro.map(etiquetaLarga).join(', ')}: ` +
+      'las erogaciones de esos meses están en el ERP pero nunca se clasificaron, ' +
+      'así que no entran al estado de resultados. El costo fijo sale sólo con los ' +
+      'sueldos y el resultado operativo queda sobrevaluado. ' +
+      'NO COMPARAR esos meses contra otros hasta clasificarlas.',
+    );
+  }
+
   if (sinLiquidacion.length) {
     notas.push(
       `COSTO LABORAL INCOMPLETO en ${sinLiquidacion.map(etiquetaLarga).join(', ')}: ` +

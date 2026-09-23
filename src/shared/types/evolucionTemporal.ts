@@ -121,6 +121,8 @@ export type TipoAdvertencia =
   | 'sin_cf'                          // El mes no tiene costos fijos cargados
   | 'baja_cobertura_receta'           // > 20% de facturación sin receta
   | 'erogaciones_sin_clasificar'      // Hay erogaciones en 'sin_clasificar'
+  | 'erogaciones_sin_cargar'          // El ERP tiene gastos del mes que NUNCA se clasificaron:
+                                      // el costo fijo sale incompleto y nada lo decía
   | 'mes_incompleto'                  // El mes es el actual (en curso)
   | 'sin_datos'                       // No se pudieron cargar datos del mes
   | 'error_fetch';                    // Error de red al traer el mes

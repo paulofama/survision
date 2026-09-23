@@ -12,7 +12,9 @@
 // Estructura: filas expandibles (Nivel 0/1/2) × columnas mensuales
 //             + columna TOTAL y Promedio Mensual
 //
-// Alcance v1: desde enero 2026 en adelante (ARS nominal).
+// Alcance v1: un año por vez, de enero al mes elegido (ARS nominal).
+// El encabezado sale del año ELEGIDO, no de una constante: decía "Enero 2026"
+// fijo y con 2025 en pantalla el título mentía el año.
 // ============================================
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -696,6 +698,9 @@ const EvolucionTemporalContent: React.FC = () => {
       mostrarPct,
       facturacionPorMes,
       ultimaActualizacion: data.ultimaActualizacion,
+      mesesSinErogaciones: data.advertencias
+        .filter(a => a.tipo === 'erogaciones_sin_cargar')
+        .map(a => a.mes),
     });
   };
 
@@ -736,7 +741,7 @@ const EvolucionTemporalContent: React.FC = () => {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="w-4 h-4" />
-            <span>Período: <strong>Enero 2026</strong> → <strong>{labelMesCorto(`${anioHasta}-${String(mesHasta).padStart(2, '0')}`)}</strong></span>
+            <span>Período: <strong>{labelMesCorto(`${anioHasta}-01`)}</strong> → <strong>{labelMesCorto(`${anioHasta}-${String(mesHasta).padStart(2, '0')}`)}</strong></span>
             {data.mesEnCurso && (
               <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
                 {labelMesCorto(data.mesEnCurso)}: mes en curso
@@ -991,7 +996,10 @@ const EvolucionTemporalPage: React.FC = () => {
   return (
     <MarginalLayout
       title="Evolución Temporal"
-      subtitle="Estado de resultados comparativo mensual — desde enero 2026"
+      // Sin año: el wrapper no conoce el elegido y el período ya se muestra
+      // arriba de la grilla. Antes decía "desde enero 2026" fijo, y con 2025 en
+      // pantalla el título mentía el año.
+      subtitle="Estado de resultados comparativo mensual"
     >
       <EvolucionTemporalContent />
     </MarginalLayout>
