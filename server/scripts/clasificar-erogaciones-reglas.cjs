@@ -1,22 +1,28 @@
 // ============================================================
-// MOVIMIENTOS DE FONDOS Y HONORARIOS MÉDICOS — clasificación por regla
+// CLASIFICAR EROGACIONES POR REGLA — los criterios que fijó Paulo
 // Sistema de Gestión Integral · Survisión S.A.
 // ============================================================
 // USO:
 //   cd server
-//   node scripts/clasificar-fondos-y-honorarios.cjs --anio 2025          (simulacro)
-//   node scripts/clasificar-fondos-y-honorarios.cjs --anio 2025 --write
+//   node scripts/clasificar-erogaciones-reglas.cjs --anio 2025          (simulacro)
+//   node scripts/clasificar-erogaciones-reglas.cjs --anio 2025 --write
 //
-// DOS CRITERIOS DE PAULO (23/09/2026)
+// LOS CRITERIOS DE PAULO (23/09/2026)
 // -----------------------------------
-//   "las rendiciones no son gasto"          -> tipo_costo 'no_es_gasto'
+//   "las rendiciones no son gasto"             -> 'no_es_gasto'
 //   "los honorarios van a variable/honorarios" -> 'variable' + subcategoría
+//   "931 a Sueldos y Cargas, ganancias a Impuestos"
 //
-// Ninguno de los dos cambia el estado de resultados: 'no_es_gasto' no suma a
+// Los dos primeros NO cambian el estado de resultados: 'no_es_gasto' no suma a
 // nada y 'variable' tampoco (el costo variable lo calcula el modelo con la
 // fórmula de honorarios y las recetas). Lo que cambia es que dejan de contar
-// como "sin clasificar", que es lo que hoy hace que el aviso de costos
-// incompletos de 2025 no se pueda apagar nunca.
+// como "sin clasificar", que es lo que hacía que el aviso de costos incompletos
+// de 2025 no se pudiera apagar nunca.
+//
+// El tercero SÍ toca el costo fijo, pero sólo la parte de impuestos: el VEP del
+// 931 va a la categoría "Sueldos y Cargas", que el informe SALTEA en los meses
+// cubiertos por el módulo de Sueldos. Queda clasificado y no se cuenta dos
+// veces — ver la REGLA 3.
 //
 // POR QUÉ NO ALCANZA CON BUSCAR EL APELLIDO
 // -----------------------------------------
@@ -42,7 +48,7 @@ const WRITE = args.includes('--write');
 const iAnio = args.indexOf('--anio');
 const ANIO = iAnio >= 0 ? Number(args[iAnio + 1]) : null;
 if (!ANIO || !Number.isInteger(ANIO)) {
-  console.error('USO: node scripts/clasificar-fondos-y-honorarios.cjs --anio 2025 [--write]');
+  console.error('USO: node scripts/clasificar-erogaciones-reglas.cjs --anio 2025 [--write]');
   process.exit(1);
 }
 
@@ -99,6 +105,24 @@ const HONORARIOS = [
   /^ANTIC(IP)?O?\.? ?(DR\.?|DRA\.?)/,   // "ANTIC. DR MERCADO", "ANTICIPO DR MUSA"
 ];
 
+// ── REGLA 3: los VEP ──
+// Paulo, 23/09/2026: "931 a Sueldos y Cargas, ganancias a Impuestos".
+//
+// El VEP del 931 es la carga social, y el módulo de Sueldos YA la cuenta con
+// su propia fuente. Por eso va a la categoría "Sueldos y Cargas": el informe
+// SALTEA esa categoría en los meses que el módulo cubre
+// (`CAT_EROGACION_SUELDOS` en useEvolucionMensual), así que queda clasificada
+// sin contarse dos veces. Ese es justamente el mecanismo que hace que esta
+// clasificación sea la correcta y no una que infla el costo fijo.
+const CAT_SUELDOS_Y_CARGAS = 'ff6f48c6-0e03-43d1-9448-bd91a6a34901';
+const CAT_IMPUESTOS = '1c29d173-6b81-48a4-8a00-bd5a713609e9';
+
+const VEP_931 = [/\b931\b/];
+// Ganancias, ingresos brutos y ATM (rentas de Mendoza): son impuestos, que es
+// el criterio que dio Paulo. Un "VEP ARCA" a secas NO entra: no dice de qué es,
+// y adivinarlo es lo que hay que evitar.
+const VEP_IMPUESTOS = [/\bGANANCIA/, /\bINGRESOS BRUTOS\b/, /\bATM\b/];
+
 function reglaDe(e) {
   const prov = norm(e.proveedor_nombre);
   const desc = norm(e.descripcion);
@@ -108,6 +132,18 @@ function reglaDe(e) {
 
   if (FONDOS.some((re) => re.test(prov) || re.test(desc))) {
     return { tipo: 'no_es_gasto', sub: null, motivo: 'movimiento de fondos' };
+  }
+
+  // Los VEP se miran antes que los honorarios: un "VEP 931" no es un honorario
+  // aunque el 931 salga de la nómina.
+  if (/\b(VEP|ARCA|AFIP)\b/.test(texto)) {
+    if (VEP_931.some((re) => re.test(texto))) {
+      return { tipo: 'fijo', cat: CAT_SUELDOS_Y_CARGAS, sub: null, motivo: 'VEP 931 (cargas sociales)' };
+    }
+    if (VEP_IMPUESTOS.some((re) => re.test(texto))) {
+      return { tipo: 'fijo', cat: CAT_IMPUESTOS, sub: null, motivo: 'VEP de impuestos' };
+    }
+    return null;   // "VEP ARCA" a secas, "VEP ARCA 713": no dice de qué es
   }
   if (PRESTADORES.includes(prov)) {
     return { tipo: 'variable', sub: 'honorarios', motivo: 'prestador' };
@@ -138,7 +174,7 @@ async function traerTodo(tabla, select, filtro) {
 }
 
 (async () => {
-  console.log(`Fondos y honorarios · año ${ANIO} · ${WRITE ? 'ESCRIBE' : 'SIMULACRO (no escribe)'}`);
+  console.log(`Clasificación por regla · año ${ANIO} · ${WRITE ? 'ESCRIBE' : 'SIMULACRO (no escribe)'}`);
   console.log('');
 
   const crudas = await traerTodo(
@@ -172,9 +208,9 @@ async function traerTodo(tabla, select, filtro) {
       fecha: e.fecha, descripcion: e.descripcion, proveedor_nombre: e.proveedor_nombre,
       monto: e.monto, categoria: e.categoria_sugerida,
       tipo_costo: r.tipo,
-      es_costo_fijo: false,
-      categoria_costo_fijo_id: null,
-      subcategoria_variable: r.sub,
+      es_costo_fijo: r.tipo === "fijo",
+      categoria_costo_fijo_id: r.tipo === "fijo" ? (r.cat || null) : null,
+      subcategoria_variable: r.tipo === "variable" ? (r.sub || null) : null,
       auto_clasificado: true,
       clasificado_por: 'regla-fondos-honorarios',
       clasificado_at: ahora,
@@ -224,5 +260,12 @@ async function traerTodo(tabla, select, filtro) {
   }
   console.log('');
   console.log(`LISTO: ${escritas} clasificadas por regla, marcadas "Auto".`);
-  console.log('Ninguna cambia el estado de resultados: sólo dejan de contar como sin clasificar.');
+
+  // Sólo los VEP de impuestos mueven el estado de resultados. Las rendiciones
+  // y los honorarios cambian de "sin clasificar" a "decidido" y nada más, y el
+  // VEP del 931 queda en una categoría que el informe saltea.
+  const sumaSi = (p) => filas.filter(p).reduce((s, f) => s + (Number(f.monto) || 0), 0);
+  const alResultado = sumaSi((f) => f.categoria_costo_fijo_id === CAT_IMPUESTOS);
+  console.log(`Suman al costo fijo: ${ars(alResultado)} (sólo los VEP de impuestos).`);
+  console.log(`El resto no toca el estado de resultados: deja de contar como sin clasificar.`);
 })().catch((e) => { console.error('ERROR:', e.message); process.exit(1); });
