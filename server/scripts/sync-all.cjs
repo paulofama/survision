@@ -39,6 +39,7 @@ const { sincronizarErogaciones } = require('../services/erogacionesExtractor');
 const { sincronizarTurnosFuturos } = require('../services/turnosFuturosExtractor');
 const { correrMatch } = require('../services/matchPracticasService');
 const { correrCierres } = require('../services/seguimientoJob');
+const { correrDevengos } = require('../services/comisionesService');
 
 // Períodos YYYY-MM de la ventana de sincronización, para el ETL fiscal del IVA.
 // La ventana la define `services/ventanaSync` y arranca en enero del año
@@ -95,6 +96,11 @@ const SYNCS = [
   { nombre: 'match presupuesto→práctica (Supabase)', fn: () => correrMatch({ write: true }) },
   // Seguimiento: cierre automático "sin respuesta" (2ª ronda agotada + 5 días).
   { nombre: 'cierres seguimiento (Supabase)', fn: () => correrCierres({ write: true }) },
+  // Devengo de comisiones: corre DESPUÉS del match, porque necesita saber qué
+  // presupuestos quedaron practicados recién ahora. Mientras la Dirección no
+  // cargue `fecha_vigencia_regimen` y una `tasa_comision`, no escribe nada y
+  // lo dice en el log: el régimen está apagado, no roto.
+  { nombre: 'devengo de comisiones (Supabase)', fn: () => correrDevengos({ write: true }) },
   // Próximos: prestaciones-realizadas, etc.
 ];
 
