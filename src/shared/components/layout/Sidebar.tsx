@@ -51,6 +51,9 @@ import {
   Search,
   // Sueldos
   Coins,
+  // Comisiones
+  Award,
+  Percent,
   // Herramientas
   Wrench,
   Ticket,
@@ -66,6 +69,8 @@ interface SubItem {
   label: string;
   icon?: React.ElementType;
   requierePermiso?: string;
+  /** Sólo Dirección. El módulo puede ser de todos y la subsección no. */
+  adminOnly?: boolean;
 }
 
 interface NavItem {
@@ -289,6 +294,24 @@ const navItems: NavItem[] = [
       // Catálogo de configuración: lo ve sólo quien puede editarlo.
       { path: '/presupuestos/diagnosticos', label: 'Diagnósticos', icon: Stethoscope, requierePermiso: 'presupuestador:config' },
       { path: '/presupuestos/consentimiento', label: 'Consentimiento', icon: ClipboardList, requierePermiso: 'presupuestador:config' }
+    ]
+  },
+
+  // ============================================
+  // COMISIONES
+  // ============================================
+  // "Mis comisiones" lo ve cualquiera con el módulo; el panel y la
+  // parametrización, sólo la Dirección. Igual la RLS recorta lo que devuelve
+  // la base, así que esconder el menú es comodidad, no seguridad.
+  {
+    path: '/comisiones',
+    icon: Award,
+    label: 'Comisiones',
+    requierePermiso: 'comisiones',
+    subItems: [
+      { path: '/comisiones', label: 'Mis comisiones', icon: Award },
+      { path: '/comisiones/panel', label: 'Panel', icon: Wallet, adminOnly: true },
+      { path: '/comisiones/parametros', label: 'Parámetros', icon: Percent, adminOnly: true }
     ]
   },
 
@@ -632,6 +655,7 @@ const Sidebar: React.FC = () => {
                   {hasSubItems && isExpanded && !isCollapsed && (
                     <ul className="mt-1 ml-4 space-y-1">
                       {item.subItems!
+                        .filter(subItem => !subItem.adminOnly || esAdmin())
                         .filter(subItem => !subItem.requierePermiso || tienePermiso(subItem.requierePermiso as any))
                         .map(subItem => {
                         const SubIcon = subItem.icon;

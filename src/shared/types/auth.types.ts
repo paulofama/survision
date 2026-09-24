@@ -43,6 +43,11 @@ export const MODULOS_SISTEMA = {
   // Dato sensible (CUIT e importes de todos los comprobantes) — gatea también la
   // RLS de las tablas fiscal_iva_* (migración 35).
   fiscal: { nombre: 'Fiscal', descripcion: 'Libro IVA Ventas y Compras, posición de IVA' },
+  // Comisiones sobre presupuestos. Da entrada al módulo; QUÉ ve cada uno lo
+  // decide la RLS: una comisionista sólo lee sus propios movimientos, y el
+  // panel de la Dirección pide además `requiereAdmin` (migración 56).
+  // Sin asignarlo a ningún rol, lo ven sólo los admin — que es como nace.
+  comisiones: { nombre: 'Comisiones', descripcion: 'Comisiones por presupuestos entregados y liquidaciones' },
 } as const;
 
 export type ModuloSistema = keyof typeof MODULOS_SISTEMA;
@@ -194,6 +199,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   herramientas: false,
   turnos: false,
   fiscal: false,
+  comisiones: false,
 };
 
 // Permisos para admin (todos en true)
@@ -218,4 +224,5 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   herramientas: true,
   turnos: true,
   fiscal: true,
+  comisiones: true,
 };

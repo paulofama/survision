@@ -153,6 +153,29 @@ const InformesPage = lazy(() =>
 );
 
 // ============================================
+// COMISIONES - LAZY LOADING
+// ============================================
+// Régimen de comisiones sobre presupuestos. Nace inerte: sin parámetros
+// cargados las pantallas explican qué falta, no muestran una lista vacía.
+const MisComisionesPage = lazy(() =>
+  import('@modules/comisiones/pages/MisComisionesPage').catch(() => ({
+    default: () => <ComingSoonPage title="Mis Comisiones" />
+  }))
+);
+
+const PanelComisionesPage = lazy(() =>
+  import('@modules/comisiones/pages/PanelComisionesPage').catch(() => ({
+    default: () => <ComingSoonPage title="Panel de Comisiones" />
+  }))
+);
+
+const ParametrosComisionesPage = lazy(() =>
+  import('@modules/comisiones/pages/ParametrosComisionesPage').catch(() => ({
+    default: () => <ComingSoonPage title="Parámetros de Comisiones" />
+  }))
+);
+
+// ============================================
 // SEGUIMIENTO DE PACIENTES - LAZY LOADING
 // ============================================
 const SeguimientoPacientesPage = lazy(() =>
@@ -337,7 +360,17 @@ const App: React.FC = () => {
                       <Route path="/presupuestos/seguimiento/informe" element={<ProtectedRoute modulo="presupuestador:seguimiento"><InformeSeguimientoPage /></ProtectedRoute>} />
                       <Route path="/presupuestos/diagnosticos" element={<ProtectedRoute modulo="presupuestador:config"><DiagnosticosPage /></ProtectedRoute>} />
                       <Route path="/presupuestos/consentimiento" element={<ProtectedRoute modulo="presupuestador:config"><ConsentimientoPage /></ProtectedRoute>} />
-                      
+
+                      {/* ============================================ */}
+                      {/* COMISIONES */}
+                      {/* ============================================ */}
+                      {/* El panel y la parametrización son de la Dirección; el */}
+                      {/* de la persona, de quien lo cobra. Lo que cada uno VE  */}
+                      {/* igual lo decide la RLS (migración 56), no esta línea. */}
+                      <Route path="/comisiones" element={<ProtectedRoute modulo="comisiones"><MisComisionesPage /></ProtectedRoute>} />
+                      <Route path="/comisiones/panel" element={<ProtectedRoute modulo="comisiones" requiereAdmin><PanelComisionesPage /></ProtectedRoute>} />
+                      <Route path="/comisiones/parametros" element={<ProtectedRoute modulo="comisiones" requiereAdmin><ParametrosComisionesPage /></ProtectedRoute>} />
+
                       {/* ============================================ */}
                       {/* ADMINISTRACIÓN - Gestión de Accesos Unificada */}
                       {/* ============================================ */}

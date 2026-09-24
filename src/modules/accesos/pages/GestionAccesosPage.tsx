@@ -38,6 +38,7 @@ import {
   CalendarClock,
   Banknote,
   Receipt,
+  Award,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
@@ -137,6 +138,15 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     descripcion: 'Libro IVA Ventas y Compras, posición de IVA',
     icono: Receipt,
     color: 'orange'
+  },
+  // Da entrada al módulo. Lo que cada uno ve adentro lo recorta la RLS: una
+  // comisionista lee sólo sus movimientos; el panel de la Dirección pide
+  // además ser admin.
+  comisiones: {
+    nombre: 'Comisiones',
+    descripcion: 'Comisiones por presupuestos entregados y sus liquidaciones',
+    icono: Award,
+    color: 'green'
   },
   liquidaciones: {
     nombre: 'Liquidaciones',
