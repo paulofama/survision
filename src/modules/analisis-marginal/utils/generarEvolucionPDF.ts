@@ -102,6 +102,13 @@ export interface DatosEvolucionPDF {
    * lo recibe no vio la pantalla.
    */
   mesesSinErogaciones?: Mes[];
+  /**
+   * Meses cerrados a los que les falta una categoría que sale todos los meses
+   * (hoy: el alquiler). Va en una nota APARTE de `mesesSinErogaciones`: ahí
+   * el gasto no se clasificó, acá está clasificado en el lugar equivocado, y
+   * se arreglan de maneras distintas.
+   */
+  mesesSinAlquiler?: Mes[];
 }
 
 /** Aplana el árbol respetando qué está abierto. Solo baja hasta nivel 2. */
@@ -327,6 +334,16 @@ function portada(
       'comprobante o por atención. Ese nivel no entra en el PDF y se consulta en pantalla.',
     );
   }
+  const sinAlq = (datos.mesesSinAlquiler || []).filter(m => meses.includes(m)).sort();
+  if (sinAlq.length) {
+    notas.push(
+      `SIN ALQUILER en ${sinAlq.map(etiquetaLarga).join(', ')}: ` +
+      'el alquiler es un gasto de TODOS los meses, así que o falta cargar el ' +
+      'comprobante o quedó clasificado en otra categoría. El costo fijo de esos ' +
+      'meses está por debajo de lo real y el resultado operativo por encima.',
+    );
+  }
+
   const sinEro = (datos.mesesSinErogaciones || []).filter(m => meses.includes(m)).sort();
   if (sinEro.length) {
     notas.push(

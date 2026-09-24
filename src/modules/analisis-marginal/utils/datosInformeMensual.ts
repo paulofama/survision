@@ -466,7 +466,11 @@ export function armarDatosInformeMensual(p: ArmarParams): DatosInformeMensual {
       const usados = new Set<Mes>([mes.mes, ...(anterior ? [anterior.mes] : []), ...serie.map((c) => c.mes)]);
       return [...new Set(
         evolucion.advertencias
-          .filter((a) => a.tipo === 'erogaciones_sin_cargar' && usados.has(a.mes))
+          // Las dos terminan igual: el costo fijo del mes por debajo de lo
+          // real. Una porque el gasto no se clasificó, la otra porque quedó en
+          // la categoría equivocada.
+          .filter((a) => (a.tipo === 'erogaciones_sin_cargar' || a.tipo === 'falta_categoria_recurrente')
+            && usados.has(a.mes))
           .map((a) => a.mes),
       )].sort();
     })(),

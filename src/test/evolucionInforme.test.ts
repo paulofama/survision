@@ -271,3 +271,33 @@ describe('costos fijos incompletos — el PDF no puede callarlo', () => {
     expect(t).not.toContain('COSTOS FIJOS INCOMPLETOS');
   });
 });
+
+describe('falta el alquiler — el testigo de que un mes está mal', () => {
+  // El alquiler es un contrato mensual de importe fijo: un mes cerrado sin
+  // alquiler está mal SIEMPRE. Y detecta lo que la cobertura no ve: el
+  // 23/09/2026 dos alquileres de 2024 estaban clasificados, pero en
+  // 'variable', porque Mercado factura alquiler Y honorarios. El año declaraba
+  // 88% de cobertura y no tenía ni una línea de alquiler.
+
+  it('declara los meses sin alquiler, con su propia causa', () => {
+    const t = texto({ mesesSinAlquiler: ['2026-07'] });
+    expect(t).toContain('SIN ALQUILER');
+    expect(t).toMatch(/otra categor/);
+  });
+
+  it('es una nota APARTE de la de erogaciones sin clasificar', () => {
+    // Se arreglan distinto: una es cargar, la otra es reclasificar.
+    const t = texto({ mesesSinAlquiler: ['2026-07'], mesesSinErogaciones: ['2026-06'] });
+    expect(t).toContain('SIN ALQUILER');
+    expect(t).toContain('COSTOS FIJOS INCOMPLETOS');
+  });
+
+  it('sin meses afectados no dice nada', () => {
+    expect(texto({ mesesSinAlquiler: [] })).not.toContain('SIN ALQUILER');
+    expect(texto()).not.toContain('SIN ALQUILER');
+  });
+
+  it('ignora meses que no salen en el informe', () => {
+    expect(texto({ mesesSinAlquiler: ['2024-03'] })).not.toContain('SIN ALQUILER');
+  });
+});

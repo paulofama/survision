@@ -701,6 +701,9 @@ const EvolucionTemporalContent: React.FC = () => {
       mesesSinErogaciones: data.advertencias
         .filter(a => a.tipo === 'erogaciones_sin_cargar')
         .map(a => a.mes),
+      mesesSinAlquiler: data.advertencias
+        .filter(a => a.tipo === 'falta_categoria_recurrente')
+        .map(a => a.mes),
     });
   };
 

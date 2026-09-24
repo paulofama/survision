@@ -69,6 +69,28 @@ interface FilaErogacionClasificada {
 // ============================================
 
 /**
+ * Categorías de costo fijo que tienen que aparecer TODOS los meses.
+ *
+ * El alquiler es el mejor testigo que tiene este sistema: es un contrato
+ * mensual de importe fijo, así que un mes cerrado sin alquiler está mal,
+ * SIEMPRE, y no hay dato que lo justifique.
+ *
+ * Y detecta algo que el aviso por cobertura no puede ver: un mes puede tener
+ * el 100% de las erogaciones clasificadas y estar igual de roto si el alquiler
+ * quedó en la categoría equivocada. Pasó el 23/09/2026 — dos alquileres de
+ * 2024 terminaron en "variable" porque el proveedor (Mercado) factura alquiler
+ * Y honorarios, y una sugerencia por proveedor le aplicó la dominante. El año
+ * declaraba 88% de cobertura y no tenía ni una línea de alquiler.
+ *
+ * Otras ocho categorías aparecen en los 8 meses cerrados de 2026 (Servicios,
+ * Honorarios Profesionales, Sistemas, Impuestos, Marketing, Insumos de
+ * Oficina, Limpieza, Seguros). No están acá todavía: agregar una es sumarla a
+ * esta lista, pero conviene medir antes que sea de verdad TODOS los meses y no
+ * una casualidad de ocho. Un aviso que salta de más se deja de leer.
+ */
+const CATEGORIAS_MENSUALES = ['Alquiler'];
+
+/**
  * Porcentaje del gasto del mes sin clasificar a partir del cual el estado de
  * resultados deja de ser comparable. Exigente a propósito: los meses cerrados
  * y revisados de 2026 cubren el 100%.
@@ -758,6 +780,26 @@ const useEvolucionMensual = (
             mensaje: `${m}: no hay costos fijos cargados. El resultado operativo puede estar sobrevaluado.`,
           });
         }
+        // UN MES CERRADO SIN ALQUILER ESTÁ MAL, diga lo que diga la cobertura.
+        // Sólo se mira en meses CERRADOS con facturación: el mes en curso
+        // todavía puede no tener la factura cargada, y un mes sin actividad no
+        // prueba nada.
+        if (mesesCerrados.includes(m) && facturacionTotal[m] > 0) {
+          const cats = fijosData.fijosPorMes[m]?.porCategoria || {};
+          const faltantes = CATEGORIAS_MENSUALES.filter((c) => !(Number(cats[c]) > 0));
+          if (faltantes.length) {
+            advertencias.push({
+              mes: m,
+              tipo: 'falta_categoria_recurrente',
+              severidad: 'error',
+              mensaje:
+                `${m}: no hay ${faltantes.join(' ni ')} en los costos fijos, y es un gasto de todos los meses. ` +
+                `O falta cargar el comprobante, o quedó clasificado en otra categoría. ` +
+                `El costo fijo del mes está por debajo de lo real.`,
+            });
+          }
+        }
+
         if (coberturaReceta[m] > 0 && coberturaReceta[m] < UMBRAL_COBERTURA_RECETA) {
           advertencias.push({
             mes: m,
