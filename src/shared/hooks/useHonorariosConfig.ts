@@ -18,6 +18,8 @@ export interface HonorarioConfig {
   codigo_hasta: string;
   porcentaje_socio: number;
   porcentaje_no_socio: number;
+  /** Desde cuándo rige esta versión (migración 54). */
+  vigencia_desde: string;
   activo: boolean;
   created_at: string;
   updated_at: string;
@@ -88,7 +90,8 @@ export const useHonorariosConfig = () => {
         .from('honorarios_config')
         .select('*')
         .eq('activo', true)
-        .order('codigo_desde', { ascending: true });
+        .order('codigo_desde', { ascending: true })
+        .order('vigencia_desde', { ascending: false });
 
       if (supabaseError) throw supabaseError;
       
@@ -159,21 +162,82 @@ export const useHonorariosConfig = () => {
     }
   }, [cargarConfiguraciones]);
 
+  /**
+   * CAMBIAR UN PORCENTAJE CREA UNA VERSIÓN, NO PISA LA FILA.
+   *
+   * Antes esto era un UPDATE y el valor anterior se perdía: sólo se movía
+   * `updated_at`. Como el módulo aplica el porcentaje vigente a CUALQUIER mes,
+   * un cambio reescribía todo el histórico y el comparativo entre años pasaba
+   * a medir lo que habría pasado con las reglas de hoy. Cada punto del
+   * porcentaje de consultas mueve $3,2 M en 2025 (ver migración 54).
+   *
+   * La versión nueva arranca el PRIMER DÍA DEL MES EN CURSO: el mes es la
+   * unidad con la que se informa, así que un cambio hecho hoy rige para este
+   * mes completo y los anteriores conservan la versión vieja.
+   *
+   * Lo que no sea un porcentaje (códigos, activo) se actualiza en el lugar: no
+   * cambia lo que se calculó en el pasado.
+   */
   const actualizarConfiguracion = useCallback(async (
-    id: string, 
+    id: string,
     datos: Partial<NuevoHonorarioConfig>
   ): Promise<boolean> => {
     try {
-      const { error: supabaseError } = await supabase
+      const { data: actual, error: errLeer } = await supabase
         .from('honorarios_config')
-        .update({
-          ...datos,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (errLeer) throw errLeer;
 
-      if (supabaseError) throw supabaseError;
-      
+      const cambiaPorcentaje =
+        (datos.porcentaje_socio !== undefined
+          && Number(datos.porcentaje_socio) !== Number(actual.porcentaje_socio))
+        || (datos.porcentaje_no_socio !== undefined
+          && Number(datos.porcentaje_no_socio) !== Number(actual.porcentaje_no_socio));
+
+      if (!cambiaPorcentaje) {
+        const { error } = await supabase
+          .from('honorarios_config')
+          .update({ ...datos, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        if (error) throw error;
+        await cargarConfiguraciones();
+        return true;
+      }
+
+      const hoy = new Date();
+      const vigenciaDesde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+
+      // Si ya hay una versión que arranca este mes se corrige ESA, no se
+      // inserta otra: el índice único (segmento, vigencia_desde) no admite dos,
+      // y cambiar el porcentaje dos veces en el mismo mes es corregirse.
+      const { data: mismoMes } = await supabase
+        .from('honorarios_config')
+        .select('id')
+        .eq('segmento', actual.segmento)
+        .eq('vigencia_desde', vigenciaDesde)
+        .maybeSingle();
+
+      if (mismoMes?.id) {
+        const { error } = await supabase
+          .from('honorarios_config')
+          .update({ ...datos, activo: true, updated_at: new Date().toISOString() })
+          .eq('id', mismoMes.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('honorarios_config').insert([{
+          segmento: actual.segmento,
+          codigo_desde: datos.codigo_desde ?? actual.codigo_desde,
+          codigo_hasta: datos.codigo_hasta ?? actual.codigo_hasta,
+          porcentaje_socio: datos.porcentaje_socio ?? actual.porcentaje_socio,
+          porcentaje_no_socio: datos.porcentaje_no_socio ?? actual.porcentaje_no_socio,
+          vigencia_desde: vigenciaDesde,
+          activo: true,
+        }]);
+        if (error) throw error;
+      }
+
       await cargarConfiguraciones();
       return true;
     } catch (err) {
@@ -352,7 +416,9 @@ export const useHonorariosConfig = () => {
     const totalPrestadores = prestadores.length;
     const socios = prestadores.filter(p => p.es_socio).length;
     const noSocios = totalPrestadores - socios;
-    const totalSegmentos = configuraciones.length;
+    // Segmentos DISTINTOS, no filas: desde la migración 54 un segmento puede
+    // tener varias versiones y contar filas mostraría '4' con tres segmentos.
+    const totalSegmentos = new Set(configuraciones.map(c => c.segmento)).size;
 
     return {
       totalPrestadores,

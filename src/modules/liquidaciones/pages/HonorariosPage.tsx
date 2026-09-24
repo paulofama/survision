@@ -350,6 +350,11 @@ const HonorariosPage: React.FC = () => {
               <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Código Hasta
               </th>
+              {/* Un segmento puede tener varias versiones: sin esta columna,
+                  dos filas iguales parecerían un error de carga. */}
+              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Rige desde
+              </th>
               <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 <span className="flex items-center justify-center">
                   <UserCheck className="h-4 w-4 mr-1 text-green-600" />
@@ -406,6 +411,11 @@ const HonorariosPage: React.FC = () => {
                     <code className="px-2 py-1 bg-gray-100 rounded text-sm font-mono">
                       {config.codigo_hasta}
                     </code>
+                  </td>
+                  <td className="px-6 py-4 text-center text-sm text-gray-600">
+                    {config.vigencia_desde && config.vigencia_desde > '2000-01-01'
+                      ? new Date(`${config.vigencia_desde}T12:00:00`).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
+                      : <span className="text-gray-400">desde siempre</span>}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {editandoConfig === config.id ? (
