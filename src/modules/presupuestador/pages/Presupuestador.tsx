@@ -428,6 +428,13 @@ const fmtARS = (v: number): string => {
 };
 
 const fmtUSD = (v: number): string => `USD ${fmtARS(v)}`;
+
+/**
+ * Porcentaje en es-AR sin decimales de más: 10 -> "10", 12,5 -> "12,5".
+ * `fmtARS` fuerza dos decimales y un descuento entero quedaba como "10,00 %".
+ */
+const fmtPct = (v: number): string =>
+  new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(v || 0);
 const fmtPesos = (v: number): string => `$ ${fmtARS(v)}`;
 
 const toTitleCase = (s: string): string =>
@@ -2141,17 +2148,37 @@ export default function Presupuestador() {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Descuento (%)
                     </label>
-                    <select
-                      value={form.porcentajeDescuento}
-                      onChange={(e) => updateField("porcentajeDescuento", parseInt(e.target.value))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                    >
-                      {[0, 5, 10, 15, 20, 25, 30].map((d) => (
-                        <option key={d} value={d}>
-                          {d}%
-                        </option>
-                      ))}
-                    </select>
+                    {/*
+                      Se escribe a mano. Antes era una lista de 0/5/10/.../30 y
+                      cualquier descuento fuera de esos saltos no se podía
+                      cargar.
+
+                      parseFloat, NO el parser es-AR: en un input type=number el
+                      navegador ya entrega el valor con punto decimal, y pasarlo
+                      por el parser de miles lo multiplica por diez o por cien.
+                      Ya pasó con los insumos de este mismo formulario.
+                    */}
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      max={100}
+                      step="0.5"
+                      // `|| ""` como el campo de cobertura de al lado: con un 0 fijo
+                      // adentro, escribir encima deja cosas como "05". Vacío + el
+                      // placeholder "0" se tipea natural y significa lo mismo.
+                      value={form.porcentajeDescuento || ""}
+                      onChange={(e) => {
+                        const n = parseFloat(e.target.value);
+                        // Vacío o basura -> 0. Y se acota a 0-100: un 150 % daría
+                        // una base negativa, que el cálculo corta en cero sin
+                        // que nadie se entere de que el número era imposible.
+                        const limpio = isNaN(n) ? 0 : Math.min(100, Math.max(0, n));
+                        updateField("porcentajeDescuento", limpio);
+                      }}
+                      placeholder="0"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
                   </div>
                 </div>
 
@@ -2380,7 +2407,7 @@ export default function Presupuestador() {
 
                   {form.porcentajeDescuento > 0 && (
                     <DesgRow
-                      label={`Descuento (${form.porcentajeDescuento}%)`}
+                      label={`Descuento (${fmtPct(form.porcentajeDescuento)} %)`}
                       value={`-${fmtPesos(calcs.descuento)}`}
                       className="text-orange-500"
                     />
