@@ -55,6 +55,11 @@ export interface FilaHonorarioConfig {
   segmento: string;
   porcentaje_socio: number;
   porcentaje_no_socio: number;
+  /**
+   * Desde cuándo rige (migración 54). Puede faltar en consultas viejas que no
+   * la piden; en ese caso la fila se toma como vigente desde siempre.
+   */
+  vigencia_desde?: string | null;
 }
 
 /**

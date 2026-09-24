@@ -24,14 +24,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
+import { calcularHonorarioPrestacion, configVigente } from '@shared/utils/honorariosPrestador';
 import type { Mes } from '../types/evolucionTemporal';
 import { parseMesKey, toMesKey } from '../types/evolucionTemporal';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 import type { AliasNombre } from '@shared/utils/buscadorRecetas';
 import { traerTodo } from '../lib/traerTodo';
-import type { ConfigSegmentoHonorario } from '@shared/utils/honorariosPrestador';
 import type {
   FilaMovimiento, FilaPrestador, FilaHonorarioConfig, FilaRecetaCosto,
 } from '../types/filasEspejo';
@@ -109,7 +108,7 @@ export function useConciliacionCostos(meses: Mes[], activo: boolean): Conciliaci
           .select('nombre_geclisa, nombre_receta').range(d, d + 999)),
         traerTodo<FilaPrestador>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
         traerTodo<FilaHonorarioConfig>((d) => supabase.from('honorarios_config')
-          .select('segmento, porcentaje_socio, porcentaje_no_socio').range(d, d + 999)),
+          .select('segmento, porcentaje_socio, porcentaje_no_socio, vigencia_desde').range(d, d + 999)),
         traerTodo<FilaErogacion>((d) => supabase.from('erogaciones_clasificacion')
           .select('anio, mes, monto, proveedor_nombre, descripcion')
           .eq('tipo_costo', 'variable').or(orM).range(d, d + 999)),
@@ -117,8 +116,8 @@ export function useConciliacionCostos(meses: Mes[], activo: boolean): Conciliaci
 
       const rm = crearIndiceRecetas(rec, maps);
       const pm = new Map(pres.map((p) => [String(p.nombre).toUpperCase(), p]));
-      const cs: Record<string, ConfigSegmentoHonorario> = {};
-      cfg.forEach((c) => { cs[c.segmento] = c; });
+      // NO se indexa por segmento: con varias versiones ganaría la última
+      // cargada, al azar. Se resuelve por el mes de cada fila (migración 54).
 
       // ── estándar ──
       const honEst = cero(ms), insEst = cero(ms);
@@ -128,7 +127,8 @@ export function useConciliacionCostos(meses: Mes[], activo: boolean): Conciliaci
         const facturado = Number(r.total) || 0;
         const nombre = String(r.practica_nombre || '');
         const inf = pm.get(String(r.prestador_nombre || '').toUpperCase());
-        honEst[mes] += calcularHonorarioPrestacion(facturado, r.prestador_nombre, inf?.es_socio || false, cs[detectarSegmento(nombre, r.practica_codigo)], r.practica_codigo);
+        const cfgSeg = configVigente(cfg, detectarSegmento(nombre, r.practica_codigo), mes);
+        honEst[mes] += calcularHonorarioPrestacion(facturado, r.prestador_nombre, inf?.es_socio || false, cfgSeg, r.practica_codigo);
         const receta = rm.buscar(r.practica_codigo, nombre);
         if (receta) insEst[mes] += (Number(receta.costo_total_pools) || 0) + (Number(receta.costo_insumos_directos) || 0);
       });

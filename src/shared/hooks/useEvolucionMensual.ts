@@ -30,7 +30,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
+import { calcularHonorarioPrestacion, configVigente } from '@shared/utils/honorariosPrestador';
 import { supabase } from '../lib/supabase';
 import useRecetasCostos from './useRecetasCostos';
 import useHonorariosConfig from './useHonorariosConfig';
@@ -485,7 +485,8 @@ const useEvolucionMensual = (
           if (a.prestador) {
             const prestInfo = prestadoresMap.get(a.prestador.toUpperCase());
             const esSocio = prestInfo?.es_socio || false;
-            const configSeg = configHonorarios.find(c => c.segmento === seg);
+            // Por MES: el porcentaje que regía entonces, no el último cargado.
+            const configSeg = configVigente(configHonorarios, seg, m);
             honorario = calcularHonorarioPrestacion(facturado, a.prestador, esSocio, configSeg, a.codigo);
           }
 

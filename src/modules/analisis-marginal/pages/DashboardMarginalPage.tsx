@@ -6,7 +6,7 @@
 // ============================================
 
 import React, { useMemo, useState } from 'react';
-import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
+import { calcularHonorarioPrestacion, configVigente } from '@shared/utils/honorariosPrestador';
 import {
   TrendingUp,
   TrendingDown,
@@ -170,6 +170,9 @@ const DashboardMarginalContent: React.FC = () => {
     loading
   } = useMarginalContext();
 
+  /** Mes de cierre del período, para resolver la vigencia del porcentaje. */
+  const mesClave = `${rango.anioHasta}-${String(rango.mesHasta).padStart(2, '0')}`;
+
   // Costos fijos del PERÍODO (suma real mes a mes; switch sueldos por mes).
   const { resumen: resumenCF } = useCostosFijosDistribucion(rango);
   const { mappings } = useNombreMapping();
@@ -264,8 +267,10 @@ const DashboardMarginalContent: React.FC = () => {
         const prestadorInfo = prestadoresMap.get(prest.prestador.toUpperCase());
         const esSocio = prestadorInfo?.es_socio || false;
         
-        // Buscar configuración de honorarios por segmento
-        const configSegmento = configHonorarios.find(c => c.segmento === segmento);
+        // El porcentaje que regía, no el último cargado (migración 54).
+        // El período puede abarcar varios meses: se toma la vigencia del mes
+        // de cierre. El cálculo mes a mes exacto está en Evolución Temporal.
+        const configSegmento = configVigente(configHonorarios, segmento, mesClave);
         honorario = calcularHonorarioPrestacion(facturado, prest.prestador, esSocio, configSegmento, prest.codigo_prestacion);
       }
 

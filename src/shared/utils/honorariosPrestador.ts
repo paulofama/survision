@@ -98,6 +98,47 @@ export interface ConfigSegmentoHonorario {
  * @param config configuración del segmento que corresponde a la prestación
  * @param codigo `practica_codigo`; null/'' si el origen no lo trae
  */
+/**
+ * El porcentaje que regía en un mes, no "el último cargado".
+ *
+ * Sin esto, cambiar un porcentaje reescribe todo el histórico: el comparativo
+ * entre años deja de medir lo que pasó y pasa a medir lo que habría pasado con
+ * las reglas de hoy. Medido el 24/09/2026, cada punto de consultas mueve
+ * $3.231.714 en 2025 y $3.812.135 en 2026.
+ *
+ * Gana la vigencia MÁS ALTA que no sea posterior al mes. Una fila sin
+ * vigencia se toma como vigente desde siempre, así que mientras haya una sola
+ * versión por segmento el resultado es idéntico al de antes.
+ *
+ * @param mes 'YYYY-MM'
+ */
+export function configVigente(
+  configs: ConfigConVigencia[],
+  segmento: string,
+  mes: string,
+): ConfigSegmentoHonorario | null {
+  // Se compara contra el ÚLTIMO día del mes: un porcentaje que empieza a regir
+  // el 15 ya rige para ese mes, que es la unidad con la que se informa.
+  const finDeMes = `${mes}-31`;
+  let elegida: ConfigConVigencia | null = null;
+  for (const c of configs) {
+    if (c.segmento !== segmento) continue;
+    const desde = String(c.vigencia_desde || '2000-01-01').slice(0, 10);
+    if (desde > finDeMes) continue;
+    const actual = String(elegida?.vigencia_desde || '2000-01-01').slice(0, 10);
+    if (!elegida || desde > actual) elegida = c;
+  }
+  return elegida
+    ? { porcentaje_socio: elegida.porcentaje_socio, porcentaje_no_socio: elegida.porcentaje_no_socio }
+    : null;
+}
+
+/** Una fila de `honorarios_config` con su vigencia. */
+export interface ConfigConVigencia extends ConfigSegmentoHonorario {
+  segmento: string;
+  vigencia_desde?: string | null;
+}
+
 export const calcularHonorarioPrestacion = (
   facturado: number,
   nombrePrestador: string | null | undefined,

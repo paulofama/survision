@@ -11,7 +11,7 @@
 // ============================================
 
 import React, { useMemo, useState } from 'react';
-import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
+import { calcularHonorarioPrestacion, configVigente } from '@shared/utils/honorariosPrestador';
 import {
   Search,
   ArrowUpDown,
@@ -147,6 +147,8 @@ const PorPrestacionContent: React.FC = () => {
   // Obtener período del contexto (fallback: mes/año actual)
   const anioActual = Number(filtros?.anio) || new Date().getFullYear();
   const mesActual  = Number(filtros?.mes)  || (new Date().getMonth() + 1);
+  /** Mes de cierre del período, para resolver la vigencia del porcentaje. */
+  const mesClave = `${anioActual}-${String(mesActual).padStart(2, '0')}`;
 
   const {
     resumen: resumenCF,
@@ -198,7 +200,11 @@ const PorPrestacionContent: React.FC = () => {
       if (prest.prestador) {
         const prestadorInfo = prestadoresMap.get(prest.prestador.toUpperCase());
         const esSocio = prestadorInfo?.es_socio || false;
-        const configSeg = configHonorarios.find(c => c.segmento === segmento);
+        // El porcentaje que regía, no el último cargado (migración 54).
+        // Esta pantalla resuelve un PERÍODO que puede abarcar varios meses, así
+        // que toma la vigencia del mes de cierre. El cálculo mes a mes exacto
+        // está en Evolución Temporal, que es la que arma el estado de resultados.
+        const configSeg = configVigente(configHonorarios, segmento, mesClave);
         honorario = calcularHonorarioPrestacion(facturado, prest.prestador, esSocio, configSeg, codigo);
       }
 

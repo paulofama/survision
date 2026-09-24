@@ -37,14 +37,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { calcularHonorarioPrestacion } from '@shared/utils/honorariosPrestador';
+import { calcularHonorarioPrestacion, configVigente } from '@shared/utils/honorariosPrestador';
 import type { BloqueDetalle, FilaEvolucion, Mes } from '../types/evolucionTemporal';
 import { parseMesKey, toMesKey } from '../types/evolucionTemporal';
 import { cuadrarDetalle } from '../utils/cuadraturaDetalle';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 import type { RecetaIndexable, AliasNombre } from '@shared/utils/buscadorRecetas';
-import type { ConfigSegmentoHonorario } from '@shared/utils/honorariosPrestador';
 import { traerTodo } from '../lib/traerTodo';
 import type {
   FilaMovimiento, FilaPrestador, FilaHonorarioConfig, FilaRecetaCosto,
@@ -273,13 +272,13 @@ async function cargarCostosVariables(p: ParamsDetalle): Promise<Agrupado[]> {
       .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos').range(d, d + 999)),
     traerTodo<AliasNombre>((d) => supabase.from('prestaciones_nombre_mapping').select('nombre_geclisa, nombre_receta').range(d, d + 999)),
     traerTodo<FilaPrestador>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
-    traerTodo<FilaHonorarioConfig>((d) => supabase.from('honorarios_config').select('segmento, porcentaje_socio, porcentaje_no_socio').range(d, d + 999)),
+    traerTodo<FilaHonorarioConfig>((d) => supabase.from('honorarios_config').select('segmento, porcentaje_socio, porcentaje_no_socio, vigencia_desde').range(d, d + 999)),
   ]);
 
   const rm = crearIndiceRecetas(rec, maps);
   const pm = new Map(pres.map((x) => [String(x.nombre).toUpperCase(), x]));
-  const cs: Record<string, ConfigSegmentoHonorario> = {};
-  cfg.forEach((c) => { cs[c.segmento] = c; });
+  // NO se indexa por segmento: con varias versiones vigentes ganaría la
+  // última cargada, al azar. Se resuelve por el mes de cada fila (migración 54).
 
   const acum = new Map<string, Agrupado>();
   mov.forEach((r) => {
@@ -289,7 +288,8 @@ async function cargarCostosVariables(p: ParamsDetalle): Promise<Agrupado[]> {
     let monto = 0;
     if (p.clave === 'honorarios') {
       const inf = pm.get(String(r.prestador_nombre || '').toUpperCase());
-      monto = calcularHonorarioPrestacion(facturado, r.prestador_nombre, inf?.es_socio || false, cs[detectarSegmento(nombre, r.practica_codigo)], r.practica_codigo);
+      const cfgSeg = configVigente(cfg, detectarSegmento(nombre, r.practica_codigo), toMesKey(r.anio, r.mes));
+      monto = calcularHonorarioPrestacion(facturado, r.prestador_nombre, inf?.es_socio || false, cfgSeg, r.practica_codigo);
     } else if (p.clave === 'pools') {
       monto = receta ? Number(receta.costo_total_pools) || 0 : 0;
     } else {
