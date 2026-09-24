@@ -57,6 +57,10 @@ interface FormState {
   cirujano: string;
   derivador: string;
   administrativa: string;
+  /** Quién entregó y asesoró. Distinto de `administrativa`, que es quien tipea. */
+  entregadoPor: string;
+  /** Terceros que participaron. Se congelan al crear (decisión de Dirección). */
+  participantes: string[];
   infoAdicional: string;
   montoUSD: number;
   tipoCambio: number;
@@ -100,6 +104,8 @@ interface Presupuesto {
   prestacion_descripcion: string;
   cirujano: string;
   administrativa: string;
+  /** Quién entregó y asesoró (migración 56). */
+  entregado_por?: string | null;
   desarrollado_por: string;
   monto_usd: number | string;
   monto_ars: number | string;
@@ -114,6 +120,8 @@ type EstadoPresupuesto = "borrador" | "entregado" | "practicado" | "cancelado";
 
 interface DatosCompletos {
   numeroPresupuesto?: string;
+  /** Quién cobra comisión, congelado al alta. La columna puede cambiar; esto no. */
+  comision?: { entregadoPor?: string; participantes?: string[] };
   fechaCreacion?: string;
   paciente?: {
     nombre?: string;
@@ -557,6 +565,8 @@ const INITIAL_FORM: FormState = {
   cirujano: "",
   derivador: "",
   administrativa: "",
+  entregadoPor: "",
+  participantes: [],
   infoAdicional: "",
   montoUSD: 0,
   tipoCambio: DEFAULT_TC,
@@ -622,6 +632,10 @@ export default function Presupuestador() {
   const [agrupaciones, setAgrupaciones] = useState<Agrupacion[]>([]);
   const [preciosMap, setPreciosMap] = useState<Record<string, number>>({});
   const [adminTelefonoMap, setAdminTelefonoMap] = useState<Record<string, string>>({});
+  // Quiénes pueden cobrar comisión. Vacío = el régimen no está habilitado y el
+  // bloque no se muestra: nadie tiene que saber que existe hasta que exista.
+  const [comisionables, setComisionables] = useState<{ value: string; label: string }[]>([]);
+
   // Administrativas del selector: salen de `usuarios_sistema`, no de una lista
   // fija en el código (ver nota sobre ADMINISTRATIVAS_LEGACY).
   const [administrativasSistema, setAdministrativasSistema] = useState<SelectOption[]>([]);
@@ -940,7 +954,7 @@ export default function Presupuestador() {
             .order("orden"),
           supabase
             .from("usuarios_sistema")
-            .select("username,nombre_completo,telefono")
+            .select("username,nombre_completo,telefono,es_comisionable")
             .eq("activo", true),
           supabase
             .from("insumos_variables")
@@ -987,6 +1001,16 @@ export default function Presupuestador() {
           // username, así que el usuario logueado siempre coincide consigo mismo.
           setAdministrativasSistema(
             (usuarios as { username: string; nombre_completo: string }[])
+              .map((u) => ({ value: u.username, label: u.nombre_completo || u.username }))
+              .sort((a, b) => a.label.localeCompare(b.label, "es")),
+          );
+
+          // Comisionables: SÓLO los marcados. Si la Dirección no marcó a nadie,
+          // la lista queda vacía y el bloque de comisiones no se muestra, que
+          // es como nace el régimen.
+          setComisionables(
+            (usuarios as { username: string; nombre_completo: string; es_comisionable?: boolean }[])
+              .filter((u) => u.es_comisionable)
               .map((u) => ({ value: u.username, label: u.nombre_completo || u.username }))
               .sort((a, b) => a.label.localeCompare(b.label, "es")),
           );
@@ -1305,6 +1329,13 @@ export default function Presupuestador() {
           porcentajeDescuento: form.porcentajeDescuento,
           ...calcs,
         },
+        // Quién cobra, congelado al momento del alta. La columna
+        // `entregado_por` puede cambiar después; esto no, así que comparar las
+        // dos dice si alguien la tocó.
+        comision: {
+          entregadoPor: form.entregadoPor,
+          participantes: form.participantes,
+        },
         contacto: {
           metodoPreferido: form.metodoContacto,
           horarioPreferido: form.horario,
@@ -1325,11 +1356,16 @@ export default function Presupuestador() {
           cirujano: form.cirujano,
           administrativa: form.administrativa,
           desarrollado_por: form.administrativa,
+          entregado_por: form.entregadoPor || null,
           monto_usd: totalMontoUSD,
           monto_ars: calcs.subtotalOriginal,
           total_final: calcs.total,
           datos_completos: datosCompletos,
         });
+        // Los PARTICIPANTES no se tocan en la edición: quedan congelados al
+        // crear (decisión de la Dirección del 24/09/2026). El snapshot de
+        // `datos_completos.comision` guarda lo que se decidió entonces, así
+        // que si alguien cambia el entregador después, se puede ver.
         notify("Presupuesto actualizado ✅", "success");
         setDatosGuardados(datosCompletos);
         setYaGuardado(true);
@@ -1350,6 +1386,7 @@ export default function Presupuestador() {
           cirujano: form.cirujano,
           administrativa: form.administrativa,
           desarrollado_por: form.administrativa,
+          entregado_por: form.entregadoPor || null,
           monto_usd: totalMontoUSD,
           monto_ars: calcs.subtotalOriginal,
           total_final: calcs.total,
@@ -1363,6 +1400,25 @@ export default function Presupuestador() {
         if (inserted?.[0]?.id) {
           setEditId(inserted[0].id);
           setEditMode(true);
+
+          // Los participantes van a su tabla, una fila cada uno. Si falla, el
+          // presupuesto ya está guardado: se avisa y no se pierde el trabajo,
+          // pero se dice claro que esas personas no van a cobrar.
+          const terceros = form.participantes.filter((p) => p && p !== form.entregadoPor);
+          if (terceros.length) {
+            try {
+              for (const usuario of terceros) {
+                await sb.insert("presupuestos_participantes", {
+                  presupuesto_id: inserted[0].id,
+                  usuario,
+                  created_by: usuarioAdminValue || null,
+                });
+              }
+            } catch (e) {
+              console.error("participantes:", e);
+              notify("El presupuesto se guardó, pero NO se registraron los participantes. Avisá a Administración: no van a cobrar comisión.", "error");
+            }
+          }
         }
         setPresupuestoNumero(numero);
         setPresupuestoEstado("entregado");
@@ -1402,8 +1458,13 @@ export default function Presupuestador() {
       const trat = dc.tratamiento || {};
       const prec = dc.precios || {};
       const cont = dc.contacto || {};
+      const com = dc.comision || {};
 
       setForm({
+        // El entregador sale de la columna; los participantes, del snapshot,
+        // porque su tabla no se vuelve a tocar después del alta.
+        entregadoPor: presup.entregado_por || com.entregadoPor || "",
+        participantes: com.participantes || [],
         nombre: pac.nombre || presup.paciente_nombre || "",
         apellido: pac.apellido || presup.paciente_apellido || "",
         documento: pac.documento || presup.paciente_documento || "",
@@ -2181,6 +2242,99 @@ export default function Presupuestador() {
                     />
                   </div>
                 </div>
+
+                {/*
+                  COMISIONES. Sólo aparece si la Dirección marcó comisionables:
+                  mientras la lista esté vacía el régimen no existe para quien
+                  carga, y no hay por qué mostrarle un campo que no se usa.
+
+                  Los PARTICIPANTES se congelan al crear (decisión de la
+                  Dirección, 24/09/2026): en modo edición se muestran pero no se
+                  tocan, porque la tabla no admite UPDATE ni DELETE.
+                */}
+                {comisionables.length > 0 && (
+                  <div className="mt-6 border-t border-gray-200 pt-5">
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <h4 className="text-sm font-semibold text-gray-900">Comisión</h4>
+                      <span className="text-xs text-gray-500">quién entregó y quiénes participaron</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Entregó y asesoró
+                        </label>
+                        <select
+                          value={form.entregadoPor}
+                          onChange={(e) => updateField("entregadoPor", e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        >
+                          <option value="">Sin asignar — no comisiona</option>
+                          {comisionables.map((c) => (
+                            <option key={c.value} value={c.value}>{c.label}</option>
+                          ))}
+                        </select>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          No es lo mismo que la administrativa: es quien atendió al paciente.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Participaron también
+                        </label>
+                        {editMode ? (
+                          <div className="border border-gray-200 bg-gray-50 rounded-lg px-3 py-2.5 text-sm text-gray-600">
+                            {form.participantes.length
+                              ? form.participantes
+                                  .map((p) => comisionables.find((c) => c.value === p)?.label || p)
+                                  .join(" · ")
+                              : "Ninguno"}
+                            <p className="text-[11px] text-gray-500 mt-1">
+                              Se cargan al crear el presupuesto y después no se modifican.
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                              {form.participantes.map((p) => (
+                                <span key={p} className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full pl-2.5 pr-1 py-0.5 text-xs">
+                                  {comisionables.find((c) => c.value === p)?.label || p}
+                                  <button
+                                    type="button"
+                                    onClick={() => updateField("participantes", form.participantes.filter((x) => x !== p))}
+                                    className="text-blue-500 hover:text-blue-800 px-1"
+                                    aria-label="Quitar"
+                                  >×</button>
+                                </span>
+                              ))}
+                            </div>
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v && !form.participantes.includes(v)) {
+                                  updateField("participantes", [...form.participantes, v]);
+                                }
+                              }}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            >
+                              <option value="">+ Agregar participante…</option>
+                              {comisionables
+                                .filter((c) => c.value !== form.entregadoPor && !form.participantes.includes(c.value))
+                                .map((c) => (
+                                  <option key={c.value} value={c.value}>{c.label}</option>
+                                ))}
+                            </select>
+                            <p className="text-[11px] text-amber-700 mt-1">
+                              Cargalos ahora: después de guardar no se pueden modificar.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Total USD combinado — visible siempre cuando hay extras */}
                 {form.tratamientosExtra.length > 0 && (
