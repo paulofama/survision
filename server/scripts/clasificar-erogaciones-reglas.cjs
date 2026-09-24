@@ -75,14 +75,22 @@ const EXCLUIR = [
 ];
 
 // ── REGLA 1: movimientos de fondos ──
-// Rendiciones de caja, depósitos y pases a tesorería. El texto tiene que
-// EMPEZAR con el concepto: "RENDICION ..." es una rendición; "PAGO A X POR
-// RENDICION" no necesariamente.
+// Rendiciones de caja, depósitos y pases a tesorería.
+//
+// SE MIRA SÓLO EL PROVEEDOR, NUNCA LA DESCRIPCIÓN. En los movimientos de caja
+// (`MovValoresEnca`) la descripción NO es el concepto sino la FORMA DE PAGO:
+// "Tesoreria", "Depósito Bancario", "Pago Proveedores". La primera versión de
+// esta regla miraba los dos campos y marcó como "no es gasto" 1.008
+// comprobantes por $162.415.046 que eran pagos reales —honorarios de Mahía y
+// Roca, proveedores— sólo porque se habían pagado por tesorería.
+//
+// El concepto de verdad vive en el proveedor: ahí dice "RENDICION CAJA
+// CIRUGIA". Los patrones toleran las erratas de carga ("RENDICIOJN",
+// "TESOR. VOUCHER") porque son texto libre escrito a mano.
 const FONDOS = [
-  /^RENDICION\b/,
+  /^RENDICIO?J?N\b/,        // RENDICION, y la errata RENDICIOJN
   /^DEPOSITO BANCARIO\b/,
-  /^TESORERIA\b/,
-  /^TRANSFERENCIA A TESORERIA\b/,
+  /^TESOR(ERIA|\.)?\b/,     // TESORERIA, TESOR. VOUCHER
 ];
 
 // ── REGLA 2: honorarios médicos ──
@@ -130,7 +138,9 @@ function reglaDe(e) {
 
   if (EXCLUIR.some((re) => re.test(texto))) return null;
 
-  if (FONDOS.some((re) => re.test(prov) || re.test(desc))) {
+  // Sólo el proveedor: ver el comentario de FONDOS. Mirar la descripción acá
+  // costó 1.008 comprobantes mal marcados.
+  if (FONDOS.some((re) => re.test(prov))) {
     return { tipo: 'no_es_gasto', sub: null, motivo: 'movimiento de fondos' };
   }
 
