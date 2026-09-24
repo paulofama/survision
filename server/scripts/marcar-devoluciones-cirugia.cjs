@@ -34,8 +34,21 @@ const { Client } = require('pg');
 const WRITE = process.argv.includes('--write');
 const MARCA = 'regla-devolucion-cirugia';
 
+// Casos que no dicen "cirugía" pero son lo mismo, agregados a mano y de a uno
+// por decisión expresa. Van por (fuente, id_geclisa) y no por patrón: un
+// patrón que atrape "DEVOLUCION TRANSFERENCIA" se llevaría puesto cualquier
+// movimiento entre cuentas, y acá el que se equivoca borra plata de un informe.
+const EXCEPCIONES = [
+  // Devolución de una transferencia a un paciente. Paulo, 24/09/2026.
+  { fuente: 'MovProv', id: 13368 }, // DEVOLUCION TRANSFERENCIA- PCTE. GARRO PEDRO · $120.000 · 23/07/2026
+];
+
+const listaExcepciones = EXCEPCIONES.length
+  ? ` OR (${EXCEPCIONES.map((e) => `(g.fuente = '${e.fuente}' AND g.id_geclisa = ${e.id})`).join(' OR ')})`
+  : '';
+
 // Sobre la descripción de GECLISA, que es la fuente.
-const FILTRO = `(g.descripcion ILIKE '%devoluc%' AND g.descripcion ILIKE '%cirug%')`;
+const FILTRO = `((g.descripcion ILIKE '%devoluc%' AND g.descripcion ILIKE '%cirug%')${listaExcepciones})`;
 
 const ars = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })
   .format(Number(n) || 0);
