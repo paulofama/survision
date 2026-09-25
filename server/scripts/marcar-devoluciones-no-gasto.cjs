@@ -64,6 +64,14 @@ const REGLAS = [
     sql: `g.descripcion ILIKE '%reintegr%'`,
   },
   {
+    nombre: 'Devolución de cobranza',
+    // Plata cobrada a un paciente que después se le devolvió. Es la familia
+    // más grande y la más cara: 488 comprobantes. Criterio de Paulo,
+    // 25/09/2026. El patrón es la descripción exacta, sin comodín adelante,
+    // para que no se cuele nada parecido.
+    sql: `g.descripcion ILIKE 'Devoluci%n Cobranza%'`,
+  },
+  {
     nombre: 'Devolución de un depósito',
     // La seña que el paciente dejó para un estudio y se le devolvió. El
     // patrón arranca con "Devolución" a propósito: sin eso agarra los 975
