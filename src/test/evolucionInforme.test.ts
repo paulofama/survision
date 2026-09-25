@@ -272,6 +272,59 @@ describe('costos fijos incompletos — el PDF no puede callarlo', () => {
   });
 });
 
+describe('período no comparable — lo que no se arregla clasificando', () => {
+  // Hasta septiembre de 2024 el instituto registraba con "Factura Proveedor" y
+  // casi no emitía órdenes de pago. La serie de costos mide PAGOS, así que ve
+  // 14, 1, 0, 0, 0, 1, 2, 3 y 5 comprobantes donde GECLISA tiene 31, 43, 28,
+  // 28, 45, 45, 49, 45 y 50. Los costos fijos de esos meses van de $0 a
+  // $111.640 contra $10-17 M en 2025.
+  //
+  // La diferencia con las otras dos notas es la que importa: ahí falta
+  // clasificar, acá faltan los comprobantes. No hay trabajo pendiente que lo
+  // arregle, y el informe tiene que decir eso y no "clasificá".
+
+  it('lo declara, y dice que no es algo que se arregle clasificando', () => {
+    // El PDF corta las líneas donde entran, así que para buscar una frase hay
+    // que aplanar los saltos: si no, "NO EXISTEN" puede quedar partido al
+    // medio y el test falla por el ancho de la hoja, no por el texto.
+    const t = texto({ mesesNoComparables: ['2026-06' ] }).replace(/\s+/g, ' ');
+    expect(t).toContain('NO COMPARABLES');
+    expect(t).toMatch(/NO EXISTEN en el ERP/);
+    expect(t).toMatch(/no es algo que se arregle clasificando/);
+  });
+
+  it('nombra el rango cuando son varios meses, no la lista entera', () => {
+    const t = texto({ mesesNoComparables: ['2026-06', '2026-07', '2026-08'] });
+    expect(t).toContain('NO COMPARABLES');
+    expect(t).toMatch(/Junio 2026 a Agosto 2026/);
+  });
+
+  it('con un solo mes no inventa un rango', () => {
+    const t = texto({ mesesNoComparables: ['2026-06'] });
+    expect(t).not.toMatch(/Junio 2026 a Junio 2026/);
+  });
+
+  it('es una nota APARTE de las otras dos: se resuelven distinto', () => {
+    const t = texto({
+      mesesNoComparables: ['2026-06'],
+      mesesSinAlquiler: ['2026-07'],
+      mesesSinErogaciones: ['2026-08'],
+    });
+    expect(t).toContain('NO COMPARABLES');
+    expect(t).toContain('SIN ALQUILER');
+    expect(t).toContain('COSTOS FIJOS INCOMPLETOS');
+  });
+
+  it('sin meses afectados no dice nada', () => {
+    expect(texto({ mesesNoComparables: [] })).not.toContain('NO COMPARABLES');
+    expect(texto()).not.toContain('NO COMPARABLES');
+  });
+
+  it('ignora meses que no salen en el informe', () => {
+    expect(texto({ mesesNoComparables: ['2024-03'] })).not.toContain('NO COMPARABLES');
+  });
+});
+
 describe('falta el alquiler — el testigo de que un mes está mal', () => {
   // El alquiler es un contrato mensual de importe fijo: un mes cerrado sin
   // alquiler está mal SIEMPRE. Y detecta lo que la cobertura no ve: el

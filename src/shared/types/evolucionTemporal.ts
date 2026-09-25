@@ -126,6 +126,9 @@ export type TipoAdvertencia =
                                       // diga 100%, porque el comprobante puede estar en otra categoría
   | 'erogaciones_sin_cargar'          // El ERP tiene gastos del mes que NUNCA se clasificaron:
                                       // el costo fijo sale incompleto y nada lo decía
+  | 'periodo_no_comparable'           // El ERP todavía no registraba las operaciones de proveedores
+                                      // como hoy: el gasto del mes es estructuralmente incompleto y
+                                      // ninguna clasificación lo arregla. No se compara contra nada.
   | 'mes_incompleto'                  // El mes es el actual (en curso)
   | 'sin_datos'                       // No se pudieron cargar datos del mes
   | 'error_fetch';                    // Error de red al traer el mes

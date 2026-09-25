@@ -97,6 +97,35 @@ const CATEGORIAS_MENSUALES = ['Alquiler'];
  */
 const UMBRAL_EROGACIONES_SIN_CARGAR = 5;
 
+/**
+ * Desde qué mes el gasto de proveedores es confiable. Antes de esto NO se
+ * compara nada, y no es una cuestión de clasificar mejor.
+ *
+ * La serie de erogaciones mide PAGOS: de `MovProv` sólo entran los
+ * comprobantes de signo -1 (Orden de Pago, Nota de Crédito). Es deliberado,
+ * porque en esa tabla la factura y su orden de pago conviven y sumar las dos
+ * duplica — medido el 25/09/2026: 764 facturas de 2025 y 621 de 2026 tienen
+ * una orden de pago del mismo importe dentro de los 60 días.
+ *
+ * El problema es que hasta septiembre de 2024 el instituto registraba con
+ * "Factura Proveedor" y casi no emitía órdenes de pago. GECLISA tiene 31, 43,
+ * 28, 28, 45, 45, 49, 45 y 50 comprobantes en esos meses; la serie de pagos ve
+ * 14, 1, 0, 0, 0, 1, 2, 3 y 5. Los costos fijos de ene-sep 2024 van de $0 a
+ * $111.640 por mes contra $10-17 M en 2025: entre 120 y 455 veces menos.
+ * Desde octubre-2024 la relación es 1,8x / 0,8x / 1,4x, o sea normal.
+ *
+ * Pasar la serie a base devengada tampoco arregla: sería híbrida (devengado
+ * para proveedores, pagado para caja y liquidaciones), duplicaría $27.050.620
+ * de pagos a proveedores que salen por caja, y movería los meses de 2025 y
+ * 2026 hasta un 50%. El comparativo está en
+ * `server/scripts/comparar-criterio-erogaciones.cjs`.
+ *
+ * Así que el mes se muestra y se dice que no es comparable, igual que con el
+ * mes en curso. Un número que parece bueno y no lo es hace más daño que un
+ * cartel.
+ */
+const PRIMER_MES_COMPARABLE = '2024-10';
+
 /** Umbral de cobertura de receta debajo del cual se emite advertencia. */
 const UMBRAL_COBERTURA_RECETA = 80; // %
 
@@ -773,6 +802,26 @@ const useEvolucionMensual = (
       // ============================================
 
       meses.forEach(m => {
+        // EL PERÍODO EN QUE EL ERP NO REGISTRABA COMO HOY.
+        //
+        // Va primero y corta: los otros avisos de este mes serían ruido. Es
+        // obvio que no hay alquiler y que faltan erogaciones — no falta
+        // clasificarlas, faltan los comprobantes. Tres advertencias por mes
+        // durante nueve meses se dejan de leer, y la que importa es ésta.
+        if (m < PRIMER_MES_COMPARABLE) {
+          advertencias.push({
+            mes: m,
+            tipo: 'periodo_no_comparable',
+            severidad: 'error',
+            mensaje:
+              `${m}: el gasto de proveedores está incompleto en el ERP y no se puede comparar ` +
+              `contra otro mes. Hasta septiembre de 2024 las operaciones con proveedores no se ` +
+              `registraban como pagos, así que la serie no las ve. No es algo que se arregle ` +
+              `clasificando: los comprobantes de pago no existen.`,
+          });
+          return;
+        }
+
         if (costosFijosPorMes[m] === 0 && atencionesPorMes[m]?.length > 0) {
           advertencias.push({
             mes: m,

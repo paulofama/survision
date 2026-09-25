@@ -109,6 +109,13 @@ export interface DatosEvolucionPDF {
    * se arreglan de maneras distintas.
    */
   mesesSinAlquiler?: Mes[];
+  /**
+   * Meses anteriores a octubre-2024. Nota APARTE de las otras dos porque no
+   * se arregla: hasta septiembre de 2024 el ERP no registraba las operaciones
+   * con proveedores como pagos, así que los comprobantes que la serie
+   * necesita no existen. No hay nada que clasificar.
+   */
+  mesesNoComparables?: Mes[];
 }
 
 /** Aplana el árbol respetando qué está abierto. Solo baja hasta nivel 2. */
@@ -334,6 +341,20 @@ function portada(
       'comprobante o por atención. Ese nivel no entra en el PDF y se consulta en pantalla.',
     );
   }
+  // Va PRIMERA de las tres: si un mes no es comparable, las otras dos notas
+  // sobre ese mes sobran. No es que falte clasificar, es que falta el dato.
+  const noComp = (datos.mesesNoComparables || []).filter(m => meses.includes(m)).sort();
+  if (noComp.length) {
+    notas.push(
+      `NO COMPARABLES ${etiquetaLarga(noComp[0])}` +
+      (noComp.length > 1 ? ` a ${etiquetaLarga(noComp[noComp.length - 1])}` : '') + ': ' +
+      'hasta septiembre de 2024 el instituto no registraba las operaciones con proveedores ' +
+      'como pagos, y la serie de costos mide pagos. Los comprobantes que faltan NO EXISTEN ' +
+      'en el ERP: no es algo que se arregle clasificando. El gasto de esos meses está muy ' +
+      'por debajo de lo real y no se puede poner al lado de ningún otro mes.',
+    );
+  }
+
   const sinAlq = (datos.mesesSinAlquiler || []).filter(m => meses.includes(m)).sort();
   if (sinAlq.length) {
     notas.push(
