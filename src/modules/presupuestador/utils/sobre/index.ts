@@ -99,11 +99,33 @@ const OJO_DIAG: Record<string, string> = { OD: "OD", OI: "OI", AMBOS: "AO" };
  */
 export async function cargarDiagnosticoPractica(
   codigo: string | null | undefined,
+  /**
+   * La opción que eligió quien aceptó, cuando la práctica se hace por varias
+   * indicaciones (migración 60). Sin esto, una intravítrea sale en blanco
+   * aunque las tres opciones estén cargadas — y así tiene que ser: elegir por
+   * el médico es el error que este módulo vino a evitar.
+   */
+  opcionId?: string | null,
 ): Promise<{ diagnostico: string; solicitud: string; llevaLio: boolean }> {
   const vacio = { diagnostico: '', solicitud: '', llevaLio: false };
   const cod = String(codigo || '').trim();
   if (!cod) return vacio;
   try {
+    // La opción elegida manda. Se busca por id Y por código: si alguien
+    // cambió la práctica del presupuesto después de aceptar, la opción vieja
+    // no puede imprimirse sobre la práctica nueva.
+    const op = String(opcionId || '').trim();
+    if (op) {
+      const rows = await sbGet<{ diagnostico: string; solicitud: string; lleva_lio: boolean }>(
+        `presupuestos_diagnostico_opciones?id=eq.${encodeURIComponent(op)}`
+        + `&codigo_practica=eq.${encodeURIComponent(cod)}&activo=eq.true`
+        + `&select=diagnostico,solicitud,lleva_lio`,
+      );
+      const r = rows[0];
+      if (r) return { diagnostico: r.diagnostico || '', solicitud: r.solicitud || '', llevaLio: !!r.lleva_lio };
+      return vacio;
+    }
+
     const rows = await sbGet<{ diagnostico: string; solicitud: string; lleva_lio: boolean }>(
       `presupuestos_diagnosticos?codigo_practica=eq.${encodeURIComponent(cod)}&activo=eq.true&select=diagnostico,solicitud,lleva_lio`,
     );
@@ -114,6 +136,37 @@ export async function cargarDiagnosticoPractica(
     // Si la consulta falla, el pedido sale con el renglón en blanco. Preferible
     // a caer a un diagnóstico por defecto que podría ser el equivocado.
     return vacio;
+  }
+}
+
+/** Una indicación posible de una práctica que se hace por varias. */
+export interface OpcionDiagnostico {
+  id: string;
+  diagnostico: string;
+  solicitud: string;
+  lleva_lio: boolean;
+}
+
+/**
+ * Las indicaciones posibles de una práctica, para que quien acepta elija.
+ *
+ * Lista vacía = la práctica tiene una sola indicación (o ninguna cargada) y
+ * el circuito sigue como siempre. Si la consulta falla también devuelve
+ * vacío: no poder ofrecer las opciones no puede impedir aceptar un
+ * presupuesto — el pedido saldrá con el renglón en blanco, como antes.
+ */
+export async function cargarOpcionesDiagnostico(
+  codigo: string | null | undefined,
+): Promise<OpcionDiagnostico[]> {
+  const cod = String(codigo || '').trim();
+  if (!cod) return [];
+  try {
+    return await sbGet<OpcionDiagnostico>(
+      `presupuestos_diagnostico_opciones?codigo_practica=eq.${encodeURIComponent(cod)}`
+      + `&activo=eq.true&order=orden.asc&select=id,diagnostico,solicitud,lleva_lio`,
+    );
+  } catch {
+    return [];
   }
 }
 

@@ -106,7 +106,7 @@ export default function CircuitoPanel({
     setError("");
     try {
       const practica = practicaDelPresupuesto(presupuesto);
-      const [a, ch, ent, cons, rec, dx] = await Promise.all([
+      const [a, ch, ent, cons, rec] = await Promise.all([
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&select=*`),
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
         cargarEntregas(presupuesto.id),
@@ -114,9 +114,12 @@ export default function CircuitoPanel({
         // La receta de costos de la práctica, para la hoja que se archiva en
         // quirófano. Si no hay, la hoja lo declara en vez de omitirse.
         cargarRecetaDeCostos(practica.codigo, practica.descripcion),
-        cargarDiagnosticoPractica(practica.codigo),
       ]);
       const acept = a[0] || null;
+      // El diagnóstico va DESPUÉS y no en paralelo: cuando la práctica se hace
+      // por varias indicaciones, cuál imprimir sale de la opción que se eligió
+      // al aceptar (migración 60), y eso está en la fila de aceptación.
+      const dx = await cargarDiagnosticoPractica(practica.codigo, acept?.diagnostico_opcion_id);
       setAceptacion(acept);
       setEntregas(ent || []);
       setConsentimiento(cons);

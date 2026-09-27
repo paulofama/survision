@@ -9,13 +9,14 @@
 //   3) filas del checklist (con no_aplica según la rama)
 // ============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Convenio, Lio, RamaCobertura, SubRama, Ojo,
   OJOS, SUB_RAMAS, CHECKLIST_ITEMS,
   itemsAplicables, clavesAplicables, lioSugerido,
   sbPatch, sbUpsert, sbDelete,
 } from "../utils/circuito";
+import { cargarOpcionesDiagnostico, type OpcionDiagnostico } from "../utils/sobre";
 
 interface PresupuestoMin {
   id: string;
@@ -81,6 +82,21 @@ export default function AceptacionModal({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string>("");
 
+  // Las indicaciones posibles de la práctica, cuando se hace por varias
+  // (migración 60: la inyección intravítrea puede ser por DMAE húmeda, edema
+  // macular diabético u oclusión venosa). Lista vacía = una sola indicación,
+  // y el modal queda exactamente como estaba.
+  const [opcionesDx, setOpcionesDx] = useState<OpcionDiagnostico[]>([]);
+  const [opcionDxId, setOpcionDxId] = useState<string>("");
+
+  useEffect(() => {
+    let vigente = true;
+    cargarOpcionesDiagnostico(presupuesto.prestacion_codigo).then((o) => {
+      if (vigente) setOpcionesDx(o);
+    });
+    return () => { vigente = false; };
+  }, [presupuesto.prestacion_codigo]);
+
   const esOS = rama === "OBRA_SOCIAL";
   const conveniosDeSubRama = convenios.filter((c) => c.sub_rama === subRama && c.activo);
 
@@ -96,10 +112,14 @@ export default function AceptacionModal({
       ? { ficha: obraSocialFicha, convenio: convenioElegido.nombre }
       : null;
 
+  // Si la práctica tiene varias indicaciones, elegir una es OBLIGATORIO. Sin
+  // eso el pedido sale con el diagnóstico en blanco y hay que completarlo a
+  // mano después, que es justo lo que este campo viene a evitar.
   const valido =
     !!rama &&
     !!ojo &&
     !!lioId &&
+    (opcionesDx.length === 0 || !!opcionDxId) &&
     (!esOS || (!!subRama && !!convenioId));
 
   const confirmar = async () => {
@@ -129,6 +149,7 @@ export default function AceptacionModal({
           fecha_tentativa_cirugia: fecha || null,
           ojo,
           lio_id: lioId,
+          diagnostico_opcion_id: opcionDxId || null,
           requiere_analisis_ecg: requiere,
           created_by: username,
         },
@@ -294,6 +315,36 @@ export default function AceptacionModal({
               )}
             </label>
           </div>
+
+          {/*
+            DIAGNÓSTICO, sólo cuando la práctica se hace por varias
+            indicaciones. Una inyección intravítrea puede ser por DMAE húmeda,
+            edema macular diabético u oclusión venosa, y cuál va en el pedido
+            lo sabe quien atendió al paciente, no la práctica.
+
+            No viene preseleccionado a propósito. Elegir por el médico es el
+            error que este módulo vino a evitar: antes el pedido imprimía
+            "Catarata" para todo y un pterigión salió pedido como catarata.
+          */}
+          {opcionesDx.length > 0 && (
+            <label className="block text-sm">
+              <span className="block text-gray-600 mb-1 font-medium">Diagnóstico *</span>
+              <select
+                value={opcionDxId}
+                onChange={(e) => setOpcionDxId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+              >
+                <option value="">Seleccioná…</option>
+                {opcionesDx.map((o) => (
+                  <option key={o.id} value={o.id}>{o.diagnostico.replace("{ojo}", "").trim()}</option>
+                ))}
+              </select>
+              <span className="text-[11px] text-gray-500 mt-1 block">
+                Esta práctica se hace por varias indicaciones. Es lo que va impreso en el pedido a la
+                obra social, así que lo elige quien atendió al paciente.
+              </span>
+            </label>
+          )}
 
           {/* Fecha tentativa */}
           <label className="block text-sm">

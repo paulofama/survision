@@ -121,6 +121,14 @@ export interface Aceptacion {
   fecha_tentativa_cirugia: string | null;
   ojo: Ojo | null;
   lio_id: string | null;
+  /**
+   * Cuál de las indicaciones posibles se eligió, cuando la práctica se hace
+   * por varias (migración 60: la intravítrea puede ser DMAE húmeda, edema
+   * macular diabético u oclusión venosa). NULL cuando la práctica tiene una
+   * sola indicación, o cuando nadie eligió: ahí el pedido imprime el renglón
+   * en blanco, igual que antes.
+   */
+  diagnostico_opcion_id: string | null;
   requiere_analisis_ecg: boolean;
   created_by: string | null;
   // ── Ingreso de caja (migración 33) ──
