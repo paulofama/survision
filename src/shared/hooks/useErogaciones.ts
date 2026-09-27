@@ -52,6 +52,13 @@ export interface Erogacion {
   categoria_sugerida: string;
   tipo_comprobante: string;
   numero_comprobante: string;
+  /**
+   * Cómo clasifica GECLISA al proveedor, de su tabla `Proveedores`. Lo carga
+   * la administración al darlo de alta, para las retenciones. NULL en caja y
+   * liquidaciones, que no tienen proveedor de esa tabla.
+   */
+  tipo_proveedor_id?: number | null;
+  concepto_ganancias_id?: number | null;
   // Campos de clasificación (de Supabase)
   tipo_costo: TipoCosto;
   clasificacion_id?: string;
@@ -93,6 +100,9 @@ interface FilaErogacionGeclisa {
   categoria_sugerida: string | null;
   tipo_comprobante: string | null;
   numero_comprobante: string | null;
+  /** Cómo clasifica GECLISA al proveedor. NULL en caja y liquidaciones. */
+  tipo_proveedor_id: number | null;
+  concepto_ganancias_id: number | null;
 }
 
 /**
@@ -203,6 +213,54 @@ const MESES = [
 // Normaliza el nombre de proveedor para matchear contra el histórico.
 const normalizarProveedor = (s: unknown): string =>
   String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+
+/**
+ * Cómo clasifica GECLISA a cada proveedor, de su tabla `Proveedores`.
+ *
+ *   TipoProv: 1 prestaciones de servicios · 3 insumos
+ *             4 insumos médicos · 5 prestaciones de servicios médicos
+ *   ConcGan:  1 bienes · 2 profesionales liberales · 3 no gravada
+ *             4 locación de servicios/obra · 5 alquileres
+ *
+ * Lo carga la administración al dar de alta al proveedor, para las
+ * retenciones. Sirve para lo que el histórico no puede: un proveedor NUEVO,
+ * que por definición no tiene comprobantes anteriores de los que aprender.
+ *
+ * Es confiable porque coincide con lo que se venía clasificando a mano:
+ * Alcon figura como "insumos médicos" y sus 160 comprobantes están en
+ * variable/insumos; Casado como "insumos" y sus 64 en Insumos de Oficina;
+ * Excimer Laser como "servicios médicos" y sus 2 en variable/honorarios.
+ *
+ * Va DESPUÉS del histórico a propósito. El tipo dice qué vende el proveedor;
+ * el histórico dice cómo decidió tratarlo este instituto, que a veces es otra
+ * cosa: Sammito Dino figura como prestación de servicios y sus 4
+ * comprobantes están en Marketing, y está bien así.
+ */
+const NOMBRE_CATEGORIA_POR_TIPO: Record<number, string> = {
+  3: 'Insumos de Oficina',
+  1: 'Servicios',
+};
+
+/** El destino que implica el tipo de proveedor, o null si no alcanza. */
+const porTipoProveedor = (
+  tipoProv: number | null | undefined,
+  concGan: number | null | undefined,
+  idDeCategoria: (nombre: string) => string | null,
+): { tipo: TipoCosto; cat: string | null; sub: 'honorarios' | 'insumos' | null } | null => {
+  switch (tipoProv) {
+    case 4: return { tipo: 'variable', cat: null, sub: 'insumos' };
+    case 5: return { tipo: 'variable', cat: null, sub: 'honorarios' };
+    case 3: return { tipo: 'fijo', cat: idDeCategoria('Insumos de Oficina'), sub: null };
+    case 1: {
+      // El tipo 1 mezcla un flete con un estudio jurídico: lo desempata el
+      // concepto de ganancias.
+      const nombre = concGan === 2 ? 'Honorarios Profesionales' : NOMBRE_CATEGORIA_POR_TIPO[1];
+      return { tipo: 'fijo', cat: idDeCategoria(nombre), sub: null };
+    }
+    // 0 es "S/D" y null es caja o liquidaciones: en los dos casos no se sabe.
+    default: return null;
+  }
+};
 
 // ============================================
 // HOOK PRINCIPAL
@@ -406,7 +464,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       // 1. Cargar desde el espejo Supabase (erogaciones_geclisa, sync GECLISA)
       const { data: rows, error: sbErr } = await supabase
         .from('erogaciones_geclisa')
-        .select('fuente, id_geclisa, fecha, proveedor_nombre, descripcion, monto, categoria_sugerida, tipo_comprobante, numero_comprobante')
+        .select('fuente, id_geclisa, fecha, proveedor_nombre, descripcion, monto, categoria_sugerida, tipo_comprobante, numero_comprobante, tipo_proveedor_id, concepto_ganancias_id')
         .eq('anio', anioCargar)
         .eq('mes', mesCargar)
         .order('fecha', { ascending: false })
@@ -423,6 +481,8 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         categoria_sugerida: e.categoria_sugerida || 'Sin categoría',
         tipo_comprobante: e.tipo_comprobante || '',
         numero_comprobante: e.numero_comprobante || '',
+        tipo_proveedor_id: e.tipo_proveedor_id ?? null,
+        concepto_ganancias_id: e.concepto_ganancias_id ?? null,
         tipo_costo: 'sin_clasificar' as TipoCosto,
         es_costo_fijo: false
       }));
@@ -805,16 +865,27 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       }
 
       // 3. Construir sugerencias para las erogaciones SIN clasificar del mes.
+      //
+      // Tres niveles, del más específico al más general:
+      //   1. proveedor + monto — distingue al que factura dos conceptos
+      //   2. proveedor — lo que este instituto decidió para él
+      //   3. tipo de proveedor de GECLISA — para el proveedor NUEVO, que no
+      //      tiene histórico y hasta ahora quedaba sin sugerencia
+      const idDeCategoria = (nombre: string) => categorias.find(c => c.nombre === nombre)?.id ?? null;
       const ahora = new Date().toISOString();
       const filasUpsert: FilaSugerencia[] = [];
       let sinMatch = 0;
+      let porTipo = 0;
       for (const e of erogaciones) {
         const clave = getClaveErogacion(e.fuente, e.id_geclisa);
         if (clasificaciones.has(clave)) continue; // ya tiene clasificación persistida
         const prov = normalizarProveedor(e.proveedor_nombre);
-        // Primero por proveedor+monto (más específico); si no, por proveedor.
-        const d = dominanteProvMonto.get(`${prov}|${Math.round(Number(e.monto) || 0)}`) || dominante.get(prov);
+        const delHistorico = dominanteProvMonto.get(`${prov}|${Math.round(Number(e.monto) || 0)}`)
+          || dominante.get(prov);
+        const d = delHistorico
+          || porTipoProveedor(e.tipo_proveedor_id, e.concepto_ganancias_id, idDeCategoria);
         if (!d) { sinMatch++; continue; }
+        if (!delHistorico) porTipo++;
         filasUpsert.push({
           fuente: e.fuente,
           id_geclisa: e.id_geclisa,
@@ -835,7 +906,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
       }
 
       if (filasUpsert.length === 0) {
-        mostrarMensaje('No hay erogaciones sin clasificar con proveedor en el histórico', 'success');
+        mostrarMensaje('No hay erogaciones sin clasificar con proveedor en el histórico ni tipo en GECLISA', 'success');
         return { sugeridas: 0, sinMatch };
       }
 
@@ -855,7 +926,15 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         return nuevo;
       });
 
-      mostrarMensaje(`${filasUpsert.length} erogaciones sugeridas según histórico — revisá las marcadas "Auto"`, 'success');
+      // Se dice cuántas salieron del tipo de proveedor y no del histórico:
+      // ésas son las que nadie clasificó nunca antes, así que son las que más
+      // conviene revisar.
+      mostrarMensaje(
+        `${filasUpsert.length} erogaciones sugeridas`
+        + (porTipo ? ` (${porTipo} por el tipo de proveedor de GECLISA, sin histórico previo)` : ' según histórico')
+        + ' — revisá las marcadas "Auto"',
+        'success',
+      );
       return { sugeridas: filasUpsert.length, sinMatch };
     } catch (err) {
       console.error('Error en sugerencia según histórico:', err);
@@ -864,7 +943,7 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
     } finally {
       setLoadingClasificacion(false);
     }
-  }, [erogaciones, clasificaciones, anio, mes]);
+  }, [erogaciones, clasificaciones, anio, mes, categorias]);
 
   // ============================================
   // ESTADÍSTICAS v2.2

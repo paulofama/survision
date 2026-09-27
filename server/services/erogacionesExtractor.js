@@ -18,7 +18,12 @@ const QUERY = `
     ISNULL(p.Prov_Nombre, mp.Nombre) AS proveedor_nombre, ISNULL(mp.Obs, '') AS descripcion,
     ABS(ISNULL(mp.Total, 0)) AS monto, 'Gastos Proveedores' AS categoria_sugerida,
     ISNULL(tc.TComp_Nombre, 'Comprobante') AS tipo_comprobante,
-    ISNULL(mp.Letra, '') + ' ' + ISNULL(CAST(mp.Suc AS VARCHAR), '') + '-' + ISNULL(CAST(mp.Numero AS VARCHAR), '') AS numero_comprobante
+    ISNULL(mp.Letra, '') + ' ' + ISNULL(CAST(mp.Suc AS VARCHAR), '') + '-' + ISNULL(CAST(mp.Numero AS VARCHAR), '') AS numero_comprobante,
+    -- Cómo clasifica GECLISA a este proveedor. Lo carga la administración al
+    -- darlo de alta, para las retenciones, y alimenta al auto-clasificador:
+    -- un proveedor nuevo se sugiere bien desde el primer comprobante, sin
+    -- esperar a tener histórico.
+    p.tipoProv_id AS tipo_proveedor_id, p.concGan_id AS concepto_ganancias_id
   FROM MovProv mp
   LEFT JOIN Proveedores p ON mp.Prov_id = p.Prov_id
   INNER JOIN TipoComp tc ON mp.TComp_id = tc.TComp_id
@@ -33,7 +38,10 @@ const QUERY = `
          WHEN tc.TComp_sigla = 'PS' THEN 'Pagos Sueldos' WHEN tc.TComp_sigla = 'OP' THEN 'Orden de Pago'
          WHEN tc.TComp_sigla = 'OPL' THEN 'Orden Pago Liquidación' ELSE ISNULL(tc.TComp_Nombre, 'Egreso') END AS categoria_sugerida,
     ISNULL(tc.TComp_Nombre, 'Egreso') AS tipo_comprobante,
-    ISNULL(mve.Mve_Letra, '') + ' ' + ISNULL(CAST(mve.Mve_Suc AS VARCHAR), '') + '-' + ISNULL(CAST(mve.Mve_NroDoc AS VARCHAR), '') AS numero_comprobante
+    ISNULL(mve.Mve_Letra, '') + ' ' + ISNULL(CAST(mve.Mve_Suc AS VARCHAR), '') + '-' + ISNULL(CAST(mve.Mve_NroDoc AS VARCHAR), '') AS numero_comprobante,
+    -- La caja no tiene proveedor de la tabla Proveedores: el "proveedor" es
+    -- texto libre. NULL significa "no sé", y el clasificador lo trata así.
+    CAST(NULL AS smallint) AS tipo_proveedor_id, CAST(NULL AS smallint) AS concepto_ganancias_id
   FROM MovValoresEnca mve
   LEFT JOIN TipoComp tc ON mve.TComp_id = tc.TComp_id
   WHERE mve.Mve_Fecha >= @desde AND mve.Mve_Fecha <= @hasta AND ISNULL(mve.Mve_Anulado, 0) = 0 AND ISNULL(mve.Mve_Signo, 0) = -1 AND ABS(ISNULL(mve.Mve_Total, 0)) > 0
@@ -43,7 +51,9 @@ const QUERY = `
   SELECT 'LiqComp' AS fuente, lc.LiqComp_id AS id_geclisa, lc.LiqComp_Fecha AS fecha,
     ISNULL(pre.pre_nombre, lc.LiqComp_Nombre) AS proveedor_nombre, 'Liquidación de honorarios' AS descripcion,
     ABS(ISNULL(lc.LiqComp_Total, 0)) AS monto, 'Honorarios Profesionales' AS categoria_sugerida, 'Liquidación' AS tipo_comprobante,
-    ISNULL(lc.LiqComp_Letra, '') + ' ' + ISNULL(CAST(lc.LiqComp_Suc AS VARCHAR), '') + '-' + ISNULL(CAST(lc.LiqComp_NroDoc AS VARCHAR), '') AS numero_comprobante
+    ISNULL(lc.LiqComp_Letra, '') + ' ' + ISNULL(CAST(lc.LiqComp_Suc AS VARCHAR), '') + '-' + ISNULL(CAST(lc.LiqComp_NroDoc AS VARCHAR), '') AS numero_comprobante,
+    -- Las liquidaciones son de prestadores, no de proveedores.
+    CAST(NULL AS smallint) AS tipo_proveedor_id, CAST(NULL AS smallint) AS concepto_ganancias_id
   FROM LiqComp lc
   LEFT JOIN Prestadores pre ON lc.Pre_id = pre.pre_id
   WHERE lc.LiqComp_Fecha >= @desde AND lc.LiqComp_Fecha <= @hasta AND ISNULL(lc.LiqComp_Anulado, 0) = 0 AND ABS(ISNULL(lc.LiqComp_Total, 0)) > 0
@@ -68,6 +78,10 @@ async function extraerErogaciones(desde, hasta) {
       categoria_sugerida: (row.categoria_sugerida || '').trim() || null,
       tipo_comprobante: (row.tipo_comprobante || '').trim() || null,
       numero_comprobante: (row.numero_comprobante || '').trim() || null,
+      // 0 es "S/D" en GECLISA y no dice nada: se guarda como NULL para que el
+      // clasificador no lo confunda con un tipo real.
+      tipo_proveedor_id: row.tipo_proveedor_id || null,
+      concepto_ganancias_id: row.concepto_ganancias_id || null,
     };
   });
 }
