@@ -210,9 +210,25 @@ const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
-// Normaliza el nombre de proveedor para matchear contra el histórico.
-const normalizarProveedor = (s: unknown): string =>
-  String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+/**
+ * Normaliza el nombre de proveedor para matchear contra el histórico, y
+ * devuelve '' cuando NO HAY proveedor.
+ *
+ * El guión es el relleno que pone el espejo cuando el comprobante no trae
+ * nombre, y tratarlo como un proveedor más envenena el histórico: al
+ * 27/09/2026 había 489 comprobantes con "-", repartidos entre
+ * variable/honorarios (223), no_es_gasto (83), Sueldos y Cargas (64) e
+ * Impuestos (53). No es un proveedor, es un tacho, y la clasificación
+ * dominante de un tacho no significa nada.
+ *
+ * Lo que producía: PANADERÍA, MERIENDA, MAPLES HUEVOS y MANDADOS sugeridos
+ * como `variable / honorarios`, sólo porque honorarios era la porción más
+ * grande del tacho. Visto en agosto-2026: 11 de 15 sugerencias mal.
+ */
+export const normalizarProveedor = (s: unknown): string => {
+  const limpio = String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  return limpio === '-' || limpio === 'S/D' || limpio === '—' ? '' : limpio;
+};
 
 /**
  * Cómo clasifica GECLISA a cada proveedor, de su tabla `Proveedores`.
@@ -242,7 +258,7 @@ const NOMBRE_CATEGORIA_POR_TIPO: Record<number, string> = {
 };
 
 /** El destino que implica el tipo de proveedor, o null si no alcanza. */
-const porTipoProveedor = (
+export const porTipoProveedor = (
   tipoProv: number | null | undefined,
   concGan: number | null | undefined,
   idDeCategoria: (nombre: string) => string | null,
@@ -880,8 +896,12 @@ const useErogaciones = (anioInicial?: number, mesInicial?: number) => {
         const clave = getClaveErogacion(e.fuente, e.id_geclisa);
         if (clasificaciones.has(clave)) continue; // ya tiene clasificación persistida
         const prov = normalizarProveedor(e.proveedor_nombre);
-        const delHistorico = dominanteProvMonto.get(`${prov}|${Math.round(Number(e.monto) || 0)}`)
-          || dominante.get(prov);
+        // Sin proveedor no se busca en el histórico: el tacho del "-" sugiere
+        // cualquier cosa. Queda el tipo de GECLISA, y si tampoco hay, sin
+        // sugerencia — que es la respuesta honesta.
+        const delHistorico = prov
+          ? (dominanteProvMonto.get(`${prov}|${Math.round(Number(e.monto) || 0)}`) || dominante.get(prov))
+          : undefined;
         const d = delHistorico
           || porTipoProveedor(e.tipo_proveedor_id, e.concepto_ganancias_id, idDeCategoria);
         if (!d) { sinMatch++; continue; }
