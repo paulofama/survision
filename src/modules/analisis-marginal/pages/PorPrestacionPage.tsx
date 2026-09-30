@@ -231,7 +231,10 @@ const PorPrestacionContent: React.FC = () => {
       const margenContribPct = item.facturado > 0 ? (margenContrib / item.facturado) * 100 : 0;
       return { ...item, costoTotal, margenContrib, margenContribPct };
     });
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings]);
+  // `mesClave` va en las dependencias porque el memo lo usa para resolver qué
+  // porcentaje de honorarios regía (`configVigente`). Sin él, cambiar el período
+  // sin que cambie la identidad de `prestaciones` dejaba el porcentaje viejo.
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings, mesClave]);
 
   // Total facturado para calcular ratios de distribución CF
   const totalFacturadoGlobal = useMemo(

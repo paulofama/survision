@@ -81,13 +81,34 @@ export type RamaCobertura = "PARTICULAR" | "OBRA_SOCIAL";
 export type SubRama = "circulo_medico" | "directa";
 export type Ojo = "OD" | "OI" | "AMBOS";
 
+/**
+ * Los extras que cada convenio agrega al pedido, guardados como JSON en la
+ * columna `config`.
+ *
+ * Están los cuatro campos que el generador lee de verdad, y todos opcionales
+ * porque cada convenio trae los suyos. `diag` quedó sin uso desde la migración
+ * 48 —decía "Catarata" para cualquier cirugía— y no se declara a propósito:
+ * si alguien lo vuelve a leer, el compilador lo marca.
+ */
+export interface ConfigConvenio {
+  /** Leyenda al pie del pedido. */
+  leyenda?: string;
+  /** Renglones en blanco que el convenio pide completar a mano. */
+  lineas?: string[];
+  /** Cuenta de Survisión que va impresa. */
+  cuenta?: string;
+  /** Si el convenio provee las recetas, el sobre no las imprime. */
+  recetas_suprimir?: boolean;
+  /** Si las recetas salen por el sistema del convenio. */
+  recetas_por_sistema?: boolean;
+}
+
 export interface Convenio {
   id: string;
   nombre: string;
   sub_rama: "circulo_medico" | "directa" | "particular";
   codigo_practica: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config: any;
+  config: ConfigConvenio | null;
   activo: boolean;
   orden: number;
 }
@@ -256,6 +277,24 @@ const normalizar = (s: string): string =>
  * inferir (el operador lo elige a mano).
  */
 /**
+ * Lo mínimo que hace falta de un presupuesto para saber qué práctica es.
+ *
+ * Se declara la forma chica y no el presupuesto entero porque a estas dos
+ * funciones las llaman desde pantallas que traen selects distintos: lo único
+ * que tienen que compartir es de dónde sale la práctica.
+ */
+export interface PresupuestoConPractica {
+  prestacion_codigo?: string | null;
+  prestacion_descripcion?: string | null;
+  datos_completos?: {
+    tratamiento?: {
+      prestacionCodigo?: string | null;
+      prestacionDescripcion?: string | null;
+    } | null;
+  } | null;
+}
+
+/**
  * Código y descripción de la práctica del presupuesto.
  *
  * Están en dos lugares porque el presupuestador guarda la columna
@@ -263,8 +302,7 @@ const normalizar = (s: string): string =>
  * La columna manda; el snapshot es respaldo para presupuestos viejos.
  */
 export function practicaDelPresupuesto(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  presupuesto: any,
+  presupuesto: PresupuestoConPractica | null | undefined,
 ): { codigo: string; descripcion: string } {
   return {
     codigo: String(
@@ -281,8 +319,7 @@ export function practicaDelPresupuesto(
 }
 
 export function lioSugerido(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  presupuesto: any,
+  presupuesto: PresupuestoConPractica | null | undefined,
   lios: Lio[],
 ): string {
   const activos = lios.filter((l) => l.activo);

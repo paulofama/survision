@@ -405,7 +405,10 @@ const DashboardMarginalContent: React.FC = () => {
       topPrestadores,
       topObrasSociales,
     };
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings]);
+  // `mesClave` va en las dependencias porque el memo lo usa para resolver qué
+  // porcentaje de honorarios regía (`configVigente`). Sin él, cambiar el período
+  // sin que cambie la identidad de `prestaciones` dejaba el porcentaje viejo.
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings, mesClave]);
 
   // ============================================
   // RENDER

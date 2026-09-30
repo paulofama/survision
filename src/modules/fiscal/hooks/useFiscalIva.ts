@@ -36,8 +36,7 @@ export interface IvaAlicuota {
  */
 async function fetchAll<T>(table: string, periodo: string, orderCol: string): Promise<T[]> {
   const pageSize = 1000; let from = 0; const all: T[] = [];
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
+  for (;;) {
     const { data, error } = await supabase.from(table).select('*').eq('periodo', periodo)
       .order(orderCol, { ascending: true }).range(from, from + pageSize - 1);
     if (error) throw new Error(error.message);

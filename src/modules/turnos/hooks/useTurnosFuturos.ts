@@ -49,8 +49,7 @@ export function useTurnosFuturos(): UseTurnosFuturosResult {
       const acumulado: TurnoFuturo[] = [];
       let from = 0;
       // Paginación defensiva (PostgREST corta en 1000 por request).
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
+      for (;;) {
         const { data, error: sbErr } = await supabase
           .from('turnos_futuros')
           .select('*')

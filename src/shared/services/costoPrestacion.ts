@@ -23,6 +23,7 @@
 
 import { supabase } from '../lib/supabase';
 import { crearIndiceRecetas } from '../utils/buscadorRecetas';
+import type { AliasNombre, RecetaIndexable } from '../utils/buscadorRecetas';
 import { traerTodo } from '../lib/traerTodo';
 
 /** Un pool que alcanza a la práctica, con lo que le imputa. */
@@ -55,8 +56,21 @@ export interface CostoPrestacion {
   recetaId: string | null;
 }
 
-/** Columnas de pool de la vista, con el nombre que se le muestra al usuario. */
-const COLUMNAS_POOL: Array<[string, string]> = [
+/** Los nombres de columna de pool de la vista. */
+type ColumnaPool =
+  | 'costo_pool_consultorio'
+  | 'costo_pool_quirofano'
+  | 'costo_pool_parabulbar'
+  | 'costo_pool_rfg'
+  | 'costo_pool_reesterilizables'
+  | 'costo_pool_lavado'
+  | 'costo_pool_faco'
+  | 'costo_pool_implante'
+  | 'costo_pool_medicamentos'
+  | 'costo_pool_descartables';
+
+/** Cada columna con el nombre que se le muestra al usuario. */
+const COLUMNAS_POOL: Array<[ColumnaPool, string]> = [
   ['costo_pool_consultorio', 'Consultorio'],
   ['costo_pool_quirofano', 'Quirófano'],
   ['costo_pool_parabulbar', 'Parabulbar'],
@@ -68,6 +82,31 @@ const COLUMNAS_POOL: Array<[string, string]> = [
   ['costo_pool_medicamentos', 'Medicamentos'],
   ['costo_pool_descartables', 'Descartables'],
 ];
+
+/**
+ * Una fila de la vista `v_recetas_costos_por_pool`.
+ *
+ * Extiende `RecetaIndexable` porque es lo que `crearIndiceRecetas` necesita
+ * para buscar por código o nombre. Los costos son nulables: la vista hace
+ * outer joins y un pool que la receta no usa viene en NULL, no en 0.
+ */
+interface FilaRecetaPorPool extends RecetaIndexable, Partial<Record<ColumnaPool, number | null>> {
+  receta_id: string;
+  costo_total_pools?: number | null;
+  costo_insumos_directos?: number | null;
+  costo_total_unitario?: number | null;
+  cantidad_mensual_estimada?: number | null;
+}
+
+/** Fila del join `receta_insumos_directos` -> `insumos_variables`. */
+interface FilaInsumoDirecto {
+  cantidad_por_practica: number | null;
+  insumos_variables: {
+    codigo: string | null;
+    descripcion: string | null;
+    precio_unitario: number | null;
+  } | null;
+}
 
 /**
  * Trae el desglose del costo estándar de una práctica.
@@ -83,13 +122,11 @@ export async function cargarCostoPrestacion(
   // 1. Encontrar la receta. Mismo criterio que el resto del módulo: manda el
   //    código, el nombre es respaldo. Ver `buscadorRecetas`.
   const [vista, alias] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    traerTodo<any>((d) => supabase
+    traerTodo<FilaRecetaPorPool>((d) => supabase
       .from('v_recetas_costos_por_pool')
       .select('*')
       .range(d, d + 999)),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    traerTodo<any>((d) => supabase
+    traerTodo<AliasNombre>((d) => supabase
       .from('prestaciones_nombre_mapping')
       .select('nombre_geclisa, nombre_receta')
       .range(d, d + 999)),
@@ -102,13 +139,11 @@ export async function cargarCostoPrestacion(
   const { data: det, error: errDet } = await supabase
     .from('receta_insumos_directos')
     .select('cantidad_por_practica, insumos_variables ( codigo, descripcion, precio_unitario )')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .eq('receta_id', (receta as any).receta_id)
+    .eq('receta_id', receta.receta_id)
     .eq('activo', true);
   if (errDet) throw new Error(errDet.message);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const insumos: InsumoDeLaPractica[] = (det || []).map((d: any) => {
+  const insumos: InsumoDeLaPractica[] = ((det || []) as unknown as FilaInsumoDirecto[]).map((d) => {
     const cantidad = Number(d.cantidad_por_practica) || 0;
     const precioUnitario = Number(d.insumos_variables?.precio_unitario) || 0;
     return {
@@ -122,13 +157,12 @@ export async function cargarCostoPrestacion(
 
   // 3. Pools: la vista ya trae una columna por pool.
   const pools: PoolDeLaPractica[] = COLUMNAS_POOL
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map(([col, nombrePool]) => ({ nombre: nombrePool, costo: Number((receta as any)[col]) || 0 }))
+    .map(([col, nombrePool]) => ({ nombre: nombrePool, costo: Number(receta[col]) || 0 }))
     .filter((p) => p.costo > 0)
     .sort((a, b) => b.costo - a.costo);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const r = receta as any;
+  // Alias corto; antes hacía falta para castear, ahora es sólo comodidad.
+  const r = receta;
   const costoPools = Number(r.costo_total_pools) || 0;
 
   // EL DESGLOSE TIENE QUE SUMAR EL TOTAL
