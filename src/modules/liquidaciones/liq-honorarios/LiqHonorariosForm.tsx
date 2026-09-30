@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Save, X, AlertTriangle, Info } from 'lucide-react';
 import { useCajaCalculation, calcularOS, calcularTotales } from './useCajaCalculation';
 import type { LiqPrestador, LiqHonorarioConPrestador } from './types';
+import type { ParamsGuardarLiq } from './useLiqHonorarios';
 import { aFecha } from '@shared/utils';
 
 // ─── FMT helper (necesario antes de los componentes) ───────
@@ -72,7 +73,7 @@ const CalcValue: React.FC<CalcValueProps> = ({ label, value, bold }) => (
 interface Props {
   prestadores: LiqPrestador[];
   editingLiq?: LiqHonorarioConPrestador;
-  onSave: (params: any) => Promise<{ success: boolean; message: string }>;
+  onSave: (params: ParamsGuardarLiq) => Promise<{ success: boolean; message: string }>;
   onSaved: (message: string) => void;
   onCancelEdit: () => void;
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;

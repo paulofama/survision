@@ -7,9 +7,25 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, RefreshCw, Download, Table } from 'lucide-react';
 import { useFiscalPeriodos, IvaPeriodo } from '../hooks/useFiscalIva';
 
+/**
+ * Las columnas numéricas de un período: las únicas que este resumen suma.
+ * Sale de `IvaPeriodo`, así que si allá se agrega un importe, acá se puede
+ * poner en ROWS y si se saca, el compilador marca la fila que quedó colgada.
+ */
+type ClaveNumerica = {
+  [K in keyof IvaPeriodo]: IvaPeriodo[K] extends number ? K : never;
+}[keyof IvaPeriodo];
+
 type RowDef =
   | { tipo: 'header'; label: string; grupo: 'v' | 'c' }
-  | { tipo: 'dato'; k: keyof IvaPeriodo; label: string; grupo: 'v' | 'c' | 'p'; strong?: boolean };
+  | { tipo: 'dato'; k: ClaveNumerica; label: string; grupo: 'v' | 'c' | 'p'; strong?: boolean };
+
+/**
+ * Una columna "Total" NO es un período: sólo trae la etiqueta y los importes
+ * que ROWS suma. Se declara aparte para no hacerla pasar por un `IvaPeriodo`
+ * que no tiene ni `estado` ni `ultima_sync`.
+ */
+type FilaTotal = { periodo: string } & Partial<Record<ClaveNumerica, number>>;
 
 const ROWS: RowDef[] = [
   { tipo: 'header', label: 'VENTAS', grupo: 'v' },
@@ -28,7 +44,7 @@ const ROWS: RowDef[] = [
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const fmtC = (n: number) => Math.round(Number(n) || 0).toLocaleString('es-AR');
 
-interface Col { tipo: 'mes' | 'total'; key: string; label: string; year: string; data: IvaPeriodo }
+interface Col { tipo: 'mes' | 'total'; key: string; label: string; year: string; data: IvaPeriodo | FilaTotal }
 
 const ResumenAnualPage: React.FC = () => {
   const { periodos, loading, refetch } = useFiscalPeriodos();
@@ -43,13 +59,13 @@ const ResumenAnualPage: React.FC = () => {
     Object.keys(porAnio).sort().forEach(y => {
       porAnio[y].forEach(p => out.push({ tipo: 'mes', key: p.periodo, label: MESES[Number(p.periodo.slice(5, 7)) - 1], year: y, data: p }));
       // total del año
-      const tot: any = { periodo: `Total ${y}` };
+      const tot: FilaTotal = { periodo: `Total ${y}` };
       ROWS.forEach(r => { if (r.tipo === 'dato') tot[r.k] = porAnio[y].reduce((s, p) => s + (Number(p[r.k]) || 0), 0); });
       out.push({ tipo: 'total', key: `tot-${y}`, label: `Total ${y}`, year: y, data: tot });
     });
     // Total general (todos los anios)
     if (out.length) {
-      const g: any = { periodo: 'Total General' };
+      const g: FilaTotal = { periodo: 'Total General' };
       ROWS.forEach(r => { if (r.tipo === 'dato') g[r.k] = periodos.reduce((s, p) => s + (Number(p[r.k]) || 0), 0); });
       out.push({ tipo: 'total', key: 'tot-general', label: 'Total Gral.', year: 'TOTAL', data: g });
     }
@@ -63,7 +79,7 @@ const ResumenAnualPage: React.FC = () => {
     return Object.keys(m).sort().map(y => ({ year: y, span: m[y] }));
   }, [cols]);
 
-  const val = (c: Col, k: keyof IvaPeriodo) => Number((c.data as any)[k]) || 0;
+  const val = (c: Col, k: ClaveNumerica) => Number(c.data[k]) || 0;
 
   const exportarCSV = () => {
     const head = ['Concepto', ...cols.map(c => c.tipo === 'total' ? c.label : `${c.label} ${c.year}`)];

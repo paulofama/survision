@@ -12,6 +12,7 @@ import { cargarLiquidacionCompleta, cargarF931Confirmado, cargarEmpleadosMap } f
 import type {
   AsientoCompleto,
   AsientoGenerarResult,
+  AsientoSueldos,
   AsientoSueldosLinea,
   ResultadoOperacion,
   TipoCriterioBruto,
@@ -49,7 +50,9 @@ async function leerAsientoPersistido(liquidacionId: string): Promise<AsientoComp
   const { data: lineas, error: e2 } = await supabase
     .from('asiento_sueldos_lineas').select('*').eq('asiento_id', cab.id).order('orden');
   if (e2) throw new Error(e2.message);
-  return { cabecera: cab as any, lineas: (lineas || []) as AsientoSueldosLinea[] };
+  // Es un select('*') sobre la tabla: se declara la forma que el resto del
+  // hook espera, igual que se venía haciendo con las líneas.
+  return { cabecera: cab as AsientoSueldos, lineas: (lineas || []) as AsientoSueldosLinea[] };
 }
 
 async function fetchAsiento(anio: number, mes: number, force = false): Promise<CacheEntry> {
@@ -139,7 +142,7 @@ export function useAsiento(anio: number, mes: number): UseAsientoReturn {
 
         let calc;
         try {
-          calc = generarAsiento(liq as any, f931, empleadosMap, { criterio: criterio as any });
+          calc = generarAsiento(liq, f931, empleadosMap, { criterio });
         } catch (e) {
           if (e instanceof SinNetosError) return { ok: false, error: e.message, codigo: 'SIN_NETOS' };
           throw e;

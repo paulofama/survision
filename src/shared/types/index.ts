@@ -293,12 +293,30 @@ export interface FiltrosInsumos {
 // TIPOS PARA IMPORTACIÓN EXCEL
 // ============================================
 
+/**
+ * Una fila del Excel de insumos, tal como la deja la planilla.
+ *
+ * Los valores van `string | number` porque Excel no distingue: un código que
+ * son todos dígitos llega como number y una cantidad escrita a mano llega como
+ * texto. Por eso el importador convierte cada uno antes de usarlo, en vez de
+ * confiar en el tipo.
+ */
+export interface FilaExcelInsumo {
+  codigo?: string | number;
+  descripcion?: string | number;
+  precio_unitario?: string | number;
+  segmento?: InsumoSegmento;
+  unidad?: string;
+  consumo?: string;
+  cantidad?: string | number;
+}
+
 export interface ResultadoImportacionExcel {
   exitosos: number;
   duplicados: number;
   errores: number;
   detallesErrores: string[];
-  datosImportados: any[];
+  datosImportados: NuevoInsumoVariable[];
   resumenPorSegmento: Record<string, {
     exitosos: number;
     duplicados: number;
@@ -347,7 +365,7 @@ export interface UseInsumosVariablesReturn {
   updateInsumo: (id: string, data: Partial<InsumoVariable>) => Promise<void>;
   deleteInsumo: (id: string) => Promise<void>;
   
-  importFromExcel: (data: any[], segmento?: InsumoSegmento) => Promise<ResultadoImportacionExcel>;
+  importFromExcel: (data: FilaExcelInsumo[], segmento?: InsumoSegmento) => Promise<ResultadoImportacionExcel>;
   getInsumosBySegmento: (segmento: InsumoSegmento) => InsumoVariable[];
   refetch: () => Promise<void>;
   

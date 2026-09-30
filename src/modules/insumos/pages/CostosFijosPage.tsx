@@ -44,6 +44,9 @@ import { aFecha } from '@shared/utils';
 // HELPERS
 // ===========================================================
 
+/** Las opciones del selector de clasificación de la barra de filtros. */
+type FiltroClasificacion = 'todas' | 'fijos' | 'variables' | 'sin_clasificar';
+
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -99,7 +102,7 @@ export default function CostosFijosPage() {
   // Filtros locales
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroFuente, setFiltroFuente] = useState<string>('');
-  const [filtroClasificacion, setFiltroClasificacion] = useState<'todas' | 'fijos' | 'variables' | 'sin_clasificar'>('todas');
+  const [filtroClasificacion, setFiltroClasificacion] = useState<FiltroClasificacion>('todas');
   const [filtroCategoria, setFiltroCategoria] = useState<string>('');
 
   // Menú de clasificación: { clave, nivel }
@@ -683,15 +686,18 @@ export default function CostosFijosPage() {
           </select>
 
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-            {[
+            {/* El tipo va explícito: sin él, `key` se ensancha a `string` y hay
+                que castear para pasarlo al setter. Así además el compilador
+                avisa si se escribe mal una de las cuatro claves. */}
+            {([
               { key: 'todas', label: 'Todas', icon: null },
               { key: 'fijos', label: 'Fijos', icon: <CheckSquare className="w-3 h-3 text-blue-600" /> },
               { key: 'variables', label: 'Variables', icon: <MinusSquare className="w-3 h-3 text-amber-600" /> },
               { key: 'sin_clasificar', label: 'Sin Clas.', icon: <Square className="w-3 h-3 text-gray-400" /> },
-            ].map(f => (
+            ] as { key: FiltroClasificacion; label: string; icon: React.ReactNode }[]).map(f => (
               <button
                 key={f.key}
-                onClick={() => setFiltroClasificacion(f.key as any)}
+                onClick={() => setFiltroClasificacion(f.key)}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1 transition-colors ${
                   filtroClasificacion === f.key
                     ? 'bg-white shadow text-gray-800'

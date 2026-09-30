@@ -203,7 +203,7 @@ export default function SeguimientoPage() {
 
       {llamando && (
         <LlamadaModal
-          presupuesto={llamando.p as any}
+          presupuesto={llamando.p}
           seguimiento={llamando.seg}
           username={username}
           onClose={() => setLlamando(null)}

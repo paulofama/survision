@@ -36,6 +36,25 @@ import { aFecha } from '@shared/utils';
 // TIPOS
 // ============================================
 
+/** Lo que trae el select de derivadores distintos del espejo. */
+interface FilaDerivador {
+  derivador_id: number;
+  derivador: string | null;
+}
+
+/** Una fila del espejo `movimientos_geclisa`, con las columnas que pide el select. */
+interface FilaMovimiento {
+  atencion_id: number;
+  fecha: string;
+  paciente: string | null;
+  prestador_nombre: string | null;
+  derivador_id: number;
+  derivador: string | null;
+  practica_nombre: string | null;
+  practica_codigo: string | null;
+  coseguro: number | null;
+}
+
 interface Derivador {
   id: number;
   nombre: string;
@@ -170,9 +189,9 @@ const DerivacionesLiquidacionPage = () => {
         .limit(5000);
       if (error) throw new Error(error.message);
       const map = new Map<number, { id: number; nombre: string }>();
-      for (const r of data || []) {
-        const id = (r as any).derivador_id as number;
-        if (id && !map.has(id)) map.set(id, { id, nombre: (r as any).derivador || 'S/D' });
+      for (const r of (data || []) as FilaDerivador[]) {
+        const id = r.derivador_id;
+        if (id && !map.has(id)) map.set(id, { id, nombre: r.derivador || 'S/D' });
       }
       setDerivadores([...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre)));
     } catch (err) {
@@ -204,7 +223,7 @@ const DerivacionesLiquidacionPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const filas: any[] = [];
+      const filas: FilaMovimiento[] = [];
       let from = 0;
       for (;;) {
         let q = supabase
@@ -220,7 +239,7 @@ const DerivacionesLiquidacionPage = () => {
         if (derivadorFiltro) q = q.eq('derivador_id', Number(derivadorFiltro));
         const { data, error } = await q.range(from, from + 999);
         if (error) throw new Error(error.message);
-        filas.push(...(data || []));
+        filas.push(...((data || []) as FilaMovimiento[]));
         if (!data || data.length < 1000) break;
         from += 1000;
       }

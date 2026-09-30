@@ -24,7 +24,7 @@ import {
   CheckCircle,
   Search,
 } from 'lucide-react';
-import { useHonorariosConfig, HonorarioConfig } from '@shared/hooks/useHonorariosConfig';
+import { useHonorariosConfig, HonorarioConfig, type ResultadoSimulacion } from '@shared/hooks/useHonorariosConfig';
 
 // ============================================
 // TIPOS LOCALES
@@ -86,7 +86,7 @@ const HonorariosPage: React.FC = () => {
   const [simuladorMonto, setSimuladorMonto] = useState('');
   const [simuladorPrestador, setSimuladorPrestador] = useState('');
   const [simuladorCodigo, setSimuladorCodigo] = useState('');
-  const [resultadoSimulacion, setResultadoSimulacion] = useState<any>(null);
+  const [resultadoSimulacion, setResultadoSimulacion] = useState<ResultadoSimulacion | null>(null);
 
   // Formularios
   const [formConfig, setFormConfig] = useState<FormConfiguracion>({
@@ -817,7 +817,7 @@ const HonorariosPage: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Segmento</label>
               <select
                 value={formConfig.segmento}
-                onChange={(e) => setFormConfig({ ...formConfig, segmento: e.target.value as any })}
+                onChange={(e) => setFormConfig({ ...formConfig, segmento: e.target.value as FormConfiguracion['segmento'] })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Consultas">Consultas</option>

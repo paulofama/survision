@@ -19,7 +19,9 @@ interface Pres {
   numero_presupuesto: string;
   paciente_apellido: string;
   paciente_nombre: string;
-  prestacion_descripcion: string | null;
+  /** Opcional porque el select del listado puede no traerla; el modal ya cae
+   *  a "el tratamiento" cuando falta. */
+  prestacion_descripcion?: string | null;
   total_final: number | string | null;
 }
 

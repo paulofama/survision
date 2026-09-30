@@ -35,6 +35,18 @@ interface UseRecordatoriosResult {
 
 const vacio = (): AvisadosPorTipo => ({ inicial: new Set(), previo: new Set(), final: new Set() });
 
+/**
+ * La fila de `turnos_recordatorios` tal como la pide el select de abajo. Las
+ * tres marcas son nulables: un turno puede tener el aviso inicial hecho y los
+ * otros dos pendientes.
+ */
+interface FilaRecordatorio {
+  turno_id: number;
+  aviso_inicial_at: string | null;
+  aviso_previo_at: string | null;
+  aviso_final_at: string | null;
+}
+
 export function useRecordatorios(): UseRecordatoriosResult {
   const { usuario } = useAuth();
   const [avisados, setAvisados] = useState<AvisadosPorTipo>(vacio);
@@ -49,14 +61,14 @@ export function useRecordatorios(): UseRecordatoriosResult {
       // fuera del Set — el sistema los leía como "todavía no avisado" y volvía
       // a ofrecer el WhatsApp. O sea, pacientes recibiendo el mismo aviso dos
       // veces. Ver `traerTodo`.
-      const data = await traerTodo<any>((desde) =>
+      const data = await traerTodo<FilaRecordatorio>((desde) =>
         supabase
           .from('turnos_recordatorios')
           .select('turno_id, aviso_inicial_at, aviso_previo_at, aviso_final_at')
           .range(desde, desde + 999));
 
       const next = vacio();
-      (data || []).forEach((r: any) => {
+      (data || []).forEach((r) => {
         if (r.aviso_inicial_at) next.inicial.add(r.turno_id);
         if (r.aviso_previo_at) next.previo.add(r.turno_id);
         if (r.aviso_final_at) next.final.add(r.turno_id);

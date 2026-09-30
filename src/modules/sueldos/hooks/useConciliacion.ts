@@ -170,7 +170,7 @@ export function useConciliacion(anio: number, mes: number): UseConciliacionRetur
       const f931 = await cargarF931Confirmado(anio, mes);
       if (!f931) return { ok: false, error: 'No hay un F.931 confirmado para este mes. Cargá y confirmá el F.931 primero.' };
 
-      const { diferencias: nuevas } = conciliar(liq as any, f931);
+      const { diferencias: nuevas } = conciliar(liq, f931);
 
       // Diferencias existentes -> preservar las JUSTIFICADA_MANUAL
       const existentes = await leerDiferencias(liq.id);

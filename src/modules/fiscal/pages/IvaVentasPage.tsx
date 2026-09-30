@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, RefreshCw, Download, Search, FileText } from 'lucide-react';
 import {
   useFiscalPeriodos, useFiscalLibro, useAutoRefresh, sincronizarPeriodo, fmtMoneda, fmtMoneda0, fmtNum, fmtPeriodo,
+  type IvaComprobante,
 } from '../hooks/useFiscalIva';
 
 const IvaVentasPage: React.FC = () => {
@@ -32,7 +33,7 @@ const IvaVentasPage: React.FC = () => {
     neto: a.neto + (r.neto_gravado || 0), iva: a.iva + (r.iva || 0), exento: a.exento + (r.exento || 0), total: a.total + (r.total || 0),
   }), { neto: 0, iva: 0, exento: 0, total: 0 }), [filtradas]);
 
-  const comprobante = (r: any) => `${r.tipo_comprobante} ${r.letra} ${String(r.sucursal).padStart(4, '0')}-${String(r.numero).padStart(8, '0')}`;
+  const comprobante = (r: IvaComprobante) => `${r.tipo_comprobante} ${r.letra} ${String(r.sucursal).padStart(4, '0')}-${String(r.numero).padStart(8, '0')}`;
 
   const actualizar = async () => {
     if (!periodo) return;

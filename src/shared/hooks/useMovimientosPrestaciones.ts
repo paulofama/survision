@@ -268,18 +268,25 @@ export const useMovimientosPrestaciones = () => {
 
       // Suma paginada (es_principal) — PostgREST devuelve máx. 1000 filas por
       // request, así que hay que paginar o el conteo queda topado en 1000.
+      // La consulta base, y su tipo sacado de ella misma: así `aplicar` recibe
+      // el query builder de verdad —no un `any`— y los `.eq()` que le encadenen
+      // los chequea el compilador.
+      const consultaBase = () =>
+        supabase.from('movimientos_geclisa').select('total').eq('es_principal', true);
+      type QuerySuma = ReturnType<typeof consultaBase>;
+
       const sumarPrincipales = async (
-        aplicar: (q: any) => any,
+        aplicar: (q: QuerySuma) => QuerySuma,
       ): Promise<{ practicas: number; ingreso: number }> => {
         let practicas = 0;
         let ingreso = 0;
         let from = 0;
         for (;;) {
-          const q = aplicar(supabase.from('movimientos_geclisa').select('total').eq('es_principal', true));
+          const q = aplicar(consultaBase());
           const { data, error } = await q.range(from, from + 999);
           if (error) throw new Error(error.message);
           practicas += (data || []).length;
-          ingreso += (data || []).reduce((s: number, r: any) => s + (Number(r.total) || 0), 0);
+          ingreso += (data || []).reduce((s: number, r: { total: number | null }) => s + (Number(r.total) || 0), 0);
           if (!data || data.length < 1000) break;
           from += 1000;
         }

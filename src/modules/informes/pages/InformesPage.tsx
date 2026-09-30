@@ -22,6 +22,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { useInformeGestion } from '../hooks/useInformeGestion';
+import type { DatosInformeGestion } from '@shared/types/informes';
 import { generarPDFInformeGestion } from '../utils/pdfGeneratorInformeGestion';
 import {
   INFORMES_DISPONIBLES,
@@ -443,7 +444,7 @@ const InformeCard: React.FC<{
 };
 
 // ---- Preview rápido ----
-const PreviewRapido: React.FC<{ datos: any }> = ({ datos }) => {
+const PreviewRapido: React.FC<{ datos: DatosInformeGestion }> = ({ datos }) => {
   const fmtMoneda = (n: number) =>
     new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -508,7 +509,7 @@ const PreviewRapido: React.FC<{ datos: any }> = ({ datos }) => {
           Top 5 Obras Sociales
         </h4>
         <div className="space-y-2">
-          {datos.porObraSocial.mesActual.slice(0, 5).map((os: any, i: number) => (
+          {datos.porObraSocial.mesActual.slice(0, 5).map((os, i) => (
             <div key={os.osId} className="flex items-center gap-3">
               <span className="text-xs font-medium text-gray-400 w-4">{i + 1}</span>
               <span className="text-sm text-gray-700 flex-1 truncate">

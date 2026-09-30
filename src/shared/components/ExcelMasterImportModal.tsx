@@ -96,7 +96,7 @@ const ExcelMasterImportModal: React.FC<ExcelMasterImportModalProps> = ({
         console.log(`🔄 Procesando hoja: ${sheetName}`);
         
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
         
         if (jsonData.length < 2) {
           console.log(`⚠️ Hoja ${sheetName} está vacía o solo tiene encabezados`);

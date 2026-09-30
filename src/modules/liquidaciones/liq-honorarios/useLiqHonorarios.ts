@@ -32,6 +32,27 @@ type PrestadorEmbebido = {
  */
 type FilaConPrestador = LiqHonorario & { prestador?: PrestadorEmbebido | null };
 
+/**
+ * Lo que hay que pasarle a `guardar`. Va con nombre y exportado porque el
+ * formulario lo recibe como prop `onSave`, y ahí estaba declarado `any`: si el
+ * formulario mandaba un campo de menos, nadie lo marcaba.
+ */
+export interface ParamsGuardarLiq {
+  /** Si viene, es un update; si no, un insert. */
+  id?: string;
+  fecha: string;
+  prestadorId: string;
+  ingresoPorCaja: number;
+  cajaExentoInput: number;
+  cajaNetoInput: number;
+  cajaTotalInput: number;
+  cajaValues: CajaCalculated;
+  osExentos: number;
+  osGravados21: number;
+  osGravados105: number;
+  retencionGastos: number;
+}
+
 export function useLiqHonorarios() {
   const [liquidaciones, setLiquidaciones] = useState<LiqHonorarioConPrestador[]>([]);
   const [prestadores, setPrestadores] = useState<LiqPrestador[]>([]);
@@ -98,20 +119,7 @@ export function useLiqHonorarios() {
 
   // ─── Guardar (crear o actualizar) ─────────────────────
   const guardar = useCallback(
-    async (params: {
-      id?: string; // Si existe → update, sino → insert
-      fecha: string;
-      prestadorId: string;
-      ingresoPorCaja: number;
-      cajaExentoInput: number;
-      cajaNetoInput: number;
-      cajaTotalInput: number;
-      cajaValues: CajaCalculated;
-      osExentos: number;
-      osGravados21: number;
-      osGravados105: number;
-      retencionGastos: number;
-    }): Promise<LiqOperationResult> => {
+    async (params: ParamsGuardarLiq): Promise<LiqOperationResult> => {
       try {
         const os = calcularOS(params.osExentos, params.osGravados21, params.osGravados105);
         const totales = calcularTotales(

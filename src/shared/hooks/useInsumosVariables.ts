@@ -5,7 +5,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, handleSupabaseError } from '../lib/supabase';
-import type { InsumoVariable, InsumoSegmento, NuevoInsumoVariable, ResultadoImportacionExcel } from '../types';
+import type {
+  FilaExcelInsumo,
+  InsumoVariable,
+  InsumoSegmento,
+  NuevoInsumoVariable,
+  ResultadoImportacionExcel,
+} from '../types';
 
 // ============================================
 // DATOS DE EJEMPLO PARA INSUMOS VARIABLES
@@ -65,7 +71,7 @@ interface UseInsumosVariablesReturn {
   deleteInsumo: (id: string) => Promise<void>;
   
   // Funciones especiales
-  importFromExcel: (data: any[], segmento?: InsumoSegmento) => Promise<ResultadoImportacionExcel>;
+  importFromExcel: (data: FilaExcelInsumo[], segmento?: InsumoSegmento) => Promise<ResultadoImportacionExcel>;
   getInsumosBySegmento: (segmento: InsumoSegmento) => InsumoVariable[];
   refetch: () => Promise<void>;
   cargarDatosEjemplo: () => Promise<void>;
@@ -289,7 +295,7 @@ export const useInsumosVariables = (): UseInsumosVariablesReturn => {
       setLoading(true);
       setError(null);
 
-      const updateData: any = { ...data };
+      const updateData: Partial<InsumoVariable> = { ...data };
       
       // Convertir a uppercase si están presentes
       if (updateData.codigo) updateData.codigo = updateData.codigo.toUpperCase();
@@ -357,7 +363,7 @@ export const useInsumosVariables = (): UseInsumosVariablesReturn => {
    * Importar insumos desde datos Excel
    */
   const importFromExcel = useCallback(async (
-    data: any[], 
+    data: FilaExcelInsumo[],
     segmento?: InsumoSegmento
   ): Promise<ResultadoImportacionExcel> => {
     try {
@@ -382,6 +388,16 @@ export const useInsumosVariables = (): UseInsumosVariablesReturn => {
             continue;
           }
 
+          // El segmento también es obligatorio, y antes no se validaba: si no
+          // venía ni por parámetro ni en la planilla, la fila se insertaba con
+          // `segmento: undefined`. Lo destapó tipar `data`.
+          const seg = segmento || item.segmento;
+          if (!seg) {
+            resultado.errores++;
+            resultado.detallesErrores.push(`${item.codigo}: falta el segmento`);
+            continue;
+          }
+
           // Verificar si ya existe
           const { data: existente } = await supabase
             .from('insumos_variables')
@@ -394,15 +410,17 @@ export const useInsumosVariables = (): UseInsumosVariablesReturn => {
             continue;
           }
 
-          // Crear nuevo insumo
-          const nuevoInsumo = {
-            codigo: item.codigo.toString().toUpperCase(),
-            descripcion: item.descripcion.toString().toUpperCase(),
-            segmento: segmento || item.segmento,
-            precio_unitario: parseFloat(item.precio_unitario),
+          // Crear nuevo insumo. Los `String(...)` no son de adorno: Excel manda
+          // los códigos y precios como number cuando son todos dígitos, y
+          // `parseFloat` sólo acepta texto.
+          const nuevoInsumo: NuevoInsumoVariable = {
+            codigo: String(item.codigo).toUpperCase(),
+            descripcion: String(item.descripcion).toUpperCase(),
+            segmento: seg,
+            precio_unitario: parseFloat(String(item.precio_unitario)),
             unidad: item.unidad || 'Unidad',
             consumo: item.consumo || 'Por Practica',
-            cantidad: parseFloat(item.cantidad || 1),
+            cantidad: parseFloat(String(item.cantidad ?? 1)),
             activo: true,
           };
 

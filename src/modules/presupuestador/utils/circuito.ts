@@ -28,7 +28,7 @@ export async function authHeaders(prefer?: string): Promise<Record<string, strin
   };
 }
 
-export async function sbGet<T = any>(pathAndQuery: string): Promise<T[]> {
+export async function sbGet<T = unknown>(pathAndQuery: string): Promise<T[]> {
   const headers = await authHeaders();
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${pathAndQuery}`, { headers });
   if (!r.ok) throw new Error(r.statusText);

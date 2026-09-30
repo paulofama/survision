@@ -27,7 +27,9 @@ import {
 } from 'lucide-react';
 import { useRecetasCostos } from '@shared/hooks/useRecetasCostos';
 import { usePools } from '@shared/hooks/usePools';
+import type { PoolConItems } from '@shared/types/types_pools';
 import { useInsumosVariables } from '@shared/hooks/useInsumosVariables';
+import type { InsumoVariable } from '@shared/types';
 import { usePrestaciones } from '@shared/hooks/usePrestaciones';
 import type {
   CategoriaPractica,
@@ -668,8 +670,8 @@ interface ConfigModalProps {
   isOpen: boolean;
   receta: RecetaCompleta | null;
   onClose: () => void;
-  pools: any[];
-  insumos: any[];
+  pools: PoolConItems[];
+  insumos: InsumoVariable[];
   onAgregarPool: (poolId: string) => Promise<void>;
   onEliminarPool: (id: string) => Promise<void>;
   onAgregarInsumo: (insumoId: string, cantidad: number) => Promise<void>;

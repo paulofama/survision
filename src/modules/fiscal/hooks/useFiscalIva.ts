@@ -30,8 +30,12 @@ export interface IvaAlicuota {
 }
 
 // ---- helpers de lectura Supabase (con paginacion > 1000 filas) ----
-async function fetchAll(table: string, periodo: string, orderCol: string): Promise<any[]> {
-  const pageSize = 1000; let from = 0; const all: any[] = [];
+/**
+ * Trae TODAS las filas del período, paginando. Genérico en la fila: así cada
+ * llamador dice qué tabla está leyendo y no hace falta castear el resultado.
+ */
+async function fetchAll<T>(table: string, periodo: string, orderCol: string): Promise<T[]> {
+  const pageSize = 1000; let from = 0; const all: T[] = [];
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const { data, error } = await supabase.from(table).select('*').eq('periodo', periodo)
@@ -51,21 +55,31 @@ export async function getPeriodos(): Promise<IvaPeriodo[]> {
 }
 
 export async function getLibro(tipo: 'ventas' | 'compras', periodo: string): Promise<IvaComprobante[]> {
-  return fetchAll(`fiscal_iva_${tipo}`, periodo, 'fecha') as Promise<IvaComprobante[]>;
+  return fetchAll<IvaComprobante>(`fiscal_iva_${tipo}`, periodo, 'fecha');
 }
 
 export async function getAlicuotas(periodo: string): Promise<IvaAlicuota[]> {
-  return fetchAll('fiscal_iva_alicuotas', periodo, 'alicuota') as Promise<IvaAlicuota[]>;
+  return fetchAll<IvaAlicuota>('fiscal_iva_alicuotas', periodo, 'alicuota');
 }
 
-export async function sincronizarPeriodo(periodo: string): Promise<any> {
+/** Lo que contestan los endpoints de sincronización: sólo se mira si salió bien. */
+type RespuestaSync = { success: boolean; error?: string };
+
+export async function sincronizarPeriodo(periodo: string): Promise<RespuestaSync> {
   const res = await fetch(`${getApiBaseUrl()}/fiscal/${periodo}/sync`, { method: 'POST' });
-  const j = await res.json();
+  const j = (await res.json()) as RespuestaSync;
   if (!res.ok || !j.success) throw new Error(j.error || 'Error al sincronizar');
   return j;
 }
 
-export async function getFreshness(periodo: string): Promise<{ stale: boolean; geclisa: any; supabase: any }> {
+/**
+ * `geclisa` y `supabase` van en `unknown` a propósito: son las marcas de
+ * frescura de cada lado y nadie las lee — lo único que se usa es `stale`. Si
+ * algún día hay que mostrarlas, se declara la forma ahí.
+ */
+export async function getFreshness(
+  periodo: string,
+): Promise<{ stale: boolean; geclisa: unknown; supabase: unknown }> {
   const res = await fetch(`${getApiBaseUrl()}/fiscal/${periodo}/freshness`);
   const j = await res.json();
   if (!res.ok || !j.success) throw new Error(j.error || 'Error al chequear frescura');
