@@ -20,7 +20,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight, Lock, RefreshCw, Users, Wallet } from 'lucide-react';
 import supabase from '@shared/lib/supabase';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import AvisoRegimen from '../components/AvisoRegimen';
 import TablaMovimientos from '../components/TablaMovimientos';
 import {

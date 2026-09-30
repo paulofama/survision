@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, Check, FileText, Plus, RefreshCw, Scale, Trash2 } from 'lucide-react';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import {
   activarVersion,
   cargarVersiones,

@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/lib/supabase';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import { TipoRecordatorio } from '../utils/recordatorios';
 import { traerTodo } from '@shared/lib/traerTodo';
 

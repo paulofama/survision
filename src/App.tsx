@@ -16,7 +16,7 @@ import { AuthProvider } from '@shared/context/AuthContext';
 
 // Componentes de autenticación
 import ProtectedRoute from '@shared/components/auth/ProtectedRoute';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import { rutaInicialPara } from '@shared/utils/rutaInicial';
 import LoginPage from '@modules/accesos/pages/LoginPage';
 

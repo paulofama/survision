@@ -39,7 +39,7 @@ import { useF931 } from '../hooks/useF931';
 import { useConciliacion } from '../hooks/useConciliacion';
 import { useAsiento } from '../hooks/useAsiento';
 import { useHallazgos } from '../hooks/useHallazgos';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import {
   COLOR_ESTADO_MES,
   LABEL_ESTADO_MES,

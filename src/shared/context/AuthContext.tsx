@@ -15,7 +15,7 @@
 // sesión custom en localStorage.
 // ============================================
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   UsuarioPublico,
@@ -25,6 +25,7 @@ import {
   PERMISOS_ADMIN,
   STORAGE_KEYS,
 } from '../types/auth.types';
+import { AuthContext, type AuthContextType } from './auth-context';
 
 // ============================================
 // INTERFACES
@@ -33,19 +34,9 @@ import {
 /** El rol tal como lo trae el embed `roles:rol_id (id, nombre, es_admin)`. */
 type RolEmbebido = { id: number; nombre: string; es_admin: boolean | null };
 
-interface AuthContextType {
-  usuario: UsuarioPublico | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  isOnline: boolean;
-  error?: string | null;
-  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  tienePermiso: (modulo: ModuloSistema) => boolean;
-  puedeAcceder: (modulo: ModuloSistema) => boolean;
-  esAdmin: () => boolean;
-  refreshPermisos: () => Promise<void>;
-}
+// El tipo del contexto, el objeto y el hook `useAuth` viven en
+// `auth-context.ts`. Este archivo se queda sólo con el Provider: ver el
+// encabezado de ese archivo para el porqué.
 
 // ============================================
 // HELPERS
@@ -60,12 +51,6 @@ function mapAuthError(error: { message?: string } | null): string {
   if (m.includes('network') || m.includes('fetch')) return 'Error de conexión';
   return error?.message || 'No se pudo iniciar sesión';
 }
-
-// ============================================
-// CONTEXTO
-// ============================================
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ============================================
 // PROVIDER
@@ -364,17 +349,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-// ============================================
-// HOOK
-// ============================================
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe usarse dentro de un AuthProvider');
-  }
-  return context;
-};
-
-export default AuthContext;

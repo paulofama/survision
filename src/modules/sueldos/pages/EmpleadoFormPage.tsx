@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 
 import { useEmpleados } from '../hooks/useEmpleados';
+import { cuilValido, formatearCuil } from '../utils/cuil';
 import { usePlanCuentas } from '../hooks/usePlanCuentas';
 import {
   AREAS_EMPLEADO,
@@ -64,40 +65,8 @@ import {
   cuentaDefaultPorArea,
 } from '../utils/constantes';
 
-// ---------------------------------------------------------------------------
-// VALIDADOR DE CUIL (algoritmo oficial AFIP)
-// ---------------------------------------------------------------------------
-
-/** Acepta XX-XXXXXXXX-X o 11 digitos pegados. Retorna true si el verificador cuadra. */
-export function cuilValido(raw: string): boolean {
-  if (!raw) return false;
-  const d = raw.replace(/\D+/g, '');
-  if (d.length !== 11) return false;
-
-  const prefijo = d.substring(0, 2);
-  const prefijosValidos = ['20', '23', '24', '27', '30', '33', '34'];
-  if (!prefijosValidos.includes(prefijo)) return false;
-
-  const mult = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
-  let suma = 0;
-  for (let i = 0; i < 10; i++) {
-    suma += parseInt(d[i]!, 10) * mult[i]!;
-  }
-  const mod = suma % 11;
-  let verificador: number;
-  if (mod === 0) verificador = 0;
-  else if (mod === 1) verificador = 9; // convencion AFIP para caso borde
-  else verificador = 11 - mod;
-
-  return verificador === parseInt(d[10]!, 10);
-}
-
-/** Formatea 11 digitos a XX-XXXXXXXX-X. Si la entrada no tiene 11 digitos, la devuelve sin cambios. */
-function formatearCuil(raw: string): string {
-  const d = raw.replace(/\D+/g, '');
-  if (d.length !== 11) return raw;
-  return `${d.substring(0, 2)}-${d.substring(2, 10)}-${d.substring(10)}`;
-}
+// `cuilValido` y `formatearCuil` viven en `../utils/cuil`: son funciones
+// puras y acá rompían el Fast Refresh de esta pantalla.
 
 // ---------------------------------------------------------------------------
 // ESQUEMA ZOD

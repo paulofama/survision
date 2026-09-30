@@ -22,7 +22,8 @@ import {
   Users,
   Info,
 } from 'lucide-react';
-import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
+import { MarginalLayout } from '../components/MarginalLayout';
+import { useMarginalContext } from '../components/marginal-context';
 import useCostosFijosDistribucion, {
   getSemaforoColor,
   semaforoClasses,

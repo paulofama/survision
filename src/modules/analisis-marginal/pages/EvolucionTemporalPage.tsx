@@ -33,7 +33,8 @@ import {
   XCircle,
   FileDown,
 } from 'lucide-react';
-import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
+import { MarginalLayout } from '../components/MarginalLayout';
+import { useMarginalContext } from '../components/marginal-context';
 import useEvolucionMensual from '@shared/hooks/useEvolucionMensual';
 import { useEvolucionDetalle, invalidarCacheDetalle, TOPE_FILAS_DETALLE } from '@shared/hooks/useEvolucionDetalle';
 import { useConciliacionCostos } from '@shared/hooks/useConciliacionCostos';

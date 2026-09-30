@@ -4,39 +4,17 @@
 // Centraliza el tipo de cambio para toda la app
 // ============================================
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useAuth } from './AuthContext';
+import React, { useState, useEffect, useCallback, ReactNode } from 'react';
+import { useAuth } from './auth-context';
 import { supabase } from '../lib/supabase';
+import {
+  TipoCambioContext,
+  type TipoCambio,
+  type TipoCambioContextType,
+} from './tipo-cambio-context';
 
-// ============================================
-// TIPOS
-// ============================================
-
-export interface TipoCambio {
-  compra: number;
-  venta: number;
-  fecha: string;
-  fuente: string;
-}
-
-interface TipoCambioContextType {
-  tipoCambio: TipoCambio | null;
-  loading: boolean;
-  error: string | null;
-  lastUpdate: Date | null;
-  refresh: () => Promise<void>;
-  // Helpers para conversión
-  convertirARS: (usd: number) => number;
-  convertirUSD: (ars: number) => number;
-  formatearARS: (monto: number) => string;
-  formatearUSD: (monto: number) => string;
-}
-
-// ============================================
-// CONTEXT
-// ============================================
-
-const TipoCambioContext = createContext<TipoCambioContextType | undefined>(undefined);
+// Los tipos, el objeto de contexto y `useTipoCambio` viven en
+// `tipo-cambio-context.ts`; este archivo se queda sólo con el Provider.
 
 // ============================================
 // PROVIDER
@@ -193,20 +171,6 @@ export const TipoCambioProvider: React.FC<TipoCambioProviderProps> = ({ children
       {children}
     </TipoCambioContext.Provider>
   );
-};
-
-// ============================================
-// HOOK PARA CONSUMIR EL CONTEXT
-// ============================================
-
-export const useTipoCambio = (): TipoCambioContextType => {
-  const context = useContext(TipoCambioContext);
-  
-  if (context === undefined) {
-    throw new Error('useTipoCambio debe usarse dentro de un TipoCambioProvider');
-  }
-  
-  return context;
 };
 
 // ============================================

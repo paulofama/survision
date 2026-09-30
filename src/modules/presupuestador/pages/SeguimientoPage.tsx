@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PhoneCall, MessageCircle, RefreshCw, Bell, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@shared/context/AuthContext";
+import { useAuth } from "@shared/context/auth-context";
 import { sbGet, sbInsert, sbUpsert } from "../utils/circuito";
 import {
   Seguimiento, PresMin, EstadoCola, ESTADO_CONTACTO_META,

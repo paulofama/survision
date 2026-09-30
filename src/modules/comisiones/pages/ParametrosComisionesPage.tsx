@@ -23,7 +23,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, History, Percent, Plus, Power, Users } from 'lucide-react';
 import supabase from '@shared/lib/supabase';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import {
   fmtPct,
   hoyLocal,

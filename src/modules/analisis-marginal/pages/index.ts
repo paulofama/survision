@@ -13,4 +13,5 @@ export { default as PorGrupoPage } from './PorGrupoPage';
 export { default as EvolucionTemporalPage } from './EvolucionTemporalPage';
 
 // Re-export del layout y context
-export { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
+export { MarginalLayout } from '../components/MarginalLayout';
+export { useMarginalContext } from '../components/marginal-context';

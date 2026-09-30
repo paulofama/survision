@@ -21,14 +21,13 @@ import {
   Loader2,
   CalendarRange,
 } from 'lucide-react';
-import {
-  useMovimientosPrestaciones,
-  type OpcionesFiltros,
-  type PrestacionRealizada,
-} from '@shared/hooks/useMovimientosPrestaciones';
-
+import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { useHonorariosConfig } from '@shared/hooks/useHonorariosConfig';
-import type { HonorarioConfig, Prestador } from '@shared/hooks/useHonorariosConfig';
+import {
+  MarginalContext,
+  type MarginalContextType,
+  type RecetaConPools,
+} from './marginal-context';
 import { supabase } from '@shared/lib/supabase';
 import {
   RangoPeriodo,
@@ -41,79 +40,9 @@ import {
   MESES_NOMBRE,
 } from '../utils/periodo';
 
-// ============================================
-// TIPOS
-// ============================================
-
-interface RecetaConPools {
-  codigo_practica: string;
-  nombre_practica: string;
-  categoria: string;
-  cantidad_mensual_estimada: number;
-  costo_pool_consultorio: number;
-  costo_pool_quirofano: number;
-  costo_pool_parabulbar: number;
-  costo_pool_rfg: number;
-  costo_pool_reesterilizables: number;
-  costo_pool_lavado: number;
-  costo_pool_faco: number;
-  costo_pool_implante: number;
-  costo_pool_medicamentos: number;
-  costo_pool_descartables: number;
-  costo_total_pools: number;
-  costo_insumos_directos: number;
-  costo_total_unitario: number;
-}
-
-interface MarginalContextType {
-  // Datos. Los tipos son los que ya devuelven los hooks que los proveen
-  // (`useMovimientosPrestaciones` y `useHonorariosConfig`): declararlos acá es
-  // lo que hace que el contexto no pierda el tipo camino a las pantallas.
-  prestaciones: PrestacionRealizada[];
-  recetasConPools: RecetaConPools[];
-  configHonorarios: HonorarioConfig[];
-  prestadoresHonorarios: Prestador[];
-
-  // Período (rango canónico: un mes o varios). Fuente de verdad del período.
-  rango: RangoPeriodo;
-  setRango: (r: RangoPeriodo) => void;
-
-  // Filtros globales (OS / prestador / segmento; anio/mes quedan por retrocompat,
-  // sincronizados desde `rango`).
-  filtros: {
-    anio: string;
-    mes: string;
-    obraSocialId: string;
-    prestadorId: string;
-    segmento: string;
-  };
-  opcionesFiltros: OpcionesFiltros;
-
-  // Estado
-  loading: boolean;
-  loadingRecetas: boolean;
-  error: string | null;
-  isConnected: boolean;
-
-  // Acciones
-  aplicarFiltros: (nuevos: Partial<MarginalContextType['filtros']>) => void;
-  limpiarFiltros: () => void;
-  refetch: () => Promise<void>;
-}
-
-// ============================================
-// CONTEXT
-// ============================================
-
-const MarginalContext = createContext<MarginalContextType | null>(null);
-
-export const useMarginalContext = () => {
-  const context = useContext(MarginalContext);
-  if (!context) {
-    throw new Error('useMarginalContext debe usarse dentro de MarginalLayout');
-  }
-  return context;
-};
+// Los tipos, el objeto de contexto y `useMarginalContext` viven en
+// `marginal-context.ts`: un .tsx que exporta un componente Y otra cosa rompe
+// el Fast Refresh de Vite. Este archivo se queda solo con el layout.
 
 // ============================================
 // HELPERS DE PERÍODO (module scope)

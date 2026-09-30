@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { usePrestaciones } from '@shared/hooks/usePrestaciones';
 import { supabase } from '@shared/lib/supabase';
-import { useTipoCambio, TipoCambio } from '@shared/context/TipoCambioContext';
+import { useTipoCambio, type TipoCambio } from '@shared/context/tipo-cambio-context';
 import { TipoCambioIndicator } from '@shared/components/ui/TipoCambioIndicator';
 import type { PrestacionConAgrupacion } from '@shared/types';
 

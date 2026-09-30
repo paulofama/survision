@@ -16,7 +16,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Award, Clock, RefreshCw, Wallet } from 'lucide-react';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import AvisoRegimen from '../components/AvisoRegimen';
 import TablaMovimientos from '../components/TablaMovimientos';
 import {

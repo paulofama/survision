@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { TrendingUp, RefreshCw, AlertCircle } from 'lucide-react';
-import { useTipoCambio } from '../../context/TipoCambioContext';
+import { useTipoCambio } from '../../context/tipo-cambio-context';
 
 // ============================================
 // TIPOS

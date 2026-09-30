@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useTipoCambio } from "@shared/context/TipoCambioContext";
-import { useAuth } from "@shared/context/AuthContext";
+import { useTipoCambio } from "@shared/context/tipo-cambio-context";
+import { useAuth } from "@shared/context/auth-context";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 import AnalisisResultados from "../components/AnalisisResultados";
 import { normalizarTelefonoAR } from "../utils/seguimiento";

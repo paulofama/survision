@@ -22,11 +22,12 @@ import {
   AlertTriangle,
   FileText,
 } from 'lucide-react';
-import { MarginalLayout, useMarginalContext } from '../components/MarginalLayout';
+import { MarginalLayout } from '../components/MarginalLayout';
+import { useMarginalContext } from '../components/marginal-context';
 import useCostosFijosDistribucion, { getSemaforoColor, semaforoClasses, semaforoDot } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
 import InformeMensualModal from '../components/InformeMensualModal';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import { formatearPeriodo } from '../utils/periodo';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';

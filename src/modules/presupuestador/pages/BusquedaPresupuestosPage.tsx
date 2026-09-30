@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Send, CheckCircle2, Ban, type LucideIcon } from "lucide-react";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
-import { useAuth } from "@shared/context/AuthContext";
+import { useAuth } from "@shared/context/auth-context";
 import {
   ResultadoComercial,
   MotivoResultado,

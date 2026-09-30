@@ -18,7 +18,7 @@ import {
   ArrowLeft, BarChart3, Download, Loader2, Lock, AlertCircle, AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import type { ModuloSistema } from '@shared/types/auth.types';
 import type {
   AsientoSueldos, AsientoSueldosLinea, F931Declaracion, HallazgoSueldos,

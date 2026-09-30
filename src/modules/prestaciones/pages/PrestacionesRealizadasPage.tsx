@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { FiltroSelect, StatCard } from '@shared/components/ui';
-import { useAuth } from '@shared/context/AuthContext';
+import { useAuth } from '@shared/context/auth-context';
 import PanelCostoPrestacion from '../components/PanelCostoPrestacion';
 
 // ============================================
