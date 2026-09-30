@@ -112,7 +112,7 @@ export const isValidEmail = (email: string): boolean => {
 };
 
 // Debounce para búsquedas
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: never[]) => unknown>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
@@ -136,12 +136,14 @@ export const formatNumber = (num: number): string => {
 };
 
 // Convertir objeto a query string para URLs
-export const objectToQueryString = (obj: Record<string, any>): string => {
+export const objectToQueryString = (obj: Record<string, unknown>): string => {
   const params = new URLSearchParams();
-  
+
   Object.entries(obj).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
-      params.append(key, value.toString());
+      // `String(v)` y no `v.toString()`: con `unknown` no se puede asumir que
+      // el valor tenga el método, y para lo que entra acá dan lo mismo.
+      params.append(key, String(value));
     }
   });
   

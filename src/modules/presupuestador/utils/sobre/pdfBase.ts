@@ -30,7 +30,6 @@ export type Orientacion = "p" | "l";
 
 // Alineación de headers de autoTable (mismo helper que el resto del sistema).
 export type HAlign = "left" | "center" | "right";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const alinear = (d: CellHookData, aligns: Record<number, HAlign>) => {
   if (d.section === "head") {
     const a = aligns[d.column.index];

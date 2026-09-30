@@ -30,6 +30,9 @@ import {
 // INTERFACES
 // ============================================
 
+/** El rol tal como lo trae el embed `roles:rol_id (id, nombre, es_admin)`. */
+type RolEmbebido = { id: number; nombre: string; es_admin: boolean | null };
+
 interface AuthContextType {
   usuario: UsuarioPublico | null;
   isAuthenticated: boolean;
@@ -145,7 +148,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const u = filas[0];
-      const rolData = u.roles as any;
+      // El embed `roles:rol_id (...)` del select de arriba. PostgREST lo
+      // devuelve como objeto en una relación a-uno, pero según cómo infiera el
+      // cliente puede llegar envuelto en un array: si se lee mal, `es_admin`
+      // queda `undefined`, el admin pierde sus permisos y nadie ve un error.
+      const rolData = (Array.isArray(u.roles) ? u.roles[0] : u.roles) as RolEmbebido | null;
       const esAdmin = rolData?.es_admin || false;
 
       const permisos: Record<ModuloSistema, boolean> = esAdmin

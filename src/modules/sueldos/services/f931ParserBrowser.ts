@@ -15,6 +15,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 // Worker de pdf.js servido por Vite (?url -> ruta del asset)
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import type { TextItem } from 'pdfjs-dist/types/src/display/api';
 import type { F931ParseResult, F931ParsedFields } from '../types/sueldos';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
@@ -32,7 +33,10 @@ async function extraerTextoPDF(data: ArrayBuffer): Promise<string> {
     const content = await page.getTextContent();
     // Agrupar items por Y (redondeado) -> cada grupo es una "línea".
     const lineas = new Map<number, { x: number; str: string }[]>();
-    for (const it of content.items as any[]) {
+    // `items` mezcla TextItem (el texto) con TextMarkedContent (marcas de
+    // estructura, que no tienen `str` ni `transform`). El guard de abajo es
+    // lo que separa los dos, así que alcanza con estrechar a TextItem.
+    for (const it of content.items as TextItem[]) {
       if (typeof it.str !== 'string' || it.str === '') continue;
       const y = Math.round(it.transform[5]);
       const x = it.transform[4];

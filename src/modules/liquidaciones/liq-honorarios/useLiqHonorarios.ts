@@ -6,12 +6,31 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import type {
+  LiqHonorario,
   LiqHonorarioConPrestador,
   LiqPrestador,
   LiqOperationResult,
   CajaCalculated,
 } from './types';
 import { calcularOS, calcularTotales } from './useCajaCalculation';
+
+/** El prestador tal como lo trae el embed `prestador:liq_honorarios_prestadores(...)`. */
+type PrestadorEmbebido = {
+  nombre?: string | null;
+  nombre_corto?: string | null;
+  condicion_iva?: string | null;
+  cuit?: string | null;
+};
+
+/**
+ * La fila cruda del `select('*, prestador:...')`: la liquidación entera más el
+ * prestador embebido, que el mapeo de abajo aplana.
+ *
+ * Extiende `LiqHonorario` a propósito y no un índice abierto: con un índice el
+ * compilador deja de chequear el objeto completo, y entonces un campo que la
+ * tabla dejó de traer pasa sin que nadie lo marque.
+ */
+type FilaConPrestador = LiqHonorario & { prestador?: PrestadorEmbebido | null };
 
 export function useLiqHonorarios() {
   const [liquidaciones, setLiquidaciones] = useState<LiqHonorarioConPrestador[]>([]);
@@ -57,7 +76,7 @@ export function useLiqHonorarios() {
       if (err) throw new Error(err.message);
 
       // Mapear el join a la estructura plana
-      const mapped: LiqHonorarioConPrestador[] = (data || []).map((row: any) => ({
+      const mapped: LiqHonorarioConPrestador[] = (data || []).map((row: FilaConPrestador) => ({
         ...row,
         prestador_nombre: row.prestador?.nombre || '',
         prestador_corto: row.prestador?.nombre_corto || null,

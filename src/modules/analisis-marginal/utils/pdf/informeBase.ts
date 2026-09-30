@@ -117,7 +117,6 @@ export const vari = (actual: number, anterior: number): Variacion => {
 
 /** Alinea los encabezados de autoTable con los datos de su columna. */
 export type HAlign = 'left' | 'center' | 'right';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const alinear = (d: CellHookData, aligns: Record<number, HAlign>) => {
   if (d.section === 'head') {
     const a = aligns[d.column.index];

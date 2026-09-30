@@ -41,8 +41,10 @@ const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // Ruta de origen para redirigir después del login
-  const from = (location.state as any)?.from?.pathname || '/';
+  // Ruta de origen para redirigir después del login. `location.state` lo pone
+  // quien redirige al login, así que se declara la forma que esperamos en vez
+  // de confiar: si viene otra cosa, cae en la raíz.
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
 
   // ============================================
   // EFECTOS

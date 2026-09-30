@@ -9,6 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import type { ModuloSistema } from '../../types/auth.types';
 import {
   Home,
   Package,
@@ -68,7 +69,7 @@ interface SubItem {
   path: string;
   label: string;
   icon?: React.ElementType;
-  requierePermiso?: string;
+  requierePermiso?: ModuloSistema;
   /** Sólo Dirección. El módulo puede ser de todos y la subsección no. */
   adminOnly?: boolean;
 }
@@ -80,7 +81,7 @@ interface NavItem {
   badge?: string;
   adminOnly?: boolean;
   restricted?: boolean;
-  requierePermiso?: string;
+  requierePermiso?: ModuloSistema;
   subItems?: SubItem[];
 }
 
@@ -433,7 +434,7 @@ const Sidebar: React.FC = () => {
     // Items solo para admin
     if (item.adminOnly && !esAdmin()) return false;
     // Items que requieren permiso de módulo específico
-    if (item.requierePermiso && !tienePermiso(item.requierePermiso as any)) return false;
+    if (item.requierePermiso && !tienePermiso(item.requierePermiso)) return false;
     return true;
   });
 
@@ -656,7 +657,7 @@ const Sidebar: React.FC = () => {
                     <ul className="mt-1 ml-4 space-y-1">
                       {item.subItems!
                         .filter(subItem => !subItem.adminOnly || esAdmin())
-                        .filter(subItem => !subItem.requierePermiso || tienePermiso(subItem.requierePermiso as any))
+                        .filter(subItem => !subItem.requierePermiso || tienePermiso(subItem.requierePermiso))
                         .map(subItem => {
                         const SubIcon = subItem.icon;
                         const isSubActive = location.pathname === subItem.path;

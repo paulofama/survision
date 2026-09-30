@@ -387,7 +387,6 @@ function seccionResumen(L: Lienzo, d: DatosInformeMensual) {
       2: { halign: 'right' },
       3: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right' });
       if (h.section === 'body' && h.row.index === 3) {
@@ -545,7 +544,6 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
       0: { cellWidth: 34 }, 1: { halign: 'right', fontStyle: 'bold' }, 2: { halign: 'right' },
       3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right' });
       if (h.section === 'body' && h.row.index === 3) {
@@ -578,7 +576,6 @@ function seccionVolumen(L: Lienzo, d: DatosInformeMensual) {
       0: { cellWidth: 62 }, 1: { halign: 'right', fontStyle: 'bold' },
       2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
   });
   L.y = L.doc.lastAutoTable.finalY + 4;
@@ -645,7 +642,6 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
     styles: { ...TABLA_BASE.styles, fontSize: 6.6, cellPadding: 1.2 },
     headStyles: { ...TABLA_BASE.headStyles, fontSize: 6.6 },
     columnStyles: { 0: { cellWidth: 36, fontStyle: 'bold' } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       if (h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section === 'body' && (h.row.index === 5 || h.row.index === 7)) {
@@ -712,7 +708,6 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       0: { cellWidth: 40, fontStyle: 'bold' }, 1: { halign: 'right', cellWidth: 28 },
       2: { halign: 'right', cellWidth: 16 }, 3: { fontSize: 7 },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right' });
       if (h.section === 'body' && h.row.index === 4) {
@@ -772,7 +767,6 @@ function seccionExplicacion(L: Lienzo, d: DatosInformeMensual) {
       0: { cellWidth: 48 }, 1: { halign: 'right' }, 2: { halign: 'right' },
       3: { halign: 'right' }, 4: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' });
       if (h.section === 'body' && h.column.index === 3) {
@@ -890,7 +884,6 @@ function seccionPrestaciones(L: Lienzo, d: DatosInformeMensual) {
       2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' },
       5: { halign: 'right' }, 6: { halign: 'right' }, 7: { halign: 'right' }, 8: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right', 6: 'right', 7: 'right', 8: 'right' });
       // Resultado operativo negativo en rojo.
@@ -948,7 +941,6 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
       0: { cellWidth: 50 }, 1: { halign: 'right', textColor: C.cyan },
       2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right', 5: 'right' });
       if (h.section === 'body' && (h.column.index === 2 || h.column.index === 4)) {
@@ -994,7 +986,6 @@ function seccionObrasSociales(L: Lienzo, d: DatosInformeMensual) {
       0: { cellWidth: 38 }, 1: { halign: 'right' }, 2: { halign: 'right' },
       3: { cellWidth: 38 }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 4: 'right', 5: 'right' });
       if (h.section === 'body' && (h.column.index === 2)) h.cell.styles.textColor = C.green;
@@ -1028,7 +1019,6 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
       ['TOTAL VARIABLES', fmt(m.costosVariables), fmtPct(m.facturacion > 0 ? (m.costosVariables / m.facturacion) * 100 : 0), a ? vari(m.costosVariables, a.costosVariables).texto : '—'],
     ],
     columnStyles: { 0: { cellWidth: 62 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right' });
       if (h.section === 'body' && h.row.index === 3) {
@@ -1075,7 +1065,6 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
         p ? vari(m.costosFijos, p.costosFijos).texto : '—'],
     ],
     columnStyles: { 0: { cellWidth: 56 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' });
       const ultima = h.row.index === m.costosFijosPorCategoria.length;
@@ -1112,7 +1101,6 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
       styles: { ...TABLA_BASE.styles, fontSize: 6.8, cellPadding: 1.2 },
       headStyles: { ...TABLA_BASE.headStyles, fontSize: 6.8 },
       columnStyles: { 0: { cellWidth: 34 }, 1: { cellWidth: 16 }, 2: { cellWidth: 38 }, 4: { halign: 'right', cellWidth: 26 } },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       didParseCell: (h: CellHookData) => alinear(h, { 4: 'right' }),
     });
     L.y = L.doc.lastAutoTable.finalY + 4;
@@ -1202,7 +1190,6 @@ function seccionCalidad(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme
     head: [['Alerta', 'Detalle']],
     body: alertas.map(a => [a.tema, a.detalle]),
     columnStyles: { 0: { cellWidth: 44, fontStyle: 'bold' }, 1: { fontSize: 7 } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       if (h.section === 'body' && alertas[h.row.index]?.critico && h.column.index === 0) {
         h.cell.styles.textColor = C.red;
@@ -1236,7 +1223,6 @@ function anexo(L: Lienzo, d: DatosInformeMensual) {
       0: { cellWidth: 72 }, 1: { halign: 'right', textColor: C.cyan },
       2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => alinear(h, { 1: 'right', 2: 'right', 3: 'right', 4: 'right' }),
   });
   L.y = L.doc.lastAutoTable.finalY + 4;

@@ -58,13 +58,23 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 };
 
 /**
- * Manejo centralizado de errores de Supabase
+ * Lo que trae un error de PostgREST o de Postgres. Los dos campos son
+ * opcionales porque acá también llegan errores de red, que no tienen ninguno.
  */
-export const handleSupabaseError = (error: any): string => {
+type ErrorSupabase = { code?: string; message?: string };
+
+/**
+ * Manejo centralizado de errores de Supabase.
+ *
+ * Entra `unknown` porque un `catch` puede traer cualquier cosa; se estrecha
+ * una sola vez, acá, contra una forma declarada.
+ */
+export const handleSupabaseError = (error: unknown): string => {
   if (!error) return 'Error desconocido';
-  
+
+  const e = error as ErrorSupabase;
   // Errores específicos de PostgreSQL
-  switch (error.code) {
+  switch (e.code) {
     case 'PGRST116':
       return 'No se encontraron registros';
     case 'PGRST301':
@@ -76,7 +86,7 @@ export const handleSupabaseError = (error: any): string => {
     case '23503':
       return 'Error de integridad referencial';
     default:
-      return error.message || 'Error en la base de datos';
+      return e.message || 'Error en la base de datos';
   }
 };
 

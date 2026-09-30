@@ -81,7 +81,8 @@ export default function MatchesRevisionModal({
     }
   };
 
-  useEffect(() => { cargar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Una sola vez, al abrir el modal: `cargar` no se re-crea para esto.
+  useEffect(() => { cargar(); }, []);
 
   const confirmar = async (g: Grupo, cand: MatchRow) => {
     setBusy(cand.id);

@@ -93,7 +93,7 @@ function agruparPorCuentaGasto(lineas: LineaEmpleado[], campoMonto: 'bruto' | 'm
   for (const l of lineas) {
     const { area, cuenta } = resolverAreaCuenta(l, empleadosMap);
     const prev = map.get(cuenta) || { area, monto: 0 };
-    prev.monto = r2(prev.monto + num((l as any)[campoMonto]));
+    prev.monto = r2(prev.monto + num(l[campoMonto]));
     map.set(cuenta, prev);
   }
   return map;

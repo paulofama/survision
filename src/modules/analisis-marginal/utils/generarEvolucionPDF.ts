@@ -459,7 +459,6 @@ function seccionUltimoMes(
       2: { halign: 'right' }, 3: { halign: 'right' },
       4: { halign: 'right' }, 5: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section !== 'body') return;
@@ -644,7 +643,6 @@ function seccionEstadoResultados(
       [meses.length + 1]: { halign: 'right' as const, fontStyle: 'bold' as const },
       [meses.length + 2]: { halign: 'right' as const, textColor: C.medium },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (d: CellHookData) => {
       if (d.section !== 'body') return;
       const f = meta[d.row.index];
@@ -788,7 +786,6 @@ function seccionEvolucion(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[]) 
       0: { cellWidth: 34 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' },
       4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' }, 6: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section === 'body' && (h.column.index === 5 || h.column.index === 6)) {
@@ -900,7 +897,6 @@ function seccionEquilibrio(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[])
       0: { cellWidth: 34 }, 1: { halign: 'right' }, 2: { halign: 'right' },
       3: { halign: 'right', fontStyle: 'bold' }, 4: { halign: 'right' }, 5: { halign: 'right' },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (h: CellHookData) => {
       if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
       if (h.section === 'body' && (h.column.index === 3 || h.column.index === 4)) {
@@ -946,7 +942,6 @@ function seccionEquilibrio(L: Lienzo, serie: CifrasMes[], sinLiquidacion: Mes[])
         0: { cellWidth: 30 }, 1: { halign: 'right' }, 2: { halign: 'right' },
         3: { halign: 'right', fontStyle: 'bold' }, 4: { halign: 'right' },
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       didParseCell: (h: CellHookData) => {
         if (h.section === 'head' && h.column.index > 0) h.cell.styles.halign = 'right';
         if (h.section === 'body' && (h.column.index === 3 || h.column.index === 4)) {

@@ -256,7 +256,13 @@ export const useRecetasCostos = (): UseRecetasCostosReturn => {
 
             if (recetasPool && recetasPool.length > 0) {
               totalPracticasPool = recetasPool.reduce((sum, rp) => {
-                const receta = rp.receta as any;
+                // El embed `receta:practicas_recetas(...)` del select de arriba.
+                // Según cómo infiera el cliente puede llegar como objeto o
+                // envuelto en un array; si se lee mal, el total queda en 0 y el
+                // prorrateo del pool reparte de más.
+                const receta = (Array.isArray(rp.receta) ? rp.receta[0] : rp.receta) as
+                  | { cantidad_mensual_estimada: number | null; activo: boolean | null }
+                  | null;
                 if (receta && receta.activo) {
                   return sum + (receta.cantidad_mensual_estimada || 0);
                 }

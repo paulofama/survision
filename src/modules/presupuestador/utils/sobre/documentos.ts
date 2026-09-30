@@ -346,7 +346,6 @@ export function docCronograma(L: Lienzo, ctx: SobreCtx, abrirHoja: (L: Lienzo) =
     headStyles: { fillColor: [20, 40, 90], textColor: [255, 255, 255], fontSize: 11, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [244, 247, 252] },
     columnStyles: { 0: { cellWidth: 22, halign: "center", fontStyle: "bold" } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     didParseCell: (d: CellHookData) => alinear(d, { 0: "center", 1: "left", 2: "left", 3: "left" }),
     // Red de seguridad: si aun así se abriera una hoja, que lleve el membrete.
     didDrawPage: (d) => { if (d.pageNumber > 1) membrete(L); },
@@ -876,7 +875,6 @@ export function docRecetaCostos(L: Lienzo, ctx: SobreCtx) {
         3: { cellWidth: 28, halign: "right" },
         4: { cellWidth: 28, halign: "right" },
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       didParseCell: (d: CellHookData) => alinear(d, { 2: "right", 3: "right", 4: "right" }),
       didDrawPage: (d) => { if (d.pageNumber > 1) membrete(L); },
     });

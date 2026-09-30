@@ -291,7 +291,7 @@ export function LiqHonorariosList({
       const tel = normalizarTel(modal.telefono.trim());
       window.open(`https://wa.me/${tel}`, '_blank');
       setModal(CLOSED);
-    } catch (err: any) {
+    } catch {
       setModal(prev => ({ ...prev, sending: false, error: 'Error al guardar el teléfono' }));
     }
   }, [modal]);

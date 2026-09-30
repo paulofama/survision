@@ -117,11 +117,19 @@ const InsumosVariablesPage: React.FC = () => {
 
       // Crear mapa de insumo_id -> pool
       const poolMap = new Map<string, { pool_id: string; pool_nombre: string }>();
-      poolItemsData?.forEach((item: any) => {
-        if (item.pools_insumos) {
+      // La fila del select de arriba. El embed `pools_insumos` puede llegar
+      // como objeto o dentro de un array según cómo lo infiera el cliente.
+      type FilaPoolItem = {
+        insumo_id: string;
+        pool_id: string;
+        pools_insumos: { id: string; nombre: string } | { id: string; nombre: string }[] | null;
+      };
+      (poolItemsData as FilaPoolItem[] | null)?.forEach((item) => {
+        const pool = Array.isArray(item.pools_insumos) ? item.pools_insumos[0] : item.pools_insumos;
+        if (pool) {
           poolMap.set(item.insumo_id, {
             pool_id: item.pool_id,
-            pool_nombre: item.pools_insumos.nombre
+            pool_nombre: pool.nombre
           });
         }
       });
