@@ -25,9 +25,26 @@
 //   1. Aprende de TODAS las clasificaciones ya hechas.
 //   2. Arma dos índices: proveedor+monto (específico) y proveedor (dominante).
 //   3. Para cada erogación sin clasificar busca primero el específico y, si no
-//      hay, el dominante. Sin match, la deja sin clasificar: NO inventa.
-//   4. Escribe con `auto_clasificado: true` y `clasificado_por: 'sugerencia'`,
+//      hay, el dominante.
+//   4. Si el histórico no sabe, lo dice el TIPO DE PROVEEDOR de GECLISA
+//      (migración 58): 4 insumos, 5 honorarios, 3 insumos de oficina, 1
+//      servicios u honorarios profesionales según el concepto de ganancias.
+//      Este nivel nunca pisa al histórico, sólo lo completa. Sin nada de esto,
+//      la deja sin clasificar: NO inventa.
+//   5. Escribe con `auto_clasificado: true` y `clasificado_por: 'sugerencia'`,
 //      que es lo que hace que salgan marcadas "Auto" para revisar.
+//
+// DOS COSAS QUE ESTE SCRIPT TENÍA DESACTUALIZADAS (30/09/2026)
+// -------------------------------------------------------------
+// El aviso de arriba —"si el algoritmo cambia allá, tiene que cambiar acá"—
+// se cumplió, y había divergido en dos puntos:
+//
+//   · Le faltaba el nivel 4 entero, agregado al front el 27/09.
+//   · `normProv` no neutralizaba "-", "S/D" ni "—", así que todos los
+//     comprobantes SIN proveedor caían en un mismo balde y el histórico de ese
+//     balde sugería cualquier cosa. Ese bug ya se había arreglado en el front
+//     después de dejar 11 de 15 sugerencias mal en agosto-2026; acá seguía
+//     vivo, y este script escribe de a un año entero.
 //
 // Lo que el script NO hace es decidir: sugiere lo que ya se decidió antes para
 // ese proveedor. Una sugerencia sin revisar es una hipótesis, no un asiento.
@@ -53,8 +70,39 @@ const sb = createClient(
 
 const ars = (n) => '$' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 
-/** Igual que `normalizarProveedor` en useErogaciones.ts. */
-const normProv = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+/**
+ * Igual que `normalizarProveedor` en useErogaciones.ts.
+ *
+ * "-", "S/D" y "—" NO son proveedores: son el campo vacío escrito de tres
+ * maneras. Si se los deja pasar, todos los comprobantes sin proveedor caen en
+ * un mismo balde y el histórico de ese balde "aprende" cualquier cosa. Ya
+ * pasó: 11 de 15 sugerencias mal en agosto-2026. Devuelven cadena vacía, y
+ * quien llama tiene que saltear el histórico cuando el proveedor viene vacío.
+ */
+const normProv = (s) => {
+  const limpio = String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  return limpio === '-' || limpio === 'S/D' || limpio === '—' ? '' : limpio;
+};
+
+/** Nombres de categoría que implica el tipo de proveedor de GECLISA. */
+const NOMBRE_CATEGORIA_POR_TIPO = { 3: 'Insumos de Oficina', 1: 'Servicios' };
+
+/** Igual que `porTipoProveedor` en useErogaciones.ts. */
+const porTipoProveedor = (tipoProv, concGan, idDeCategoria) => {
+  switch (tipoProv) {
+    case 4: return { tipo: 'variable', cat: null, sub: 'insumos' };
+    case 5: return { tipo: 'variable', cat: null, sub: 'honorarios' };
+    case 3: return { tipo: 'fijo', cat: idDeCategoria('Insumos de Oficina'), sub: null };
+    case 1: {
+      // El tipo 1 mezcla un flete con un estudio jurídico: lo desempata el
+      // concepto de ganancias.
+      const nombre = concGan === 2 ? 'Honorarios Profesionales' : NOMBRE_CATEGORIA_POR_TIPO[1];
+      return { tipo: 'fijo', cat: idDeCategoria(nombre), sub: null };
+    }
+    // 0 es "S/D" y null es caja o liquidaciones: en los dos casos no se sabe.
+    default: return null;
+  }
+};
 
 /** Igual que `normalizeTipoCosto` en useErogaciones.ts. */
 const normTipo = (v) => {
@@ -76,14 +124,17 @@ const normTipo = (v) => {
  * Se ordena por la clave única (fuente, id_geclisa) para que el corte de cada
  * página sea determinístico.
  */
-async function traerTodo(tabla, select, filtro) {
+async function traerTodo(tabla, select, filtro, orden) {
+  // El orden se puede cambiar, pero NUNCA sacar: es lo que hace que las
+  // páginas no se pisen. Las tablas que no tienen (fuente, id_geclisa) pasan
+  // el suyo.
+  const claves = orden || ['fuente', 'id_geclisa'];
   const out = [];
   let desde = 0;
   for (;;) {
-    let q = sb.from(tabla).select(select)
-      .order('fuente', { ascending: true })
-      .order('id_geclisa', { ascending: true })
-      .range(desde, desde + 999);
+    let q = sb.from(tabla).select(select);
+    for (const k of claves) q = q.order(k, { ascending: true });
+    q = q.range(desde, desde + 999);
     if (filtro) q = filtro(q);
     const { data, error } = await q;
     if (error) throw new Error(`${tabla}: ${error.message}`);
@@ -140,10 +191,17 @@ function dominantes(indice) {
   console.log(`Proveedores aprendidos: ${domProv.size} · combinaciones proveedor+monto: ${domProvMonto.size}`);
   console.log('');
 
+  // 1b. Las categorías, para poder traducir el nombre que implica el tipo de
+  // proveedor al id que se guarda.
+  const cats = await traerTodo('categorias_costo_fijo', 'id, nombre', null, ['id']);
+  const porNombre = new Map(cats.map((x) => [String(x.nombre).trim().toUpperCase(), x.id]));
+  const idDeCategoria = (nombre) => porNombre.get(String(nombre).trim().toUpperCase()) || null;
+
   // 2. Las erogaciones del año, y cuáles ya están clasificadas.
   const crudas = await traerTodo(
     'erogaciones_geclisa',
-    'fuente, id_geclisa, anio, mes, fecha, descripcion, proveedor_nombre, monto, categoria_sugerida',
+    'fuente, id_geclisa, anio, mes, fecha, descripcion, proveedor_nombre, monto, categoria_sugerida, '
+      + 'tipo_proveedor_id, concepto_ganancias_id',
     (q) => q.eq('anio', ANIO),
   );
   const yaClas = await traerTodo('erogaciones_clasificacion', 'fuente, id_geclisa', (q) => q.eq('anio', ANIO));
@@ -155,13 +213,19 @@ function dominantes(indice) {
   const filas = [];
   const sinMatch = [];
   let porEspecifico = 0;
+  let porTipo = 0;
   for (const e of crudas) {
     if (clasificadas.has(`${e.fuente}_${e.id_geclisa}`)) continue;
     const prov = normProv(e.proveedor_nombre);
-    const especifico = domProvMonto.get(`${prov}|${Math.round(Number(e.monto) || 0)}`);
-    const d = especifico || domProv.get(prov);
+    // Sin proveedor no se consulta el histórico: ver `normProv`.
+    const especifico = prov ? domProvMonto.get(`${prov}|${Math.round(Number(e.monto) || 0)}`) : undefined;
+    const delHistorico = especifico || (prov ? domProv.get(prov) : undefined);
+    // Tercer nivel: si el histórico no sabe, lo dice el tipo de proveedor de
+    // GECLISA (migración 58). Nunca pisa al histórico, sólo lo completa.
+    const d = delHistorico || porTipoProveedor(e.tipo_proveedor_id, e.concepto_ganancias_id, idDeCategoria);
     if (!d) { sinMatch.push(e); continue; }
     if (especifico) porEspecifico++;
+    if (!delHistorico) porTipo++;
     filas.push({
       fuente: e.fuente,
       id_geclisa: e.id_geclisa,
@@ -187,7 +251,8 @@ function dominantes(indice) {
   const variable = filas.filter((f) => f.tipo_costo === 'variable');
 
   console.log('');
-  console.log(`SE PUEDEN SUGERIR: ${filas.length} (${porEspecifico} por proveedor+monto, ${filas.length - porEspecifico} por proveedor)`);
+  console.log(`SE PUEDEN SUGERIR: ${filas.length} (${porEspecifico} por proveedor+monto, `
+    + `${filas.length - porEspecifico - porTipo} por proveedor, ${porTipo} por tipo de proveedor)`);
   console.log(`   fijo     ${String(fijo.length).padStart(5)} · ${ars(suma(fijo))}`);
   console.log(`   variable ${String(variable.length).padStart(5)} · ${ars(suma(variable))}`);
   console.log(`SIN MATCH:     ${sinMatch.length} · ${ars(suma(sinMatch))}  (quedan sin clasificar, a mano)`);
