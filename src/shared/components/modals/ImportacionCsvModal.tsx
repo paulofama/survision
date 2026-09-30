@@ -39,10 +39,42 @@ interface EstadisticasImportacion {
   totalFacturado: number;
 }
 
+/** Lo único que este modal necesita de una prestación de la base para matchear. */
+type PrestacionParaMatch = {
+  id?: string;
+  codigo?: string;
+  practica?: string | null;
+};
+
+/** La prestación que ganó el fuzzy matching, con el puntaje que sacó. */
+type Coincidencia = PrestacionParaMatch & { similitud: number };
+
+/** Una fila del CSV con las columnas como texto, tal cual vinieron. */
+type FilaCruda = Record<string, string>;
+
+/** La misma fila ya validada, con los importes convertidos a número. */
+type FilaParseada = {
+  prestacion: string;
+  mes: string;
+  coseguro: number;
+  cobertura: number;
+  total: number;
+};
+
+/** Un grupo (prestación + mes) mientras se le acumulan los importes. */
+type Grupo = {
+  nombre_csv: string;
+  mes: string;
+  cantidad: number;
+  coseguros: number[];
+  coberturas: number[];
+  totales: number[];
+};
+
 interface ImportacionCsvModalProps {
   isOpen: boolean;
   onClose: () => void;
-  prestaciones: any[]; // Lista de prestaciones de BD
+  prestaciones: PrestacionParaMatch[]; // Lista de prestaciones de BD
   onImportSuccess: (estadisticas: EstadisticasImportacion) => void;
 }
 
@@ -101,9 +133,12 @@ function normalizarTexto(texto: string): string {
 /**
  * Busca la mejor coincidencia para una prestación
  */
-function buscarMejorCoincidencia(nombreCsv: string, prestaciones: any[]): any {
+function buscarMejorCoincidencia(
+  nombreCsv: string,
+  prestaciones: PrestacionParaMatch[],
+): Coincidencia | null {
   const nombreNormalizado = normalizarTexto(nombreCsv);
-  let mejorCoincidencia = null;
+  let mejorCoincidencia: Coincidencia | null = null;
   let mejorSimilitud = 0;
 
   for (const prestacion of prestaciones) {
@@ -164,44 +199,49 @@ const ImportacionCsvModal: React.FC<ImportacionCsvModalProps> = ({
     }
 
     // Procesar datos
-    const registros: any[] = [];
-    
+    const registros: FilaParseada[] = [];
+
     for (let i = 1; i < lineas.length; i++) {
       const valores = lineas[i].split(',').map(v => v.replace(/"/g, '').trim());
-      const registro: any = {};
-      
+      const registro: FilaCruda = {};
+
       headers.forEach((header, index) => {
         registro[header] = valores[index] || '';
       });
-      
-      // Validar y convertir
+
+      // Validar y convertir. La fila cruda queda separada de la parseada: así
+      // las columnas del CSV siguen siendo texto y los importes son números
+      // desde el momento en que se convierten, sin un objeto que sea las dos
+      // cosas a la vez.
       if (registro.Fecha && registro.Prestacion) {
         const fecha = new Date(registro.Fecha);
         if (!isNaN(fecha.getTime())) {
-          registro.mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-          registro.coseguro = parseFloat(registro.Coseguro) || 0;
-          registro.cobertura = parseFloat(registro.Cobertura) || 0;
-          registro.total = parseFloat(registro.Total) || 0;
-          registros.push(registro);
+          registros.push({
+            prestacion: registro.Prestacion,
+            mes: `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`,
+            coseguro: parseFloat(registro.Coseguro) || 0,
+            cobertura: parseFloat(registro.Cobertura) || 0,
+            total: parseFloat(registro.Total) || 0,
+          });
         }
       }
     }
 
     // Agrupar por prestación y mes
-    const agrupados = new Map<string, any>();
-    
+    const agrupados = new Map<string, Grupo>();
+
     registros.forEach(registro => {
-      const clave = `${registro.Prestacion}|${registro.mes}`;
+      const clave = `${registro.prestacion}|${registro.mes}`;
       
-      if (agrupados.has(clave)) {
-        const existente = agrupados.get(clave);
+      const existente = agrupados.get(clave);
+      if (existente) {
         existente.cantidad += 1;
         existente.coseguros.push(registro.coseguro);
         existente.coberturas.push(registro.cobertura);
         existente.totales.push(registro.total);
       } else {
         agrupados.set(clave, {
-          nombre_csv: registro.Prestacion,
+          nombre_csv: registro.prestacion,
           mes: registro.mes,
           cantidad: 1,
           coseguros: [registro.coseguro],
@@ -233,7 +273,9 @@ const ImportacionCsvModal: React.FC<ImportacionCsvModalProps> = ({
         total_facturado: Math.round(total_facturado * 100) / 100,
         codigo: coincidencia?.codigo,
         prestacion_id: coincidencia?.id,
-        nombre_bd: coincidencia?.practica,
+        // El `?? undefined` no es de adorno: la columna `practica` es nulable
+        // y `nombre_bd` no acepta null. El `any` de antes tapaba la diferencia.
+        nombre_bd: coincidencia?.practica ?? undefined,
         similitud: coincidencia?.similitud || 0,
         mapeado: !!coincidencia
       });

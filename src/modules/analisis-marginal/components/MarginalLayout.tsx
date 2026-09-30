@@ -21,8 +21,14 @@ import {
   Loader2,
   CalendarRange,
 } from 'lucide-react';
-import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
+import {
+  useMovimientosPrestaciones,
+  type OpcionesFiltros,
+  type PrestacionRealizada,
+} from '@shared/hooks/useMovimientosPrestaciones';
+
 import { useHonorariosConfig } from '@shared/hooks/useHonorariosConfig';
+import type { HonorarioConfig, Prestador } from '@shared/hooks/useHonorariosConfig';
 import { supabase } from '@shared/lib/supabase';
 import {
   RangoPeriodo,
@@ -60,11 +66,13 @@ interface RecetaConPools {
 }
 
 interface MarginalContextType {
-  // Datos
-  prestaciones: any[];
+  // Datos. Los tipos son los que ya devuelven los hooks que los proveen
+  // (`useMovimientosPrestaciones` y `useHonorariosConfig`): declararlos acá es
+  // lo que hace que el contexto no pierda el tipo camino a las pantallas.
+  prestaciones: PrestacionRealizada[];
   recetasConPools: RecetaConPools[];
-  configHonorarios: any[];
-  prestadoresHonorarios: any[];
+  configHonorarios: HonorarioConfig[];
+  prestadoresHonorarios: Prestador[];
 
   // Período (rango canónico: un mes o varios). Fuente de verdad del período.
   rango: RangoPeriodo;
@@ -79,7 +87,7 @@ interface MarginalContextType {
     prestadorId: string;
     segmento: string;
   };
-  opcionesFiltros: any;
+  opcionesFiltros: OpcionesFiltros;
 
   // Estado
   loading: boolean;

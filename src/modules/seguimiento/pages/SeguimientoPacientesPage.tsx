@@ -83,7 +83,7 @@ function KpiCard({
   variacion,
   color,
 }: {
-  icon: any;
+  icon: React.ElementType;
   label: string;
   value: number;
   prev: number;
@@ -230,7 +230,7 @@ function AlertDetailTable({ alerta }: { alerta: Alerta }) {
           </tr>
         </thead>
         <tbody>
-          {alerta.detalle.map((d: any, i: number) => (
+          {alerta.detalle.map((d, i) => (
             <tr key={i} className="border-b border-gray-100 hover:bg-white/50">
               <td className="py-1.5 font-medium text-gray-800">{cleanName(d.paciente)}</td>
               <td className="py-1.5 text-gray-600">{d.edad}</td>
@@ -260,7 +260,7 @@ function AlertDetailTable({ alerta }: { alerta: Alerta }) {
           </tr>
         </thead>
         <tbody>
-          {alerta.detalle.slice(0, 15).map((d: any, i: number) => (
+          {alerta.detalle.slice(0, 15).map((d, i) => (
             <tr key={i} className="border-b border-gray-100 hover:bg-white/50">
               <td className="py-1.5 font-medium text-gray-800">{cleanName(d.paciente)}</td>
               <td className="py-1.5 text-gray-600">{d.edad}</td>
@@ -292,7 +292,7 @@ function AlertDetailTable({ alerta }: { alerta: Alerta }) {
           </tr>
         </thead>
         <tbody>
-          {alerta.detalle.slice(0, 20).map((d: any, i: number) => (
+          {alerta.detalle.slice(0, 20).map((d, i) => (
             <tr key={i} className="border-b border-gray-100 hover:bg-white/50">
               <td className="py-1.5 font-medium text-gray-800">{cleanName(d.paciente)}</td>
               <td className="py-1.5 text-gray-600">{d.edad}</td>
@@ -340,7 +340,7 @@ function AlertDetailTable({ alerta }: { alerta: Alerta }) {
           </tr>
         </thead>
         <tbody>
-          {alerta.detalle.map((d: any, i: number) => (
+          {alerta.detalle.map((d, i) => (
             <tr key={i} className="border-b border-gray-100 hover:bg-white/50">
               <td className="py-1.5 font-medium text-gray-800">{cleanName(d.paciente)}</td>
               <td className="py-1.5 text-gray-600">{d.edad}</td>
@@ -684,7 +684,7 @@ export default function SeguimientoPacientesPage() {
     badge,
   }: {
     id: string;
-    icon: any;
+    icon: React.ElementType;
     title: string;
     subtitle?: string;
     badge?: React.ReactNode;

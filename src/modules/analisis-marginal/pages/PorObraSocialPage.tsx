@@ -147,7 +147,10 @@ const PorObraSocialContent: React.FC = () => {
     prestaciones.forEach(prest => {
       const sigla = prest.os_sigla || 'SIN OS';
       const nombre = prest.os_nombre || 'Sin Obra Social';
-      const esParticular = prest.particular === 'Particular' || sigla === 'PARTICULAR';
+      // Antes esto empezaba con `prest.particular === 'Particular'`, un campo
+      // que `PrestacionRealizada` no trae: la condición era siempre falsa y lo
+      // que decidía era la sigla, que es lo que quedó.
+      const esParticular = sigla === 'PARTICULAR';
       const facturado = prest.total || 0;
       const coseguro = prest.coseguro || 0;
       const cobertura = prest.cobertura || 0;
@@ -174,7 +177,7 @@ const PorObraSocialContent: React.FC = () => {
       const existing = agrupado.get(sigla);
       if (existing) {
         existing.cantidad++;
-        existing.pacientes.add(prest.apellido_nombre || '');
+        existing.pacientes.add(prest.paciente || '');
         existing.facturado += facturado;
         existing.coseguro += coseguro;
         existing.cobertura += cobertura;
@@ -186,7 +189,7 @@ const PorObraSocialContent: React.FC = () => {
         if (segmento === 'Cirugias') existing.cirugias++;
       } else {
         const pacientes = new Set<string>();
-        pacientes.add(prest.apellido_nombre || '');
+        pacientes.add(prest.paciente || '');
         agrupado.set(sigla, {
           sigla, nombre, esParticular,
           cantidad: 1, pacientes, facturado, coseguro, cobertura,

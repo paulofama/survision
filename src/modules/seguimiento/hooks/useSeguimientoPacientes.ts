@@ -20,15 +20,68 @@ export interface KPIs {
   totalEstudios: number;
 }
 
-export interface Alerta {
-  id: string;
+/** Una fila del detalle de `postqx-sin-control`. */
+export interface DetallePostQx {
+  paciente: string;
+  edad: number;
+  obraSocial: string;
+  cirugia: string;
+  fechaCirugia: string;
+  prestadorCirugia: string;
+}
+
+/** Una fila del detalle de `hiperfrecuentadores-no-qx`. */
+export interface DetalleHiperfrecuentador {
+  paciente: string;
+  edad: number;
+  visitas: number;
+  obrasSociales?: string[];
+  prestadores?: string[];
+}
+
+/** Una fila del detalle de `reconsultas-tempranas`. */
+export interface DetalleReconsulta {
+  paciente: string;
+  edad: number;
+  diasEntre: number;
+  fechaReconsulta: string;
+  practicaReconsulta: string;
+  prestadorReconsulta: string;
+}
+
+/** Una fila del detalle de `intravitreas-cronicas`. */
+export interface DetalleIntravitrea {
+  paciente: string;
+  edad: number;
+  obraSocial: string;
+  procedimiento: string;
+  fecha: string;
+  inyeccionesEnAnio: number;
+}
+
+interface AlertaBase {
   nivel: 'critico' | 'medio' | 'informativo';
   semaforo: 'rojo' | 'amarillo' | 'verde';
   titulo: string;
   descripcion: string;
   cantidad: number;
-  detalle: any[];
 }
+
+/**
+ * Las cuatro alertas del informe. Cada una trae un `detalle` con columnas
+ * distintas, y el `id` es lo que dice cuál.
+ *
+ * Va como unión discriminada y no con `detalle: any[]` porque así el `if
+ * (alerta.id === ...)` de la pantalla estrecha el tipo solo, y las columnas de
+ * cada tabla las chequea el compilador. El contrato lo escribe el daemon
+ * on-prem en `dashboards_snapshot`: si allá se agrega una alerta o se le
+ * cambia una columna, esto hay que actualizarlo.
+ */
+export type Alerta =
+  | (AlertaBase & { id: 'postqx-sin-control'; detalle: DetallePostQx[] })
+  | (AlertaBase & { id: 'hiperfrecuentadores-no-qx'; detalle: DetalleHiperfrecuentador[] })
+  | (AlertaBase & { id: 'reconsultas-tempranas'; detalle: DetalleReconsulta[] })
+  | (AlertaBase & { id: 'intravitreas-cronicas'; detalle: DetalleIntravitrea[] });
 
 export interface PacienteQuirurgico {
   fichaId: number;
