@@ -37,6 +37,26 @@ export const sinPrefijoCodigo = (desc: string): string =>
   String(desc || '').replace(/^\s*\d{6}\s*-\s*/, '').trim();
 
 /**
+ * La prestación como va en los documentos: `030502 – Facoemulsificación…`.
+ *
+ * Normaliza primero con `sinPrefijoCodigo` porque parte de los registros YA
+ * traen el código adelante: sin eso, el Presupuesto imprimiría
+ * "030502 – 030502 - Facoemulsificación…".
+ *
+ * Si falta alguno de los dos, devuelve el que haya en vez de un guion suelto:
+ * un presupuesto viejo sin código tiene que seguir imprimiendo su descripción.
+ *
+ * Usa guion medio (–) y no el corto, que es el separador del formato que ya
+ * usa el sistema en los listados.
+ */
+export const conCodigo = (codigo: string | null | undefined, desc: string | null | undefined): string => {
+  const cod = String(codigo || '').trim();
+  const limpia = sinPrefijoCodigo(String(desc || ''));
+  if (cod && limpia) return `${cod} – ${limpia}`;
+  return limpia || cod;
+};
+
+/**
  * Patrones, del más específico al más general. El primero que matchea gana.
  *
  * Las etiquetas salen de cómo la clínica nombra las prácticas al hablar, no de

@@ -958,9 +958,29 @@ describe("Ingreso de caja — Círculo Médico", () => {
   });
 
   it("el concepto dice qué está pagando, en el encabezado del detalle", () => {
+    // El concepto es la PRÁCTICA del nomenclador con su código, no un texto
+    // fijo. Antes decía "Cirugía de catarata con LIO X" para cualquier
+    // práctica — el mismo supuesto que la migración 48 sacó del pedido.
+    // El LIO no se pierde: va arriba, en su propio renglón "LIO ELEGIDO".
     const ctx = ctxDe(P813, base, cajaCon(400000));
-    expect(conceptoCompleto(ctx)).toBe("Cirugía de catarata con LIO Monofocal + AVASTIN");
-    expect(textoCaja(ctx)).toContain("CIRUGÍA DE CATARATA CON LIO MONOFOCAL + AVASTIN");
+    expect(conceptoCompleto(ctx))
+      .toBe("030502 – Facoemulsificacion mas Implantes de Lio Monofocal + AVASTIN");
+    expect(textoCaja(ctx)).toContain("030502");
+    expect(textoCaja(ctx)).toContain("AVASTIN");
+  });
+
+  it("una práctica que NO es catarata no dice catarata", () => {
+    // La regresión que se quiere evitar: hay 92 presupuestos de pterigión y 91
+    // de Yag láser esperando a que alguien registre su primera entrega.
+    const pterigion = {
+      ...P813,
+      prestacion_codigo: "030409",
+      prestacion_descripcion: "Cirugia de Pterigion con Injerto de Limbo",
+    };
+    const ctx = ctxDe(pterigion, base, cajaCon(400000));
+    expect(conceptoCompleto(ctx)).toContain("030409 – Cirugia de Pterigion con Injerto de Limbo");
+    expect(conceptoCompleto(ctx).toLowerCase()).not.toContain("catarata");
+    expect(textoCaja(ctx).toLowerCase()).not.toContain("cirugía de catarata");
   });
 
   it("detalla el ojo a operar", () => {

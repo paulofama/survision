@@ -5,6 +5,7 @@ import { useAuth } from "@shared/context/auth-context";
 import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 import AnalisisResultados from "../components/AnalisisResultados";
 import { normalizarTelefonoAR } from "../utils/seguimiento";
+import { conCodigo } from "../utils/nombrePrestacion";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -3353,6 +3354,7 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
     const pdfAdminTel = adminTelefonoMap[pdfAdminValue] ?? adminTelefonoMap[pdfAdminNormKey] ?? "";
     const pdfDerivadorValue = srcTratamiento.derivador || form.derivador;
     const pdfDerivadorLabel = DERIVADORES.find((d) => d.value === pdfDerivadorValue)?.label || pdfDerivadorValue || "";
+    const pdfPrestCodigo = srcTratamiento.prestacionCodigo || form.prestacionCodigo || "";
     const pdfPrestDesc = srcTratamiento.prestacionDescripcion || prestaciones.find((p) => p.codigo === (srcTratamiento.prestacionCodigo || form.prestacionCodigo))?.practica || "";
     const pdfOjo = srcTratamiento.ojoTratar || form.ojoTratar;
 
@@ -3383,6 +3385,8 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
     const tieneCobertura = pdfCoberturaOS > 0;
     const tieneInsumos = freshCalcs.totalInsumos > 0;
     const tieneDescuento = freshCalcs.descuento > 0;
+    /** El % tal como se pactó, para rotular la línea del descuento. */
+    const pdfPorcentajeDescuento = srcPrecios.porcentajeDescuento ?? form.porcentajeDescuento;
     const tieneExtras = srcExtras.length > 0;
 
     const pdfStyles = `
@@ -3504,13 +3508,18 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
             <div class="pdf-section-title">Información del Tratamiento</div>
             <div style="margin-bottom:6px;">
               <div style="font-size:9px;font-weight:700;color:#6b7280;margin-bottom:3px;">Prestación:</div>
+              <!-- Cada prestación va con su código adelante (030502 – …). Si
+                   hay varias, cada línea lleva el suyo. conCodigo normaliza
+                   antes, porque parte de los registros ya traen el código
+                   pegado a la descripción y si no quedaría repetido. -->
               <div class="prestacion-box">${
                 tieneExtras
-                  ? `${pdfPrestDesc}${srcExtras.map((t: TratamientoExtra) => {
-                      const pD = prestaciones.find((p) => p.codigo === t.prestacionCodigo)?.practica || t.prestacionCodigo || "";
-                      return (pD && pD !== pdfPrestDesc) ? `<br>• ${pD}` : "";
+                  ? `${conCodigo(pdfPrestCodigo, pdfPrestDesc)}${srcExtras.map((t: TratamientoExtra) => {
+                      const pD = prestaciones.find((p) => p.codigo === t.prestacionCodigo)?.practica || "";
+                      const linea = conCodigo(t.prestacionCodigo, pD);
+                      return linea && linea !== conCodigo(pdfPrestCodigo, pdfPrestDesc) ? `<br>• ${linea}` : "";
                     }).join("")}`
-                  : (pdfPrestDesc || "-")
+                  : (conCodigo(pdfPrestCodigo, pdfPrestDesc) || "-")
               }</div>
             </div>
             <div class="pdf-field">
@@ -3544,31 +3553,48 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
           <table class="price-table">
             <tbody>
 
-              <!-- Monto USD con IVA incluido -->
+              <!-- ══════════════════════════════════════════════════════
+                   DESGLOSE: cada renglón es un campo de la cadena de
+                   cálculo, en el orden de la cuenta. No hay ninguna
+                   conversión al imprimir.
+
+                   Antes el precio en USD y el subtotal se multiplicaban
+                   por 1,21 y se rotulaban "IVA inc.", pero el descuento y
+                   la cobertura se restaban en NETO y el total se tomaba
+                   de la cadena neta. Nada cerraba en el medio: en
+                   P-2026-956 la resta visible daba $2.324.784,00 sobre un
+                   total impreso de $2.280.801,60.
+
+                   El precio de lista en USD es NETO — lo confirman la
+                   cadena de calcular() y los dos snapshots guardados —,
+                   así que el rótulo "IVA inc." además era falso.
+                   ══════════════════════════════════════════════════════ -->
+
+              <!-- Monto en USD (neto) -->
               ${tieneExtras
                 ? `<tr><td>Trat. 1 — ${pdfPrestDesc || "Prestación"}</td><td>${fmtUSD(srcPrecios.montoUSD ?? form.montoUSD)}</td></tr>
                   ${srcExtras.map((t: TratamientoExtra, i: number) => {
                     const pD = prestaciones.find((p) => p.codigo === t.prestacionCodigo)?.practica || t.prestacionCodigo || "Prestación";
                     return `<tr><td>Trat. ${i + 2} — ${pD}</td><td>${fmtUSD(t.montoUSD || 0)}</td></tr>`;
                   }).join("")}
-                  <tr class="row-subtotal"><td><strong>Monto en USD (IVA inc.):</strong></td><td>${fmtUSD(freshCalcs.subtotalUSD * (1 + IVA_RATE))}</td></tr>`
-                : `<tr><td><strong>Monto en USD (IVA inc.):</strong></td><td><strong>${fmtUSD(freshCalcs.subtotalUSD * (1 + IVA_RATE))}</strong></td></tr>`
+                  <tr class="row-subtotal"><td><strong>Monto en USD (neto):</strong></td><td>${fmtUSD(freshCalcs.subtotalUSD)}</td></tr>`
+                : `<tr><td><strong>Monto en USD (neto):</strong></td><td><strong>${fmtUSD(freshCalcs.subtotalUSD)}</strong></td></tr>`
               }
 
               <!-- Tipo de cambio -->
               <tr><td>Tipo de cambio:</td><td>${fmtPesos(tc)}</td></tr>
 
-              <!-- Subtotal ARS con IVA -->
-              <tr class="row-subtotal"><td><strong>SUBTOTAL ARS:</strong></td><td>${fmtPesos(freshCalcs.subtotalUSD * (1 + IVA_RATE) * tc)}</td></tr>
+              <!-- Subtotal ARS (neto) -->
+              <tr class="row-subtotal"><td><strong>Subtotal ARS (neto):</strong></td><td>${fmtPesos(freshCalcs.subtotalOriginal)}</td></tr>
 
               <!-- Cobertura OS -->
               ${tieneCobertura
                 ? `<tr class="row-cobertura"><td>Menos: Cobertura Obra Social:</td><td>- ${fmtPesos(pdfCoberturaOS)}</td></tr>`
                 : ""}
 
-              <!-- Descuento (sobre base, sin insumos) -->
+              <!-- Descuento (sobre la base a cargo del paciente, sin insumos) -->
               ${tieneDescuento
-                ? `<tr class="row-descuento"><td>Descuento:</td><td>- ${fmtPesos(freshCalcs.descuento)}</td></tr>`
+                ? `<tr class="row-descuento"><td>Descuento ${fmtPct(pdfPorcentajeDescuento)} %:</td><td>- ${fmtPesos(freshCalcs.descuento)}</td></tr>`
                 : ""}
 
               <!-- Insumos especiales — uno por línea, excluidos del descuento -->
@@ -3577,6 +3603,16 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
                     `<tr class="row-insumos"><td>+ ${ins.descripcion}${ins.moneda === "USD" ? ` <span style="font-size:9px;color:#93c5fd;">(USD ${fmtARS(ins.montoOriginal)})</span>` : ""}</td><td>+ ${fmtPesos(ins.monto)}</td></tr>`
                   ).join("")
                 : ""}
+
+              <!-- Neto sobre el que se calcula el IVA. Se muestra sólo si
+                   hubo algún movimiento antes (cobertura, descuento o
+                   insumos); sin ninguno sería repetir el subtotal. -->
+              ${(tieneCobertura || tieneDescuento || tieneInsumos)
+                ? `<tr class="row-subtotal"><td><strong>Neto gravado:</strong></td><td><strong>${fmtPesos(freshCalcs.neto)}</strong></td></tr>`
+                : ""}
+
+              <!-- IVA -->
+              <tr><td>IVA 21%:</td><td>+ ${fmtPesos(freshCalcs.iva)}</td></tr>
 
               <!-- TOTAL A PAGAR -->
               <tr class="row-total"><td><strong>TOTAL A PAGAR:</strong></td><td>${fmtPesos(freshCalcs.total)}</td></tr>

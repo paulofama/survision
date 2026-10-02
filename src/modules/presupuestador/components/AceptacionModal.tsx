@@ -253,12 +253,33 @@ export default function AceptacionModal({
                 impreso. Caso real (P-2026-813): la ficha decía "Ospelsym" y se
                 aceptó con OSEP; los documentos salían con Ospelsym. Ahora manda
                 el convenio, y esto lo deja explícito antes de aceptar.
+
+                El texto anterior decía que "el presupuesto se emitió con el
+                convenio", y era al revés: el presupuesto se emitió con el dato
+                de la FICHA — el convenio recién se elige acá.
+
+                La tercera línea es la que importa en la práctica: el
+                presupuesto ya impreso NO se reimprime (no hay acción para eso
+                en Búsqueda), así que el paciente se queda con un papel que dice
+                la obra social de la ficha mientras quirófano recibe todo por el
+                convenio. Si eso no es lo buscado, el momento de corregirlo es
+                éste. Caso real: P-2026-999 (Murgo) — ficha "Osep", convenio
+                Círculo Médico San Rafael.
               */}
               {avisoCobertura && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  El paciente figura en la ficha con <strong>{avisoCobertura.ficha}</strong> y
-                  el presupuesto se emitió con <strong>{avisoCobertura.convenio}</strong>.
-                  Se usará <strong>{avisoCobertura.convenio}</strong> en toda la documentación.
+                <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 space-y-1">
+                  <p className="font-semibold">La obra social de la ficha no coincide con el convenio</p>
+                  <p>
+                    La ficha del paciente dice <strong>{avisoCobertura.ficha}</strong> y
+                    estás aceptando con el convenio <strong>{avisoCobertura.convenio}</strong>.
+                  </p>
+                  <p>
+                    Toda la documentación del sobre va a salir por <strong>{avisoCobertura.convenio}</strong>.
+                  </p>
+                  <p className="text-amber-800">
+                    El presupuesto que ya se le entregó al paciente dice{" "}
+                    <strong>{avisoCobertura.ficha}</strong> y no se vuelve a imprimir.
+                  </p>
                 </div>
               )}
             </>

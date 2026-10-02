@@ -21,6 +21,7 @@ import {
   titulo, subtitulo, parrafo, vinieta, campo, campo2, espacio, rp, checkbox, firmas,
   asegurar, destino, importe, separador, membrete,
 } from "./pdfBase";
+import { conCodigo } from "../nombrePrestacion";
 
 // ── Contexto de datos (pre-carga desde el presupuesto + aceptación) ──
 
@@ -99,6 +100,8 @@ export interface SobreCtx {
   recetasPorSistema: boolean;
   /** Diagnóstico y solicitud de ESTA práctica (migración 48). */
   diag: DiagnosticoPractica;
+  /** Código de la práctica presupuestada, para encabezar los importes. */
+  practicaCodigo: string;
   /** Nombre de la práctica presupuestada, respaldo de la solicitud. */
   practicaDescripcion: string;
   /** Datos que carga el operador al generar el comprobante de caja. */
@@ -155,13 +158,26 @@ const conceptoDeLaPractica = (ctx: SobreCtx): string =>
   ctx.practicaDescripcion ? `${ctx.practicaDescripcion}.` : "Completar la práctica solicitada.";
 
 /**
- * Qué está pagando el paciente, en el formato pedido por Administración:
- * "Cirugía de catarata con LIO X + ampolla de Avastin".
+ * Qué está pagando el paciente: la práctica del nomenclador con su código,
+ * más los ítems adicionales. Por ejemplo
+ * "030502 – Facoemulsificación más implantes de LIO monofocal + ampolla de Avastin".
+ *
+ * ANTES DECÍA "CIRUGÍA DE CATARATA" SIEMPRE
+ * ------------------------------------------
+ * El concepto se armaba con el texto fijo `Cirugía de catarata con LIO X`,
+ * para CUALQUIER práctica. Es el mismo supuesto que la migración 48 sacó del
+ * pedido de cirugía: un pterigión imprimía un comprobante que decía catarata.
+ *
+ * Todavía no salió mal ninguno —las 15 entregas registradas al 02/10/2026 son
+ * todas de catarata— pero hay 92 presupuestos de pterigión y 91 de Yag láser
+ * esperando a que alguien registre la primera entrega.
+ *
+ * El LIO no se pierde: el comprobante ya lo imprime arriba, en su propio
+ * renglón "LIO ELEGIDO".
  */
 export function conceptoCompleto(ctx: SobreCtx): string {
-  const base = ctx.lioNombre
-    ? `Cirugía de catarata con LIO ${ctx.lioNombre}`
-    : "Cirugía de catarata";
+  const base = conCodigo(ctx.practicaCodigo, ctx.practicaDescripcion)
+    || (ctx.lioNombre ? `Cirugía con LIO ${ctx.lioNombre}` : "Práctica quirúrgica");
   return [base, ...ctx.itemsAdicionales.map((i) => i.descripcion)].join(" + ");
 }
 
@@ -709,7 +725,8 @@ export function docCajaCopia(L: Lienzo, ctx: SobreCtx, copia: CopiaCaja) {
   // Los ítems e insumos se siguen detallando (regla de FASE 1). Ningún
   // comprobante discrimina IVA, en ninguna cobertura.
   const bruto = ctx.precios.baseAntesDescuento;
-  importe(L, `Cirugía de catarata con LIO ${ctx.lioNombre}`.trim(), pesos(ctx, bruto), { size: 10 });
+  // La práctica con su código, no el texto fijo de catarata. Ver `conceptoCompleto`.
+  importe(L, conCodigo(ctx.practicaCodigo, ctx.practicaDescripcion), pesos(ctx, bruto), { size: 10 });
   bloqueDescuento(L, ctx);
   bloqueItemsAdicionales(L, ctx);
   separador(L);

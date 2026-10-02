@@ -383,6 +383,7 @@ export function armarContexto(args: {
       solicitud: args.diag?.solicitud || '',
       llevaLio: !!args.diag?.llevaLio,
     },
+    practicaCodigo: String(p?.prestacion_codigo || '').trim(),
     practicaDescripcion: sinPrefijoCodigo(String(p?.prestacion_descripcion || '')),
     fmtARS,
   };

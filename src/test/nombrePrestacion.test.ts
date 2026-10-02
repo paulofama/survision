@@ -6,7 +6,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { nombrePrestacionCorto, sinPrefijoCodigo } from '@modules/presupuestador/utils/nombrePrestacion';
+import { conCodigo, nombrePrestacionCorto, sinPrefijoCodigo } from '@modules/presupuestador/utils/nombrePrestacion';
 
 describe('sinPrefijoCodigo', () => {
   it('saca el código que algunos registros traen adelante', () => {
@@ -79,5 +79,41 @@ describe('nombrePrestacionCorto', () => {
     for (const e of ejemplos) {
       expect(nombrePrestacionCorto(e).length, e).toBeLessThanOrEqual(30);
     }
+  });
+});
+
+describe('conCodigo', () => {
+  it('antepone el código a la descripción', () => {
+    expect(conCodigo('030502', 'Facoemulsificacion mas Implantes de Lio Monofocal'))
+      .toBe('030502 – Facoemulsificacion mas Implantes de Lio Monofocal');
+  });
+
+  it('NO repite el código cuando la descripción ya lo trae', () => {
+    // Parte de los registros vienen así desde GECLISA. Sin esto el documento
+    // imprimiría "030502 – 030502 - Facoemulsificación…".
+    expect(conCodigo('030502', '030502 - Facoemulsificacion mas Implante de Lio Premium Monofocal'))
+      .toBe('030502 – Facoemulsificacion mas Implante de Lio Premium Monofocal');
+  });
+
+  it('devuelve sólo lo que hay si falta alguno de los dos', () => {
+    // Un presupuesto viejo sin código tiene que seguir imprimiendo su
+    // descripción, no un guion suelto.
+    expect(conCodigo('', 'Cirugia de Pterigion con Injerto de Limbo'))
+      .toBe('Cirugia de Pterigion con Injerto de Limbo');
+    expect(conCodigo('030409', '')).toBe('030409');
+    expect(conCodigo(null, null)).toBe('');
+    expect(conCodigo(undefined, undefined)).toBe('');
+  });
+
+  it('limpia espacios de los dos lados', () => {
+    expect(conCodigo('  030503  ', '  Facoemulsificacion mas Implante de Lio Torico  '))
+      .toBe('030503 – Facoemulsificacion mas Implante de Lio Torico');
+  });
+
+  it('sirve para una práctica que no es catarata', () => {
+    // El caso que motivó el cambio: el comprobante de caja decía "Cirugía de
+    // catarata con LIO" para cualquier práctica.
+    expect(conCodigo('030409', 'Cirugia de Pterigion con Injerto de Limbo'))
+      .toBe('030409 – Cirugia de Pterigion con Injerto de Limbo');
   });
 });
