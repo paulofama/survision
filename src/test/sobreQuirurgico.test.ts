@@ -1291,3 +1291,52 @@ describe("Selección de documentos del sobre", () => {
     expect(docsElegidos(ctx, ["pedido", "no_existe"]).map((d) => d.clave)).toEqual(["pedido"]);
   });
 });
+
+// ============================================================
+// Ley de Trazabilidad — domicilio prellenado (migración 68)
+// ============================================================
+describe("Trazabilidad — domicilio", () => {
+  const base = { rama_cobertura: "OBRA_SOCIAL", sub_rama: "circulo_medico", convenio_id: "c1", lio_id: "l2" };
+
+  const conDomicilio = {
+    ...P813,
+    datos_completos: {
+      ...P813.datos_completos,
+      paciente: {
+        ...P813.datos_completos.paciente,
+        direccion: "SAN FRANCISCO 375",
+        localidad: "San Rafael",
+        provincia: "MENDOZA",
+      },
+    },
+  };
+
+  it("imprime el domicilio cuando el paciente lo tiene", () => {
+    const t = textoDe(construir(docTrazabilidad, ctxDe(conDomicilio, base)));
+    expect(t).toContain("SAN FRANCISCO 375");
+    expect(t).toContain("San Rafael");
+    expect(t).toContain("MENDOZA");
+  });
+
+  it("deja el renglón en blanco cuando no hay domicilio", () => {
+    // Es el caso de los pacientes cargados a mano, que no están en GECLISA:
+    // los dos casos testigo (Bravo y Murgo) son de ésos. La hoja tiene que
+    // salir igual, con el renglón para completar.
+    const ctx = ctxDe(P813, base);
+    expect(ctx.paciente.direccion).toBe("");
+    const t = textoDe(construir(docTrazabilidad, ctx));
+    expect(t).toContain("Dirección");
+    expect(t).toContain("Ley");
+  });
+
+  it("el código postal NUNCA se imprime, aunque haya domicilio", () => {
+    // Lo tienen 13 de 59.099 fichas y el de la tabla de localidades vale "0"
+    // en las 30: un cero impreso parecería un dato verificado.
+    const t = textoDe(construir(docTrazabilidad, ctxDe(conDomicilio, base)));
+    const i = t.indexOf("Código postal");
+    expect(i).toBeGreaterThan(-1);
+    // Entre "Código postal" y "Teléfono" no puede haber un número suelto.
+    const entre = t.slice(i, t.indexOf("Teléfono", i));
+    expect(entre).not.toMatch(/\d/);
+  });
+});

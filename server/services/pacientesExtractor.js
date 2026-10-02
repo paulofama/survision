@@ -31,6 +31,15 @@ const QUERY_TODOS = `
     f.fic_fechanac AS fechaNacimiento,
     RTRIM(LTRIM(ISNULL(f.fic_email, ''))) AS email,
 
+    -- Domicilio (migración 68). El CP NO se trae: 13 de 59.099 lo tienen en la
+    -- ficha y el de Localidades vale "0" en las 30. Ver el encabezado de la
+    -- migración.
+    LTRIM(RTRIM(
+      LTRIM(RTRIM(ISNULL(f.fic_calle, ''))) + ' ' + LTRIM(RTRIM(ISNULL(f.fic_nro, '')))
+    )) AS direccion,
+    RTRIM(LTRIM(ISNULL(lo.loc_nombre, ''))) AS localidad,
+    RTRIM(LTRIM(ISNULL(pr.prov_nombre, ''))) AS provincia,
+
     os_fp.os_id AS fp_os_id,
     RTRIM(LTRIM(os_fp.os_nombre)) AS fp_obraSocial,
     RTRIM(LTRIM(os_fp.os_sigla)) AS fp_obraSocialSigla,
@@ -45,6 +54,8 @@ const QUERY_TODOS = `
     RTRIM(LTRIM(ISNULL(me_last.Nro_Afiliado, ''))) AS me_numeroAfiliado,
     ISNULL(p_me.plan_nombre, '') AS me_planNombre
   FROM Ficha f
+  LEFT JOIN Localidades lo ON lo.loc_id = f.loc_id
+  LEFT JOIN Provincias pr ON pr.prov_id = lo.prov_id
   LEFT JOIN (
     SELECT
       fp2.Ficha_id, fp2.Plan_id, fp2.Nro_Afiliado,
@@ -121,7 +132,21 @@ function mapearFila(pac) {
     numero_afiliado: (os.numeroAfiliado || '').trim(),
     plan_nombre: toUpperTrim(os.planNombre),
     es_particular: os.esParticular,
+    // Domicilio (migración 68). Van en NULL y no en cadena vacía cuando no
+    // hay dato, para que el documento distinga "no cargado" de "vacío".
+    // "S/D" es un valor real de la localidad en GECLISA (1.702 fichas) y
+    // tampoco es un domicilio: se neutraliza acá y no en el render.
+    direccion: limpioONull(pac.direccion),
+    localidad: limpioONull(pac.localidad),
+    provincia: limpioONull(pac.provincia),
   };
+}
+
+/** Texto útil o NULL. Neutraliza los "S/D" que GECLISA usa como vacío. */
+function limpioONull(v) {
+  const s = String(v ?? '').trim();
+  if (!s) return null;
+  return /^(s\/d|sd|-|—)$/i.test(s) ? null : s;
 }
 
 // ------------------------------------------------------------

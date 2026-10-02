@@ -327,6 +327,11 @@ export function armarContexto(args: {
       telefono: dp.telefono || "",
       obraSocial: dp.obraSocial || "",
       numeroAfiliado: dp.numeroAfiliado || "",
+      // Domicilio del snapshot (migración 68). Los presupuestos anteriores a
+      // la migración no lo traen y la hoja imprime el renglón en blanco.
+      direccion: dp.direccion || "",
+      localidad: dp.localidad || "",
+      provincia: dp.provincia || "",
     },
     ojo,
     ojoDiag: ojo ? OJO_DIAG[ojo] : "",

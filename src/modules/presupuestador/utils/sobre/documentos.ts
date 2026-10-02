@@ -59,6 +59,14 @@ export interface SobreCtx {
     telefono: string;
     obraSocial: string;
     numeroAfiliado: string;
+    /**
+     * Domicilio para la Ley de Trazabilidad (migración 68). Vacío cuando
+     * GECLISA no lo tiene o el paciente se cargó a mano: ahí el renglón sale
+     * en blanco, como salía para todos hasta ahora.
+     */
+    direccion: string;
+    localidad: string;
+    provincia: string;
   };
   ojo: "OD" | "OI" | "AMBOS" | null;
   ojoDiag: string;           // "OD" / "OI" / "AO" para el diagnóstico
@@ -789,8 +797,14 @@ export function docTrazabilidad(L: Lienzo, ctx: SobreCtx) {
   campo2(L, "Día de cirugía", ctx.fechaCirugia, "Ojo a operar", ctx.ojoTexto);
   campo(L, "Apellido y nombre", ctx.paciente.apellidoNombre);
   campo2(L, "Edad", ctx.paciente.edad, "DNI", ctx.paciente.documento);
-  campo(L, "Dirección", "");
-  campo2(L, "Provincia", "", "Localidad", "");
+  // Domicilio prellenado con lo que haya (migración 68). Lo que falta sale en
+  // blanco, que es el comportamiento anterior para todos los campos.
+  //
+  // El CÓDIGO POSTAL va siempre vacío y no es un olvido: lo tienen 13 de
+  // 59.099 fichas, y el de la tabla de localidades vale "0" en las 30. Un cero
+  // impreso parecería un dato.
+  campo(L, "Dirección", ctx.paciente.direccion);
+  campo2(L, "Provincia", ctx.paciente.provincia, "Localidad", ctx.paciente.localidad);
   campo2(L, "Código postal", "", "Teléfono", ctx.paciente.telefono);
   campo2(L, "Obra social", ctx.coberturaLabel, "N° de afiliado", ctx.esObraSocial ? ctx.paciente.numeroAfiliado : "—");
   campo(L, "Código de HIV (M. Salud)   SI / NO   N°", "");

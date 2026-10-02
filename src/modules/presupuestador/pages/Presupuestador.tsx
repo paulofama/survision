@@ -51,6 +51,14 @@ interface FormState {
   fechaNacimiento: string;
   obraSocial: string;
   numeroAfiliado: string;
+  /**
+   * Domicilio para la hoja de Ley de Trazabilidad (migración 68). Sale del
+   * espejo de GECLISA; vacío en los pacientes cargados a mano, y ahí la hoja
+   * sigue imprimiendo el renglón en blanco para completar.
+   */
+  direccion: string;
+  localidad: string;
+  provincia: string;
   circuloMedico: boolean;
   montoBase8: boolean;
   prestacionCodigo: string;
@@ -132,6 +140,10 @@ interface DatosCompletos {
     fechaNacimiento?: string;
     obraSocial?: string;
     numeroAfiliado?: string;
+    /** Domicilio para la Ley de Trazabilidad (migración 68). */
+    direccion?: string;
+    localidad?: string;
+    provincia?: string;
     circuloMedico?: boolean;
     montoBase8?: boolean;
   };
@@ -333,6 +345,10 @@ interface PacienteGeclisa {
   numeroAfiliado: string;
   planNombre: string;
   esParticular: boolean;
+  /** Domicilio del espejo (migración 68). Vacío si GECLISA no lo tiene. */
+  direccion: string;
+  localidad: string;
+  provincia: string;
 }
 
 interface PacienteSupabase {
@@ -559,6 +575,9 @@ const INITIAL_FORM: FormState = {
   fechaNacimiento: "",
   obraSocial: "",
   numeroAfiliado: "",
+  direccion: "",
+  localidad: "",
+  provincia: "",
   circuloMedico: false,
   montoBase8: false,
   prestacionCodigo: "",
@@ -811,6 +830,10 @@ export default function Presupuestador() {
               numeroAfiliado: pg.numero_afiliado || "",
               planNombre: pg.plan_nombre || "",
               esParticular: pg.es_particular,
+              // Domicilio del espejo (migración 68), para la trazabilidad.
+              direccion: pg.direccion || "",
+              localidad: pg.localidad || "",
+              provincia: pg.provincia || "",
             };
           }
         } catch (gErr) {
@@ -894,6 +917,12 @@ export default function Presupuestador() {
             numeroAfiliado: supabasePac.numero_afiliado || "",
             planNombre: supabasePac.plan_nombre || "",
             esParticular: supabasePac.es_particular,
+            // La tabla `pacientes` (altas manuales) no guarda domicilio: la
+            // hoja de trazabilidad imprime el renglón en blanco, que es lo que
+            // hacía antes para todos.
+            direccion: "",
+            localidad: "",
+            provincia: "",
           };
           setDniPaciente(mapped);
 
@@ -1301,6 +1330,12 @@ export default function Presupuestador() {
           fechaNacimiento: form.fechaNacimiento,
           obraSocial: toTitleCase(form.obraSocial),
           numeroAfiliado: form.numeroAfiliado,
+          // El domicilio viaja en el snapshot como el resto de los datos del
+          // paciente: así reimprimir la trazabilidad da siempre el mismo papel
+          // aunque después se actualice la ficha en GECLISA.
+          direccion: form.direccion,
+          localidad: form.localidad,
+          provincia: form.provincia,
           circuloMedico: form.circuloMedico,
           montoBase8: form.montoBase8,
         },
@@ -1473,6 +1508,11 @@ export default function Presupuestador() {
         fechaNacimiento: pac.fechaNacimiento || "",
         obraSocial: toTitleCase(pac.obraSocial || ""),
         numeroAfiliado: pac.numeroAfiliado || "",
+        // Del snapshot: un presupuesto viejo no lo trae y queda vacío, que es
+        // lo mismo que imprimía antes.
+        direccion: pac.direccion || "",
+        localidad: pac.localidad || "",
+        provincia: pac.provincia || "",
         circuloMedico: pac.circuloMedico || false,
         montoBase8: pac.montoBase8 || false,
         prestacionCodigo: trat.prestacionCodigo || presup.prestacion_codigo || "",
