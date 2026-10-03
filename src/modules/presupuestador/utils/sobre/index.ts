@@ -13,9 +13,10 @@
 import { nuevoLienzo, nuevaHoja, cerrar, Lienzo, Orientacion } from "./pdfBase";
 import {
   SobreCtx, CajaOpts, RecetaDeCostos, Consentimiento,
-  docPedidoCirugia, docIndicaciones, docCronograma, docRecetas,
+  docPedidoCirugia, docIndicaciones, docCronograma,
   docAnalisisEcg, docCaja, docRecetaCostos, docTrazabilidad, docConsentimiento,
-  recetasDelSobre,
+  recetasDelSobre, recetasFijasDelSobre, recetasDeMedicacionAdicional,
+  docRecetaFija, docRecetasAdicionales,
 } from "./documentos";
 import { Aceptacion, Convenio, Lio, sbGet } from "../circuito";
 import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
@@ -459,8 +460,21 @@ export const DOCS: DocDef[] = [
   // El cronograma trae el instructivo de gotas en su segunda hoja: se van juntos.
   { clave: "cronograma",     label: "Cronograma de gotas",      build: docCronograma, orient: "l",
     omitirSi: desactivado("cronograma") },
-  { clave: "recetas",        label: "Recetas (una por hoja)",   build: docRecetas,
-    omitirSi: (ctx) => recetasDelSobre(ctx).length === 0 || ctx.documentosDesactivados.includes("recetas") },
+  // ── Recetas: una entrada por receta ──
+  // Cada una es su propio documento para que se tilde por separado. Heredan
+  // gratis la casilla, el "↓ sola", el orden y el registro de lo impreso.
+  // `recetasFijasDelSobre` devuelve [] cuando el convenio las suprime (OSEP),
+  // así el flag sigue valiendo para las tres de una.
+  { clave: "receta_a",       label: "Receta A — Gatif Forte + Natax",      build: docRecetaFija(0),
+    omitirSi: (ctx) => recetasFijasDelSobre(ctx).length < 1 || ctx.documentosDesactivados.includes("receta_a") },
+  { clave: "receta_b",       label: "Receta B — Aucic Plus + Dolten",      build: docRecetaFija(1),
+    omitirSi: (ctx) => recetasFijasDelSobre(ctx).length < 2 || ctx.documentosDesactivados.includes("receta_b") },
+  { clave: "receta_c",       label: "Receta C — Tranquinal sublingual",    build: docRecetaFija(2),
+    omitirSi: (ctx) => recetasFijasDelSobre(ctx).length < 3 || ctx.documentosDesactivados.includes("receta_c") },
+  { clave: "recetas_extra",  label: "Recetas de medicación adicional",     build: docRecetasAdicionales,
+    omitirSi: (ctx) => recetasDelSobre(ctx).length === 0
+      || recetasDeMedicacionAdicional(ctx).length === 0
+      || ctx.documentosDesactivados.includes("recetas_extra") },
   { clave: "analisis",       label: "Análisis y ECG",           build: docAnalisisEcg, condicional: true,
     omitirSi: desactivado("analisis") },
   { clave: "caja",           label: "Ingreso de caja",          build: docCaja,

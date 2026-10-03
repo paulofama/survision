@@ -497,7 +497,57 @@ export function recetasDelSobre(ctx: SobreCtx): RecetaDef[] {
   return [...RECETAS, ...recetasDeMedicacionAdicional(ctx)];
 }
 
-/** Cada receta en su hoja. `abrirHoja` la provee el orquestador. */
+/**
+ * Las tres recetas fijas, o ninguna si el convenio las suprime (OSEP).
+ *
+ * Existe separada de `recetasDelSobre` porque cada una es ahora un documento
+ * propio del sobre y se tilda por separado: Administración pedía poder
+ * imprimir sólo la que necesita en vez de las tres siempre.
+ */
+export function recetasFijasDelSobre(ctx: SobreCtx): RecetaDef[] {
+  return ctx.convenio?.config?.recetas_suprimir === true ? [] : RECETAS;
+}
+
+/**
+ * Builder de UNA receta fija por posición.
+ *
+ * Devuelve un builder y no dibuja directo para que cada receta pueda entrar en
+ * `DOCS` con su propia clave (`receta_a`, `receta_b`, `receta_c`): así hereda
+ * gratis la casilla, el botón "↓ sola", el orden fijo del sobre y el registro
+ * de qué se imprimió.
+ *
+ * Si el convenio suprime las recetas, no dibuja nada — pero el documento ya
+ * quedó fuera de la lista por su `omitirSi`, así que no llega a abrirse la
+ * hoja. Ver el aviso sobre documentos mudos en `docsDelSobre`.
+ */
+export function docRecetaFija(indice: number) {
+  return function (L: Lienzo, ctx: SobreCtx) {
+    const def = recetasFijasDelSobre(ctx)[indice];
+    if (def) docReceta(L, ctx, def);
+  };
+}
+
+/** Las recetas de la medicación agregada en el presupuesto, una por hoja. */
+export function docRecetasAdicionales(L: Lienzo, ctx: SobreCtx, abrirHoja: (L: Lienzo) => void) {
+  const defs = ctx.convenio?.config?.recetas_suprimir === true
+    ? []
+    : recetasDeMedicacionAdicional(ctx);
+  defs.forEach((def, i) => {
+    if (i > 0) abrirHoja(L);
+    docReceta(L, ctx, def);
+  });
+}
+
+/**
+ * Las recetas en un solo documento, una por hoja.
+ *
+ * EL SOBRE YA NO LO USA: desde que se tildan por separado, cada receta entra
+ * por su propia clave (`receta_a`, `receta_b`, `receta_c`, `recetas_extra`).
+ *
+ * Se conserva porque los tests de CONTENIDO lo usan para dibujar las tres de
+ * una y revisar el Dx, el membrete y la leyenda de receta por sistema. Para
+ * eso sirve; no hay que volver a enchufarlo en `DOCS`.
+ */
 export function docRecetas(L: Lienzo, ctx: SobreCtx, abrirHoja: (L: Lienzo) => void) {
   recetasDelSobre(ctx).forEach((def, i) => {
     if (i > 0) abrirHoja(L);

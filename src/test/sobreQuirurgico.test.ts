@@ -599,8 +599,15 @@ describe("Recetas", () => {
       presupuesto: P813, aceptacion, convenios: CONVENIOS, lios: LIOS, consentimiento: CONSENTIMIENTO,
     });
 
-    expect(docsDelSobre(sinSupresion).map((d) => d.clave)).toContain("recetas");
-    expect(docsDelSobre(conSupresion).map((d) => d.clave)).not.toContain("recetas");
+    // Cada receta es su propio documento desde que se tildan por separado, así
+    // que el flag del convenio tiene que llevarse las cuatro claves de una.
+    const clavesReceta = ["receta_a", "receta_b", "receta_c", "recetas_extra"];
+    const sinSup = docsDelSobre(sinSupresion).map((d) => d.clave);
+    const conSup = docsDelSobre(conSupresion).map((d) => d.clave);
+    for (const c of clavesReceta) {
+      expect(sinSup).toContain(c);
+      expect(conSup).not.toContain(c);
+    }
 
     // El sobre tiene que perder EXACTAMENTE tantas hojas como recetas había.
     // Una de más sería la página en blanco que dejaba el documento vacío.
@@ -1374,7 +1381,7 @@ describe("Documentos desactivados", () => {
     expect(claves).not.toContain("cronograma");
     // El resto sigue intacto: desactivar no puede llevarse nada más por delante.
     expect(claves).toContain("pedido");
-    expect(claves).toContain("recetas");
+    expect(claves).toContain("receta_a");
     expect(claves).toContain("caja");
     expect(claves).toContain("trazabilidad");
   });
@@ -1412,5 +1419,67 @@ describe("Documentos desactivados", () => {
   it("si además se lo desactiva, la lista manda sobre el texto real", () => {
     const claves = docsDelSobre(ctxCon(["consentimiento"], conTextoReal)).map((d) => d.clave);
     expect(claves).not.toContain("consentimiento");
+  });
+});
+
+// ============================================================
+// Una casilla por receta (FASE 3.2)
+// ============================================================
+describe("Selección por receta", () => {
+  const ctx: SobreCtx = {
+    ...ctxDe(P813, { rama_cobertura: "PARTICULAR", lio_id: "l2" }),
+    documentosDesactivados: [],
+  };
+  const hojas = (claves?: string[]) => {
+    const L = armarSobreCompleto(ctx, claves);
+    return L ? (rawPdf(L).match(/\/Type\s*\/Page[^s]/g) || []).length : 0;
+  };
+
+  it("cada receta se ofrece por separado, en orden", () => {
+    const claves = docsDelSobre(ctx).map((d) => d.clave);
+    expect(claves).toContain("receta_a");
+    expect(claves).toContain("receta_b");
+    expect(claves).toContain("receta_c");
+    expect(claves.indexOf("receta_a")).toBeLessThan(claves.indexOf("receta_b"));
+    expect(claves.indexOf("receta_b")).toBeLessThan(claves.indexOf("receta_c"));
+  });
+
+  it("se puede imprimir una sola, y sale la que corresponde", () => {
+    const soloB = textoDe(armarSobreCompleto(ctx, ["receta_b"])!);
+    expect(soloB).toContain("Receta B");
+    expect(soloB).toContain("AUCIC PLUS");
+    expect(soloB).not.toContain("Gatif forte");
+    expect(soloB).not.toContain("Tranquinal");
+  });
+
+  it("cualquier combinación funciona, una hoja por receta", () => {
+    expect(hojas(["receta_a"])).toBe(1);
+    expect(hojas(["receta_a", "receta_c"])).toBe(2);
+    expect(hojas(["receta_a", "receta_b", "receta_c"])).toBe(3);
+  });
+
+  it("saltear la del medio no corre a las otras", () => {
+    const t = textoDe(armarSobreCompleto(ctx, ["receta_a", "receta_c"])!);
+    expect(t).toContain("Receta A");
+    expect(t).toContain("Receta C");
+    expect(t).not.toContain("Receta B");
+  });
+
+  it("sin ninguna tildada no se arma nada", () => {
+    // Es lo que deja al botón sin nada que generar.
+    expect(armarSobreCompleto(ctx, [])).toBeNull();
+  });
+
+  it("la medicación adicional va aparte de las tres fijas", () => {
+    const claves = docsDelSobre(ctx).map((d) => d.clave);
+    expect(claves).toContain("recetas_extra");
+    const t = textoDe(armarSobreCompleto(ctx, ["recetas_extra"])!);
+    expect(t).toContain("AVASTIN");
+    expect(t).not.toContain("Gatif forte");
+  });
+
+  it("sin medicación adicional, esa entrada no se ofrece", () => {
+    const sinExtras: SobreCtx = { ...ctx, itemsAdicionales: [] };
+    expect(docsDelSobre(sinExtras).map((d) => d.clave)).not.toContain("recetas_extra");
   });
 });
