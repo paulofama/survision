@@ -17,7 +17,8 @@ import {
 } from "../utils/circuito";
 import {
   CajaOpts, SobreCtx, RecetaDeCostos,
-  docsDelSobre, armarContexto, cargarConsentimiento, cargarRecetaDeCostos, type Consentimiento,
+  docsDelSobre, armarContexto, cargarConsentimiento, cargarDocumentosDesactivados,
+  cargarRecetaDeCostos, type Consentimiento,
   cargarDiagnosticoPractica,
   generarDocumento, generarSobreCompleto,
   valorTotalCaja, requiereFactura, restaPagar,
@@ -88,6 +89,8 @@ export default function CircuitoPanel({
   // Arranca como placeholder: hasta que la consulta diga lo contrario, el
   // consentimiento no se firma.
   const [consentimiento, setConsentimiento] = useState<Consentimiento>({ secciones: [], esPlaceholder: true });
+  /** Documentos que la clínica pidió no imprimir (migración 69). */
+  const [documentosDesactivados, setDocumentosDesactivados] = useState<string[]>([]);
   const [receta, setReceta] = useState<RecetaDeCostos | null>(null);
   // Diagnóstico y solicitud de la práctica, para el pedido de cirugía.
   const [diag, setDiag] = useState<{ diagnostico: string; solicitud: string; llevaLio: boolean } | null>(null);
@@ -106,7 +109,7 @@ export default function CircuitoPanel({
     setError("");
     try {
       const practica = practicaDelPresupuesto(presupuesto);
-      const [a, ch, ent, cons, rec] = await Promise.all([
+      const [a, ch, ent, cons, rec, desact] = await Promise.all([
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&select=*`),
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
         cargarEntregas(presupuesto.id),
@@ -114,6 +117,8 @@ export default function CircuitoPanel({
         // La receta de costos de la práctica, para la hoja que se archiva en
         // quirófano. Si no hay, la hoja lo declara en vez de omitirse.
         cargarRecetaDeCostos(practica.codigo, practica.descripcion),
+        // Qué documentos pidió la clínica no imprimir (migración 69).
+        cargarDocumentosDesactivados(),
       ]);
       const acept = a[0] || null;
       // El diagnóstico va DESPUÉS y no en paralelo: cuando la práctica se hace
@@ -123,6 +128,7 @@ export default function CircuitoPanel({
       setAceptacion(acept);
       setEntregas(ent || []);
       setConsentimiento(cons);
+      setDocumentosDesactivados(desact);
       setReceta(rec);
       setDiag(dx);
       // Sólo los ítems que existen para esta cobertura (ej. "Orden autorizada"
@@ -179,6 +185,7 @@ export default function CircuitoPanel({
     if (!aceptacion) return null;
     return armarContexto({
       presupuesto, aceptacion, convenios, lios, consentimiento, receta, diag, caja,
+      documentosDesactivados,
       // Lo ya entregado: el comprobante nuevo descuenta de este saldo.
       entregasPrevias: sumaEntregas(entregas),
     });

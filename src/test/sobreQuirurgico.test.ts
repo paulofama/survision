@@ -1023,7 +1023,13 @@ describe("Ingreso de caja — regla transversal de IVA", () => {
 // ============================================================
 describe("Estructura del Sobre Quirúrgico", () => {
   it("trazabilidad y consentimiento van últimos y en hoja propia", () => {
-    const ctx = ctxDe(P810, { rama_cobertura: "PARTICULAR", lio_id: "l5" }, cajaCon(100000));
+    // El consentimiento sólo entra al sobre cuando su texto YA NO es el
+    // placeholder (migración 69): con el texto real cargado vuelve solo, y
+    // tiene que volver al final, detrás de la trazabilidad.
+    const ctx = {
+      ...ctxDe(P810, { rama_cobertura: "PARTICULAR", lio_id: "l5" }, cajaCon(100000)),
+      consentimiento: { secciones: [{ titulo: "T", cuerpo: "C" }], esPlaceholder: false },
+    };
     const orden = docsDelSobre(ctx).map((d) => d.clave);
     expect(orden.slice(-2)).toEqual(["trazabilidad", "consentimiento"]);
     expect(orden.indexOf("caja")).toBeLessThan(orden.indexOf("trazabilidad"));
@@ -1250,7 +1256,15 @@ describe("Estructura del Sobre Quirúrgico", () => {
 // Administración leía la botonera de documentos como casillas: tildaba lo que
 // quería y bajaba el sobre, que salía completo igual. Ahora la selección manda.
 describe("Selección de documentos del sobre", () => {
-  const ctx = ctxDe(P813, { rama_cobertura: "PARTICULAR", lio_id: "l2" });
+  // Contexto con TODO disponible: este bloque prueba la selección del
+  // operador, no qué documentos desactivó la clínica (migración 69). Con el
+  // consentimiento en placeholder no entraría al sobre y los casos de orden
+  // quedarían probando otra cosa.
+  const ctx: SobreCtx = {
+    ...ctxDe(P813, { rama_cobertura: "PARTICULAR", lio_id: "l2" }),
+    consentimiento: { secciones: [{ titulo: "T", cuerpo: "C" }], esPlaceholder: false },
+    documentosDesactivados: [],
+  };
 
   const hojas = (c: SobreCtx, claves?: string[]) => {
     const L = armarSobreCompleto(c, claves);
@@ -1338,5 +1352,65 @@ describe("Trazabilidad — domicilio", () => {
     // Entre "Código postal" y "Teléfono" no puede haber un número suelto.
     const entre = t.slice(i, t.indexOf("Teléfono", i));
     expect(entre).not.toMatch(/\d/);
+  });
+});
+
+// ============================================================
+// Documentos desactivados por la clínica (migración 69)
+// ============================================================
+describe("Documentos desactivados", () => {
+  const acept = { rama_cobertura: "PARTICULAR", lio_id: "l2" };
+  const conTextoReal = { secciones: [{ titulo: "T", cuerpo: "C" }], esPlaceholder: false };
+
+  const ctxCon = (desactivados: string[], consent = conTextoReal): SobreCtx => ({
+    ...ctxDe(P813, acept),
+    consentimiento: consent,
+    documentosDesactivados: desactivados,
+  });
+
+  it("un documento desactivado no entra al sobre ni se ofrece", () => {
+    const claves = docsDelSobre(ctxCon(["indicaciones", "cronograma"])).map((d) => d.clave);
+    expect(claves).not.toContain("indicaciones");
+    expect(claves).not.toContain("cronograma");
+    // El resto sigue intacto: desactivar no puede llevarse nada más por delante.
+    expect(claves).toContain("pedido");
+    expect(claves).toContain("recetas");
+    expect(claves).toContain("caja");
+    expect(claves).toContain("trazabilidad");
+  });
+
+  it("sacar el cronograma se lleva también el instructivo de gotas", () => {
+    // No son dos documentos: el instructivo es la segunda hoja del cronograma.
+    const con = armarSobreCompleto(ctxCon([]));
+    const sin = armarSobreCompleto(ctxCon(["cronograma"]));
+    const hojas = (L: unknown) => (rawPdf(L as never).match(/\/Type\s*\/Page[^s]/g) || []).length;
+    expect(hojas(con) - hojas(sin)).toBe(2);
+    expect(textoDe(sin!)).not.toContain("Cronograma de tratamiento");
+  });
+
+  it("la lista vacía deja el sobre completo", () => {
+    // Es el lado seguro si la consulta de configuración falla: que se imprima
+    // de más se ve y se tira; que falte el pedido el día de la cirugía, no.
+    const claves = docsDelSobre(ctxCon([])).map((d) => d.clave);
+    expect(claves).toContain("indicaciones");
+    expect(claves).toContain("cronograma");
+  });
+
+  it("el consentimiento NO se imprime mientras su texto sea el placeholder", () => {
+    const placeholder = { secciones: [{ titulo: "", cuerpo: "[pendiente]" }], esPlaceholder: true };
+    const claves = docsDelSobre(ctxCon([], placeholder)).map((d) => d.clave);
+    expect(claves).not.toContain("consentimiento");
+    expect(textoDe(armarSobreCompleto(ctxCon([], placeholder))!)).not.toContain("ESTA HOJA NO SE FIRMA");
+  });
+
+  it("y vuelve SOLO cuando se carga el texto real", () => {
+    // Lo que hace que nadie tenga que acordarse de prenderlo.
+    const claves = docsDelSobre(ctxCon([], conTextoReal)).map((d) => d.clave);
+    expect(claves).toContain("consentimiento");
+  });
+
+  it("si además se lo desactiva, la lista manda sobre el texto real", () => {
+    const claves = docsDelSobre(ctxCon(["consentimiento"], conTextoReal)).map((d) => d.clave);
+    expect(claves).not.toContain("consentimiento");
   });
 });

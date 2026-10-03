@@ -178,6 +178,27 @@ export async function cargarOpcionesDiagnostico(
  * texto que no rige (migración 51). Si la consulta falla también se considera
  * placeholder — ante la duda, no se firma.
  */
+/**
+ * Qué documentos pidió la clínica no imprimir (migración 69).
+ *
+ * Ante cualquier falla devuelve la lista VACÍA, o sea el sobre completo. Es el
+ * lado seguro: que se imprima de más se ve y se tira; que falte el pedido de
+ * cirugía el día de la operación, no.
+ */
+export async function cargarDocumentosDesactivados(): Promise<string[]> {
+  try {
+    const rows = await sbGet<{ valor: string }>(
+      "presupuestos_config?clave=eq.documentos_desactivados&select=valor",
+    );
+    return String(rows?.[0]?.valor || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export async function cargarConsentimiento(): Promise<Consentimiento> {
   const respaldo: Consentimiento = {
     secciones: [{ titulo: "", cuerpo: "[Texto del consentimiento pendiente de carga — placeholder]" }],
@@ -266,6 +287,8 @@ export function armarContexto(args: {
   aceptacion: Aceptacion | null;
   convenios: Convenio[];
   lios: Lio[];
+  /** Documentos desactivados (ver `cargarDocumentosDesactivados`). Vacío = sobre completo. */
+  documentosDesactivados?: string[];
   consentimiento: Consentimiento;
   /** Receta de costos de la práctica (ver `cargarRecetaDeCostos`). */
   receta?: RecetaDeCostos | null;
@@ -380,6 +403,7 @@ export function armarContexto(args: {
     caja: args.caja ?? cajaDesdeAceptacion(a),
     entregasPrevias: num(args.entregasPrevias),
     consentimiento,
+    documentosDesactivados: args.documentosDesactivados ?? [],
     receta: args.receta ?? null,
     // El {ojo} se reemplaza acá, con el ojo de la ACEPTACIÓN, que es el que
     // manda en todo el sobre.
@@ -417,19 +441,47 @@ export interface DocDef {
   quirofano?: boolean;
 }
 
+/**
+ * "Se omite si la clínica lo desactivó."
+ *
+ * Va en TODOS los documentos y no sólo en los tres que se apagaron hoy: así
+ * prender o apagar cualquiera es editar una fila de `presupuestos_config`, sin
+ * tocar código. Un documento que no está en la lista no se omite.
+ */
+const desactivado = (clave: string) => (ctx: SobreCtx): boolean =>
+  ctx.documentosDesactivados.includes(clave);
+
 export const DOCS: DocDef[] = [
   // ── Se los lleva el paciente ──
   { clave: "pedido",         label: "Pedido de cirugía",        build: docPedidoCirugia },
-  { clave: "indicaciones",   label: "Indicaciones",             build: docIndicaciones },
-  { clave: "cronograma",     label: "Cronograma de gotas",      build: docCronograma, orient: "l" },
+  { clave: "indicaciones",   label: "Indicaciones",             build: docIndicaciones,
+    omitirSi: desactivado("indicaciones") },
+  // El cronograma trae el instructivo de gotas en su segunda hoja: se van juntos.
+  { clave: "cronograma",     label: "Cronograma de gotas",      build: docCronograma, orient: "l",
+    omitirSi: desactivado("cronograma") },
   { clave: "recetas",        label: "Recetas (una por hoja)",   build: docRecetas,
-    omitirSi: (ctx) => recetasDelSobre(ctx).length === 0 },
-  { clave: "analisis",       label: "Análisis y ECG",           build: docAnalisisEcg, condicional: true },
-  { clave: "caja",           label: "Ingreso de caja",          build: docCaja },
+    omitirSi: (ctx) => recetasDelSobre(ctx).length === 0 || ctx.documentosDesactivados.includes("recetas") },
+  { clave: "analisis",       label: "Análisis y ECG",           build: docAnalisisEcg, condicional: true,
+    omitirSi: desactivado("analisis") },
+  { clave: "caja",           label: "Ingreso de caja",          build: docCaja,
+    omitirSi: desactivado("caja") },
   // ── Se archivan en quirófano (hoja propia, al final) ──
-  { clave: "receta_costos",  label: "Receta de costos",         build: docRecetaCostos, quirofano: true },
-  { clave: "trazabilidad",   label: "Trazabilidad",             build: docTrazabilidad, quirofano: true },
-  { clave: "consentimiento", label: "Consentimiento informado", build: docConsentimiento, quirofano: true },
+  { clave: "receta_costos",  label: "Receta de costos",         build: docRecetaCostos, quirofano: true,
+    omitirSi: desactivado("receta_costos") },
+  { clave: "trazabilidad",   label: "Trazabilidad",             build: docTrazabilidad, quirofano: true,
+    omitirSi: desactivado("trazabilidad") },
+  {
+    clave: "consentimiento", label: "Consentimiento informado", build: docConsentimiento, quirofano: true,
+    /**
+     * Se omite mientras el texto vigente sea el placeholder, y vuelve SOLO
+     * cuando se cargue el real (migración 69). Hasta hoy el sobre imprimía una
+     * hoja con el membrete, el paciente y "ESTA HOJA NO SE FIRMA".
+     *
+     * La lista de desactivados sigue mandando, por si algún día hay que
+     * suprimirlo incluso con texto cargado.
+     */
+    omitirSi: (ctx) => ctx.consentimiento.esPlaceholder || ctx.documentosDesactivados.includes("consentimiento"),
+  },
 ];
 
 /**

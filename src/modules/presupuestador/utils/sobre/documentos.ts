@@ -118,6 +118,15 @@ export interface SobreCtx {
   entregasPrevias: number;
   consentimiento: Consentimiento;
   /**
+   * Claves de documentos que la clínica pidió no imprimir (migración 69).
+   * Sale de `presupuestos_config.documentos_desactivados`, para que se puedan
+   * volver a prender sin un deploy.
+   *
+   * El consentimiento NO viaja acá: se omite mientras su texto sea el
+   * placeholder, así vuelve solo cuando se cargue el real.
+   */
+  documentosDesactivados: string[];
+  /**
    * Receta de costos de la práctica presupuestada: qué insumos consume y qué
    * pools la alcanzan. `null` cuando la práctica no tiene receta cargada — la
    * hoja se imprime igual y lo dice, porque una cirugía sin receta cargada es
