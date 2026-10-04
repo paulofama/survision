@@ -15,6 +15,7 @@ import { Convenio, Lio, sbGet } from "../utils/circuito";
 import AceptacionModal from "../components/AceptacionModal";
 import CircuitoPanel from "../components/CircuitoPanel";
 import MatchesRevisionModal from "../components/MatchesRevisionModal";
+import CambioEstadoModal, { type AccionEstado } from "../components/CambioEstadoModal";
 import HistorialSeguimientoModal from "../components/HistorialSeguimientoModal";
 import { derivarSeguimiento, ESTADO_CONTACTO_META, Seguimiento } from "../utils/seguimiento";
 import { nombrePrestacionCorto } from "../utils/nombrePrestacion";
@@ -375,7 +376,9 @@ function CeldaResultado({
   onRechazar,
   onSinRespuesta,
   onRevertir,
+  onAnular,
   onCircuito,
+  puedeAnularPracticado,
 }: {
   p: Presupuesto;
   plazoDias: number;
@@ -383,12 +386,17 @@ function CeldaResultado({
   onRechazar: () => void;
   onSinRespuesta: () => void;
   onRevertir: () => void;
+  onAnular: () => void;
   onCircuito: () => void;
+  /** `presupuestador:config`: anular una cirugía ya realizada no es rutina. */
+  puedeAnularPracticado: boolean;
 }) {
   // Fuera del circuito comercial.
   if (!esEmitido(p.estado)) {
     return <span className="text-xs text-gray-300">—</span>;
   }
+
+  const esPracticado = p.estado === "practicado";
 
   // Resultado ya registrado.
   if (p.resultado) {
@@ -412,9 +420,31 @@ function CeldaResultado({
               Circuito
             </button>
           )}
-          <button onClick={onRevertir} className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
-            Cambiar
-          </button>
+          {/*
+            PRACTICADO NO SE REVIERTE. La cirugía ya se hizo, así que fue
+            aceptado de hecho. Además el circuito de seguimiento telefónico
+            llama a los presupuestos SIN resultado: un practicado revertido
+            volvería a esa cola y alguien le preguntaría a un paciente ya
+            operado si se decide.
+          */}
+          {esPracticado ? (
+            <span
+              className="text-[11px] text-gray-300 cursor-not-allowed"
+              title="La cirugía ya se realizó: el resultado no se revierte."
+            >
+              Cambiar
+            </span>
+          ) : (
+            <button onClick={onRevertir} className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
+              Cambiar
+            </button>
+          )}
+          {/* Anular un practicado queda para quien tenga `presupuestador:config`. */}
+          {p.resultado !== "ANULADO" && (!esPracticado || puedeAnularPracticado) && (
+            <button onClick={onAnular} className="text-[11px] text-gray-400 hover:text-red-600 hover:underline">
+              Anular
+            </button>
+          )}
         </div>
       </div>
     );
@@ -423,10 +453,17 @@ function CeldaResultado({
   // 'practicado' sin resultado => ACEPTADO implícito (ya se operó).
   if (p.estado === "practicado") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-green-600" title="Ya se operó: aceptado implícito">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-        Aceptado (practicado)
-      </span>
+      <div className="flex flex-col items-center gap-1">
+        <span className="inline-flex items-center gap-1 text-xs text-green-600" title="Ya se operó: aceptado implícito">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+          Aceptado (practicado)
+        </span>
+        {puedeAnularPracticado && (
+          <button onClick={onAnular} className="text-[11px] text-gray-400 hover:text-red-600 hover:underline">
+            Anular
+          </button>
+        )}
+      </div>
     );
   }
 
@@ -460,7 +497,9 @@ function CeldaResultado({
 
 export default function BusquedaPresupuestosPage() {
   const navigate = useNavigate();
-  const { usuario } = useAuth();
+  const { usuario, tienePermiso } = useAuth();
+  /** Anular una cirugía ya realizada no es una acción de rutina. */
+  const puedeAnularPracticado = tienePermiso("presupuestador:config");
   const username = usuario?.username ?? null;
 
   // ── State ──
@@ -485,7 +524,12 @@ export default function BusquedaPresupuestosPage() {
   const [modal, setModal] = useState<{ modo: "aceptar" | "rechazar"; p: Presupuesto } | null>(null);
   const [aceptModal, setAceptModal] = useState<Presupuesto | null>(null);
   const [circuito, setCircuito] = useState<Presupuesto | null>(null);
-  const [revert, setRevert] = useState<Presupuesto | null>(null);
+  /**
+   * Revertir o anular. Antes era un simple confirm que borraba el resultado
+   * en silencio; ahora el modal pide motivo, bloquea si hay caja y deja
+   * constancia en el historial (migración 70).
+   */
+  const [cambioEstado, setCambioEstado] = useState<{ p: Presupuesto; accion: AccionEstado } | null>(null);
   const [bulk, setBulk] = useState<{ count: number } | null>(null);
   const [matchesCount, setMatchesCount] = useState(0);
   const [showMatches, setShowMatches] = useState(false);
@@ -649,16 +693,15 @@ export default function BusquedaPresupuestosPage() {
     }, "Presupuesto marcado como Sin respuesta");
   };
 
-  const confirmarRevertir = () => {
-    if (!revert) return;
-    patchResultado(revert.id, {
-      resultado: null,
-      resultado_motivo_id: null,
-      resultado_observaciones: null,
-      fecha_resultado: null,
-      resultado_por: null,
-    }, "Resultado revertido a Pendiente");
-    setRevert(null);
+  /**
+   * El cambio de estado lo hace `CambioEstadoModal`: pide motivo, bloquea si
+   * hay entregas de caja vigentes, baja la aceptación y escribe el historial.
+   * Acá sólo queda refrescar la grilla.
+   */
+  const cambioEstadoHecho = (mensaje: string) => {
+    setCambioEstado(null);
+    notify(mensaje, "success");
+    setTimeout(() => loadData(page), 300);
   };
 
   // ── Confirmación masiva de vencidos ──
@@ -1003,7 +1046,9 @@ export default function BusquedaPresupuestosPage() {
                             onAceptar={() => setAceptModal(p)}
                             onRechazar={() => setModal({ modo: "rechazar", p })}
                             onSinRespuesta={() => marcarSinRespuesta(p)}
-                            onRevertir={() => setRevert(p)}
+                            onRevertir={() => setCambioEstado({ p, accion: "revertir" })}
+                            onAnular={() => setCambioEstado({ p, accion: "anular" })}
+                            puedeAnularPracticado={puedeAnularPracticado}
                             onCircuito={() => setCircuito(p)}
                           />
                         </td>
@@ -1137,14 +1182,18 @@ export default function BusquedaPresupuestosPage() {
           onChanged={() => { loadMatchesCount(); loadData(page); }}
         />
       )}
-      {revert && (
-        <ConfirmModal
-          titulo="Revertir resultado"
-          mensaje={`El presupuesto ${revert.numero_presupuesto} volverá a estado Pendiente (se borra el resultado registrado). ¿Confirmás?`}
-          confirmLabel="Revertir"
-          danger
-          onClose={() => setRevert(null)}
-          onConfirm={confirmarRevertir}
+      {cambioEstado && (
+        <CambioEstadoModal
+          presupuesto={cambioEstado.p}
+          accion={cambioEstado.accion}
+          usuario={username}
+          onHecho={cambioEstadoHecho}
+          onClose={() => setCambioEstado(null)}
+          onIrAlCircuito={() => {
+            const p = cambioEstado.p;
+            setCambioEstado(null);
+            setCircuito(p);
+          }}
         />
       )}
       {bulk && (

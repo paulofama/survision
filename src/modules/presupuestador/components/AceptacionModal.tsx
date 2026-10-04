@@ -152,6 +152,13 @@ export default function AceptacionModal({
           diagnostico_opcion_id: opcionDxId || null,
           requiere_analisis_ecg: requiere,
           created_by: username,
+          // LIMPIAR LA MARCA DE REVERSIÓN (migración 70). El upsert pega sobre
+          // la MISMA fila si el presupuesto ya se había aceptado y revertido;
+          // sin esto la aceptación nueva nacería marcada como revertida y el
+          // circuito no volvería a aparecer nunca.
+          revertida_at: null,
+          revertida_por: null,
+          reversion_motivo: null,
         },
         "presupuesto_id",
         "merge",

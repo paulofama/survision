@@ -14,7 +14,7 @@
 //     la emisión (N configurable, presupuestos_config.plazo_sin_respuesta_dias).
 // ============================================================
 
-export type ResultadoComercial = 'ACEPTADO' | 'RECHAZADO' | 'SIN_RESPUESTA';
+export type ResultadoComercial = 'ACEPTADO' | 'RECHAZADO' | 'SIN_RESPUESTA' | 'ANULADO';
 
 export interface MotivoResultado {
   id: string;
@@ -29,6 +29,10 @@ export const RESULTADO_META: Record<ResultadoComercial, { label: string; bg: str
   ACEPTADO:      { label: 'Aceptado',      bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
   RECHAZADO:     { label: 'Rechazado',     bg: 'bg-red-100',   text: 'text-red-600',   dot: 'bg-red-400'   },
   SIN_RESPUESTA: { label: 'Sin respuesta', bg: 'bg-gray-200',  text: 'text-gray-600',  dot: 'bg-gray-400'  },
+  // ANULADO no es RECHAZADO: rechazado es el paciente que dijo que no;
+  // anulado es el presupuesto que no debió existir. Mezclarlos ensuciaría la
+  // tasa de aceptación del informe (migración 70).
+  ANULADO:       { label: 'Anulado',       bg: 'bg-slate-200', text: 'text-slate-700', dot: 'bg-slate-500' },
 };
 
 /** Estados operativos que cuentan como "emitido" (entran al circuito comercial). */

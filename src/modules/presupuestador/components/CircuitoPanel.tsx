@@ -110,7 +110,9 @@ export default function CircuitoPanel({
     try {
       const practica = practicaDelPresupuesto(presupuesto);
       const [a, ch, ent, cons, rec, desact] = await Promise.all([
-        sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&select=*`),
+        // Sólo la VIGENTE: una aceptación revertida conserva sus datos pero no
+        // habilita el circuito (migración 70).
+        sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&revertida_at=is.null&select=*`),
         sbGet<ChecklistRow>(`presupuestos_checklist?presupuesto_id=eq.${presupuesto.id}&select=*`),
         cargarEntregas(presupuesto.id),
         cargarConsentimiento(),

@@ -161,6 +161,17 @@ export interface Aceptacion {
   caja_monto_unico: number | string | null;
   caja_registrado_por: string | null;
   caja_registrado_en: string | null;
+  /**
+   * Reversión (migración 70). NULL = aceptación VIGENTE.
+   *
+   * La fila NO se borra al revertir: los datos del circuito (ojo, convenio,
+   * LIO) quedan para precargar si el paciente vuelve. Lo que cambia es que
+   * deja de estar vigente, así no se le puede generar el sobre ni registrar
+   * plata a un presupuesto que figura como pendiente.
+   */
+  revertida_at: string | null;
+  revertida_por: string | null;
+  reversion_motivo: string | null;
 }
 
 /**
