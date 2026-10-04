@@ -14,7 +14,7 @@ import {
   Convenio, Lio, RamaCobertura, SubRama, Ojo,
   OJOS, SUB_RAMAS, CHECKLIST_ITEMS,
   itemsAplicables, clavesAplicables, lioSugerido,
-  sbPatch, sbUpsert, sbDelete,
+  sbPatch, sbUpsert, sbDelete, sbInsert,
 } from "../utils/circuito";
 import { cargarOpcionesDiagnostico, type OpcionDiagnostico } from "../utils/sobre";
 
@@ -41,6 +41,26 @@ function ojoDesdeSnapshot(p: PresupuestoMin): Ojo | "" {
   return "";
 }
 
+/**
+ * Lo que hay que saber de una aceptación que ya existe, para poder editarla.
+ *
+ * `sobresImpresos` y `ultimoSobre` no son decoración: si el sobre ya salió, el
+ * paciente y quirófano tienen un papel que dice el ojo y el convenio
+ * anteriores. El modal lo advierte antes de dejar guardar.
+ */
+export interface AceptacionEditable {
+  rama_cobertura: RamaCobertura;
+  sub_rama: SubRama | null;
+  convenio_id: string | null;
+  fecha_tentativa_cirugia: string | null;
+  ojo: Ojo | null;
+  lio_id: string | null;
+  diagnostico_opcion_id: string | null;
+  requiere_analisis_ecg: boolean;
+  sobresImpresos: number;
+  ultimoSobre: string | null;
+}
+
 export default function AceptacionModal({
   presupuesto,
   convenios,
@@ -49,6 +69,7 @@ export default function AceptacionModal({
   onClose,
   onDone,
   lioEditable = false,
+  edicion = null,
 }: {
   presupuesto: PresupuestoMin;
   convenios: Convenio[];
@@ -56,6 +77,12 @@ export default function AceptacionModal({
   username: string | null;
   onClose: () => void;
   onDone: () => void;
+  /**
+   * Cuando viene, el modal EDITA una aceptación existente en vez de crearla:
+   * precarga los campos, avisa si el sobre ya se imprimió y registra en el
+   * historial qué cambió. Sin esto se comporta exactamente como antes.
+   */
+  edicion?: AceptacionEditable | null;
   /**
    * Definición de Administración (10/08/2026): "el LIO debe quedar el del
    * presupuesto" — el selector es de SÓLO LECTURA. Pasar `lioEditable` sólo si
@@ -70,15 +97,17 @@ export default function AceptacionModal({
   // operador quedaría sin poder aceptar el presupuesto.
   const lioSoloLectura = !lioEditable && !!lioDelPresupuesto;
 
-  const [rama, setRama] = useState<RamaCobertura | "">("");
-  const [subRama, setSubRama] = useState<SubRama | "">("");
-  const [convenioId, setConvenioId] = useState<string>("");
-  const [fecha, setFecha] = useState<string>("");
-  const [ojo, setOjo] = useState<Ojo | "">(ojoDesdeSnapshot(presupuesto));
+  // En edición se arranca de lo que ya está guardado; en alta, de los valores
+  // que el presupuesto sugiere.
+  const [rama, setRama] = useState<RamaCobertura | "">(edicion?.rama_cobertura ?? "");
+  const [subRama, setSubRama] = useState<SubRama | "">(edicion?.sub_rama ?? "");
+  const [convenioId, setConvenioId] = useState<string>(edicion?.convenio_id ?? "");
+  const [fecha, setFecha] = useState<string>(edicion?.fecha_tentativa_cirugia ?? "");
+  const [ojo, setOjo] = useState<Ojo | "">(edicion?.ojo ?? ojoDesdeSnapshot(presupuesto));
   const [lioId, setLioId] = useState<string>(
-    lioDelPresupuesto || (lios.length === 1 ? lios[0].id : ""),
+    edicion?.lio_id || lioDelPresupuesto || (lios.length === 1 ? lios[0].id : ""),
   );
-  const [requiere, setRequiere] = useState<boolean>(false);
+  const [requiere, setRequiere] = useState<boolean>(edicion?.requiere_analisis_ecg ?? false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -87,7 +116,7 @@ export default function AceptacionModal({
   // macular diabético u oclusión venosa). Lista vacía = una sola indicación,
   // y el modal queda exactamente como estaba.
   const [opcionesDx, setOpcionesDx] = useState<OpcionDiagnostico[]>([]);
-  const [opcionDxId, setOpcionDxId] = useState<string>("");
+  const [opcionDxId, setOpcionDxId] = useState<string>(edicion?.diagnostico_opcion_id ?? "");
 
   useEffect(() => {
     let vigente = true;
@@ -129,14 +158,19 @@ export default function AceptacionModal({
     try {
       const ahora = new Date().toISOString();
 
-      // 1) Resultado ACEPTADO
-      await sbPatch(`presupuestos?id=eq.${presupuesto.id}`, {
-        resultado: "ACEPTADO",
-        resultado_motivo_id: null,
-        resultado_observaciones: null,
-        fecha_resultado: ahora,
-        resultado_por: username,
-      });
+      // 1) Resultado ACEPTADO.
+      //    En EDICIÓN no se toca: el presupuesto ya está aceptado y pisar la
+      //    fecha y el usuario del resultado borraría quién lo aceptó
+      //    originalmente, que es justo lo que el historial viene a preservar.
+      if (!edicion) {
+        await sbPatch(`presupuestos?id=eq.${presupuesto.id}`, {
+          resultado: "ACEPTADO",
+          resultado_motivo_id: null,
+          resultado_observaciones: null,
+          fecha_resultado: ahora,
+          resultado_por: username,
+        });
+      }
 
       // 2) Fila de aceptación (1:1)
       await sbUpsert(
@@ -189,6 +223,50 @@ export default function AceptacionModal({
         );
       }
 
+      // 4) En EDICIÓN, la constancia de qué cambió — campo por campo.
+      //
+      // Se escribe sólo lo que efectivamente cambió: una fila por campo es lo
+      // que permite después responder "¿cuándo pasó de OD a OI y quién lo
+      // hizo?", que con una fila genérica por "se editó el circuito" no se
+      // puede. Va al final y no bloquea: si falla, el cambio ya se guardó.
+      if (edicion) {
+        const antes: Record<string, string | null> = {
+          rama_cobertura: edicion.rama_cobertura,
+          convenio_id: edicion.convenio_id,
+          ojo: edicion.ojo,
+          fecha_tentativa_cirugia: edicion.fecha_tentativa_cirugia,
+          requiere_analisis_ecg: String(edicion.requiere_analisis_ecg),
+          diagnostico_opcion_id: edicion.diagnostico_opcion_id,
+        };
+        const despues: Record<string, string | null> = {
+          rama_cobertura: rama || null,
+          convenio_id: esOS ? convenioId : null,
+          ojo: ojo || null,
+          fecha_tentativa_cirugia: fecha || null,
+          requiere_analisis_ecg: String(requiere),
+          diagnostico_opcion_id: opcionDxId || null,
+        };
+        const cambios = Object.keys(antes)
+          .filter((k) => (antes[k] ?? null) !== (despues[k] ?? null))
+          .map((k) => ({
+            presupuesto_id: presupuesto.id,
+            campo: k,
+            valor_anterior: antes[k],
+            valor_nuevo: despues[k],
+            observaciones: edicion.sobresImpresos > 0
+              ? `Editado con el sobre ya impreso (${edicion.sobresImpresos})`
+              : null,
+            usuario: username,
+          }));
+        if (cambios.length) {
+          try {
+            await sbInsert("presupuestos_historial", cambios);
+          } catch {
+            /* el cambio ya se guardó; el historial no puede impedirlo */
+          }
+        }
+      }
+
       onDone();
     } catch (e) {
       setError((e as Error).message || "No se pudo guardar");
@@ -199,14 +277,38 @@ export default function AceptacionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b bg-green-50 border-green-100">
-          <h3 className="font-bold text-gray-900">Aceptar presupuesto — datos del circuito</h3>
+        <div className={`px-5 py-4 border-b ${edicion ? "bg-blue-50 border-blue-100" : "bg-green-50 border-green-100"}`}>
+          <h3 className="font-bold text-gray-900">
+            {edicion ? "Modificar los datos del circuito" : "Aceptar presupuesto — datos del circuito"}
+          </h3>
           <p className="text-xs text-gray-500 mt-0.5">
             {presupuesto.numero_presupuesto} — {presupuesto.paciente_apellido}, {presupuesto.paciente_nombre}
           </p>
         </div>
 
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/*
+            EL SOBRE YA IMPRESO ES EL PUNTO DELICADO. El ojo, el convenio y la
+            opción de diagnóstico salen impresos: si el sobre ya salió, el
+            paciente y quirófano tienen un papel que dice lo anterior.
+
+            No bloquea —corregir un error de tipeo en el ojo tiene que ser
+            posible, y revertir está vedado cuando hay caja— pero el operador
+            tiene que saber que además de guardar hay que reimprimir y
+            recuperar el papel viejo.
+          */}
+          {edicion && edicion.sobresImpresos > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 space-y-1">
+              <p className="font-semibold">
+                El sobre ya se imprimió{edicion.ultimoSobre ? ` el ${edicion.ultimoSobre}` : ""}
+              </p>
+              <p>
+                Si cambiás el ojo, el convenio o el diagnóstico, el papel que tienen el paciente
+                y quirófano va a decir otra cosa.
+              </p>
+              <p className="text-amber-800">Hay que reimprimir el sobre y recuperar el anterior.</p>
+            </div>
+          )}
           {/* Rama de cobertura */}
           <div>
             <span className="block text-sm text-gray-600 mb-1 font-medium">Cobertura *</span>
@@ -408,7 +510,7 @@ export default function AceptacionModal({
             onClick={confirmar}
             className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-40"
           >
-            {guardando ? "Guardando…" : "Aceptar y guardar"}
+            {guardando ? "Guardando…" : (edicion ? "Guardar cambios" : "Aceptar y guardar")}
           </button>
         </div>
       </div>

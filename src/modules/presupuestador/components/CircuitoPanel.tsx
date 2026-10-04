@@ -24,6 +24,7 @@ import {
   valorTotalCaja, requiereFactura, restaPagar,
 } from "../utils/sobre";
 import CajaIngresoModal from "./CajaIngresoModal";
+import AceptacionModal from "./AceptacionModal";
 
 interface PresupuestoMin {
   id: string;
@@ -91,6 +92,10 @@ export default function CircuitoPanel({
   const [consentimiento, setConsentimiento] = useState<Consentimiento>({ secciones: [], esPlaceholder: true });
   /** Documentos que la clínica pidió no imprimir (migración 69). */
   const [documentosDesactivados, setDocumentosDesactivados] = useState<string[]>([]);
+  /** Modal de edición de los datos del circuito (migración 71). */
+  const [editando, setEditando] = useState(false);
+  /** Cuántas veces se imprimió el sobre: el modal avisa si ya salió. */
+  const [sobres, setSobres] = useState<{ n: number; ultimo: string | null }>({ n: 0, ultimo: null });
   const [receta, setReceta] = useState<RecetaDeCostos | null>(null);
   // Diagnóstico y solicitud de la práctica, para el pedido de cirugía.
   const [diag, setDiag] = useState<{ diagnostico: string; solicitud: string; llevaLio: boolean } | null>(null);
@@ -109,7 +114,7 @@ export default function CircuitoPanel({
     setError("");
     try {
       const practica = practicaDelPresupuesto(presupuesto);
-      const [a, ch, ent, cons, rec, desact] = await Promise.all([
+      const [a, ch, ent, cons, rec, desact, sbs] = await Promise.all([
         // Sólo la VIGENTE: una aceptación revertida conserva sus datos pero no
         // habilita el circuito (migración 70).
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&revertida_at=is.null&select=*`),
@@ -121,6 +126,9 @@ export default function CircuitoPanel({
         cargarRecetaDeCostos(practica.codigo, practica.descripcion),
         // Qué documentos pidió la clínica no imprimir (migración 69).
         cargarDocumentosDesactivados(),
+        // Si el sobre ya se imprimió, editar el ojo o el convenio deja un papel
+        // circulando que dice otra cosa. El modal lo advierte.
+        sbGet<{ generado_en: string }>(`presupuestos_sobres?presupuesto_id=eq.${presupuesto.id}&select=generado_en&order=generado_en.desc`),
       ]);
       const acept = a[0] || null;
       // El diagnóstico va DESPUÉS y no en paralelo: cuando la práctica se hace
@@ -131,6 +139,7 @@ export default function CircuitoPanel({
       setEntregas(ent || []);
       setConsentimiento(cons);
       setDocumentosDesactivados(desact);
+      setSobres({ n: sbs.length, ultimo: sbs[0]?.generado_en ?? null });
       setReceta(rec);
       setDiag(dx);
       // Sólo los ítems que existen para esta cobertura (ej. "Orden autorizada"
@@ -391,6 +400,23 @@ export default function CircuitoPanel({
               </div>
 
               {/* Datos de la aceptación */}
+              {aceptacion && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-500 uppercase">Datos del circuito</span>
+                  {/*
+                    Editar reabre el MISMO modal de la aceptación, precargado.
+                    Si el sobre ya se imprimió, el modal avisa: el ojo y el
+                    convenio salen impresos, así que cambiarlos deja al paciente
+                    y a quirófano con un papel que dice otra cosa.
+                  */}
+                  <button
+                    onClick={() => setEditando(true)}
+                    className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                  >
+                    Modificar
+                  </button>
+                </div>
+              )}
               {aceptacion ? (
                 <div className="rounded-xl border border-gray-200 p-4 text-sm grid grid-cols-2 gap-y-2 gap-x-4">
                   <div><span className="text-gray-500">Cobertura:</span> <span className="font-medium text-gray-800">{aceptacion.rama_cobertura === "PARTICULAR" ? "Particular" : "Obra social"}</span></div>
@@ -666,6 +692,35 @@ export default function CircuitoPanel({
             </div>
           </div>
         </div>
+      )}
+
+      {/*
+        Edición de los datos del circuito (migración 71). Reusa el MISMO modal
+        de la aceptación en modo `edicion`: así los campos, las validaciones y
+        el aviso de convenio distinto de la ficha son exactamente los mismos y
+        no hay dos formularios que puedan divergir.
+      */}
+      {editando && aceptacion && (
+        <AceptacionModal
+          presupuesto={presupuesto}
+          convenios={convenios}
+          lios={lios}
+          username={username}
+          edicion={{
+            rama_cobertura: aceptacion.rama_cobertura,
+            sub_rama: aceptacion.sub_rama,
+            convenio_id: aceptacion.convenio_id,
+            fecha_tentativa_cirugia: aceptacion.fecha_tentativa_cirugia,
+            ojo: aceptacion.ojo,
+            lio_id: aceptacion.lio_id,
+            diagnostico_opcion_id: aceptacion.diagnostico_opcion_id,
+            requiere_analisis_ecg: aceptacion.requiere_analisis_ecg,
+            sobresImpresos: sobres.n,
+            ultimoSobre: fmtFecha(sobres.ultimo),
+          }}
+          onClose={() => setEditando(false)}
+          onDone={() => { setEditando(false); cargar(); }}
+        />
       )}
 
       {/* Datos que carga el operador para el comprobante de caja */}
