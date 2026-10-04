@@ -6,6 +6,8 @@ import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 import AnalisisResultados from "../components/AnalisisResultados";
 import { normalizarTelefonoAR } from "../utils/seguimiento";
 import { conCodigo } from "../utils/nombrePrestacion";
+import { sbGet, type Lio } from "../utils/circuito";
+import { generarPedidoDePresupuesto } from "../utils/sobre";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -3337,6 +3339,8 @@ interface PreviewModalProps {
 
 function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelefonoMap, administrativasOptions, yaGuardado, datosGuardados, loading, onGuardar, onClose }: PreviewModalProps) {
   const prestDesc = prestaciones.find((p) => p.codigo === form.prestacionCodigo)?.practica || "";
+  /** Mientras se arma el Pedido de cirugía, para no disparar dos descargas. */
+  const [generandoPedido, setGenerandoPedido] = useState(false);
   const cirujanoLabel = CIRUJANOS_FALLBACK.find((c) => c.value === form.cirujano)?.label || form.cirujano;
   // Nombre a mostrar: primero entre los usuarios del sistema; si no está, es un
   // presupuesto viejo guardado con el formato de la lista histórica.
@@ -3710,6 +3714,40 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
   const handleSavePDF = () => openPrintWindow(false);
   const handlePrint = () => openPrintWindow(true);
 
+  /**
+   * Emite el Pedido de cirugía del presupuesto guardado.
+   *
+   * Sale del snapshot (`datosGuardados`), no del formulario: por eso el botón
+   * está deshabilitado hasta guardar. Si algo falla, el error se muestra y el
+   * modal no se cierra — un pedido a medias no se descarga.
+   */
+  const handlePedido = async () => {
+    if (!yaGuardado || !datosGuardados || generandoPedido) return;
+    setGenerandoPedido(true);
+    try {
+      const lios = await sbGet<Lio>("presupuestos_lios?activo=eq.true&order=orden.asc&select=*");
+      // TODO sale del SNAPSHOT, no del formulario. Los campos planos replican
+      // las columnas de la tabla `presupuestos`, que es la forma que espera el
+      // generador.
+      const pac = datosGuardados.paciente ?? {};
+      const trat = datosGuardados.tratamiento ?? {};
+      await generarPedidoDePresupuesto({
+        numero_presupuesto: numeroPresupuesto,
+        paciente_apellido: pac.apellido || "",
+        paciente_nombre: pac.nombre || "",
+        paciente_documento: pac.documento || "",
+        prestacion_codigo: trat.prestacionCodigo || "",
+        prestacion_descripcion: trat.prestacionDescripcion || "",
+        total_final: datosGuardados.precios?.total ?? 0,
+        datos_completos: datosGuardados,
+      }, lios);
+    } catch (e) {
+      window.alert("No se pudo generar el pedido: " + ((e as Error).message || "error desconocido"));
+    } finally {
+      setGenerandoPedido(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -3899,6 +3937,30 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
               Imprimir
+            </button>
+            {/*
+              PEDIDO DE CIRUGÍA desde el presupuesto, sin esperar a aceptarlo.
+              El orden real de la clínica es pedir la cirugía, que la obra
+              social autorice, y recién entonces aceptar.
+
+              Deshabilitado hasta guardar porque el PDF sale del SNAPSHOT, no
+              del formulario: un pedido firmado que no coincida con ningún
+              presupuesto guardado es el problema que venimos cerrando.
+            */}
+            <button
+              onClick={handlePedido}
+              disabled={!yaGuardado || generandoPedido}
+              title={!yaGuardado ? "Guardá el presupuesto primero" : "Emite el pedido para la obra social"}
+              className={`flex-1 py-2.5 rounded-lg font-medium transition-colors border flex items-center justify-center gap-2 ${
+                yaGuardado && !generandoPedido
+                  ? "bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                  : "bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {generandoPedido ? "Generando…" : "Pedido de cirugía"}
             </button>
             <button
               onClick={onClose}

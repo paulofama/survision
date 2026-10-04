@@ -18,7 +18,7 @@ import {
   recetasDelSobre, recetasFijasDelSobre, recetasDeMedicacionAdicional,
   docRecetaFija, docRecetasAdicionales,
 } from "./documentos";
-import { Aceptacion, Convenio, Lio, sbGet } from "../circuito";
+import { Aceptacion, Convenio, Lio, sbGet, lioSugerido, practicaDelPresupuesto } from "../circuito";
 import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
 import { sinPrefijoCodigo } from '../nombrePrestacion';
 
@@ -87,6 +87,22 @@ const num = (v: unknown): number => {
 
 const OJO_TEXTO: Record<string, string> = { OD: "ojo derecho (OD)", OI: "ojo izquierdo (OI)", AMBOS: "ambos ojos" };
 const OJO_DIAG: Record<string, string> = { OD: "OD", OI: "OI", AMBOS: "AO" };
+
+/**
+ * El ojo que trae el presupuesto, para cuando todavía no hay aceptación.
+ *
+ * `tratamiento.ojoTratar` es texto libre del formulario ("derecho",
+ * "izquierdo", "ambos"), no el código de la aceptación. Lo tiene el 98,9 % de
+ * los presupuestos; el resto imprime el renglón vacío, que es lo que hacía
+ * todo el sobre antes de poder emitirse pre-aceptación.
+ */
+function ojoDelPresupuesto(p: { datos_completos?: { tratamiento?: { ojoTratar?: string } } } | null | undefined): SobreCtx["ojo"] {
+  const o = String(p?.datos_completos?.tratamiento?.ojoTratar || "").toLowerCase();
+  if (o.includes("ambos")) return "AMBOS";
+  if (o.includes("izq")) return "OI";
+  if (o.includes("der")) return "OD";
+  return null;
+}
 
 // ── Consentimiento vigente (versionable) ──────────────────────────────────────
 
@@ -311,7 +327,20 @@ export function armarContexto(args: {
 
   const convenio = a?.convenio_id ? convenios.find((c) => c.id === a.convenio_id) || null : null;
   const lio = a?.lio_id ? lios.find((l) => l.id === a.lio_id) || null : null;
-  const ojo = (a?.ojo as SobreCtx["ojo"]) ?? null;
+  /**
+   * El ojo manda el de la ACEPTACIÓN, que es el que quedó congelado y el que
+   * sale impreso en todo el sobre.
+   *
+   * Sin aceptación se cae al del presupuesto, que lo trae el 98,9 % de los
+   * registros en `tratamiento.ojoTratar` como texto libre ("derecho",
+   * "izquierdo", "ambos"). Eso es lo que permite emitir el Pedido de cirugía
+   * ANTES de aceptar, que es el circuito que pidió la clínica.
+   *
+   * NO es un reemplazo del de la aceptación: verificado el 04/10/2026, las 21
+   * aceptaciones vigentes coinciden con el ojo de su presupuesto — cero
+   * discrepancias. Si algún día divergen, manda la aceptación.
+   */
+  const ojo = (a?.ojo as SobreCtx["ojo"]) ?? ojoDelPresupuesto(p);
 
   const esObraSocial = a?.rama_cobertura === "OBRA_SOCIAL";
 
@@ -567,6 +596,60 @@ export function generarDocumento(clave: string, ctx: SobreCtx): void {
   construir(L, def, ctx);
   cerrar(L);
   L.doc.save(nombreArchivoDocumento(def.clave, ctx));
+}
+
+/**
+ * Emite el Pedido de cirugía de un presupuesto GUARDADO, sin esperar a que se
+ * acepte.
+ *
+ * POR QUÉ EXISTE
+ * --------------
+ * El pedido vivía sólo dentro del Sobre Quirúrgico, o sea después de aceptar.
+ * Pero el orden real de la clínica es al revés: se pide la cirugía, la obra
+ * social autoriza, y recién entonces se acepta el presupuesto.
+ *
+ * QUÉ SALE Y QUÉ NO
+ * -----------------
+ * Sale todo lo que el presupuesto ya sabe: paciente, DNI, obra social de la
+ * ficha, N° de afiliado, código y práctica, ojo (`tratamiento.ojoTratar`, que
+ * tiene el 98,9 % de los registros), diagnóstico y solicitud por práctica
+ * (migración 48) y el LIO que la prestación implica.
+ *
+ * NO sale lo que nace al aceptar: el convenio —y con él su leyenda, sus
+ * renglones y la cuenta— y la fecha de cirugía. Esos renglones salen en
+ * blanco, que es lo mismo que hace el pedido cuando el dato no está, y lo que
+ * Administración completa a mano.
+ *
+ * El PDF se arma desde el SNAPSHOT guardado, nunca desde el formulario: por eso
+ * el botón está deshabilitado hasta guardar. Un pedido firmado que no coincida
+ * con ningún presupuesto guardado es exactamente el problema que las fases 2 y
+ * 4 vinieron a cerrar.
+ */
+export async function generarPedidoDePresupuesto(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  presupuesto: any,
+  lios: Lio[],
+): Promise<void> {
+  const practica = practicaDelPresupuesto(presupuesto);
+  const diag = await cargarDiagnosticoPractica(practica.codigo, null);
+  const ctx = armarContexto({
+    presupuesto,
+    // Todavía no hay aceptación: ése es el punto de este camino.
+    aceptacion: null,
+    convenios: [],
+    lios,
+    consentimiento: { secciones: [], esPlaceholder: true },
+    diag,
+  });
+  // El LIO lo deduce la prestación (`lioSugerido`), igual que al aceptar: sin
+  // aceptación no hay `lio_id`, pero el renglón "LIO indicado" del pedido sí
+  // tiene que salir cuando la práctica lo lleva.
+  const lioId = lioSugerido(presupuesto, lios);
+  const ctxConLio: SobreCtx = {
+    ...ctx,
+    lioNombre: lios.find((l) => l.id === lioId)?.nombre || "",
+  };
+  generarDocumento("pedido", ctxConLio);
 }
 
 /** Genera y descarga el Sobre con los documentos elegidos (todos si no se acota). */

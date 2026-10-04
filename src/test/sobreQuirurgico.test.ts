@@ -1483,3 +1483,70 @@ describe("Selección por receta", () => {
     expect(docsDelSobre(sinExtras).map((d) => d.clave)).not.toContain("recetas_extra");
   });
 });
+
+// ============================================================
+// Pedido de cirugía ANTES de aceptar (FASE 5)
+// ============================================================
+// El orden real de la clínica es: se pide la cirugía, la obra social autoriza,
+// y recién entonces se acepta el presupuesto. Hasta ahora el pedido sólo
+// existía dentro del Sobre, o sea después de aceptar.
+describe("Pedido de cirugía sin aceptación", () => {
+  /** Contexto de un presupuesto guardado al que todavía nadie aceptó. */
+  const sinAceptar = (p = P813): SobreCtx => armarContexto({
+    presupuesto: p,
+    aceptacion: null,
+    convenios: [],
+    lios: LIOS,
+    consentimiento: CONSENTIMIENTO,
+    diag: { diagnostico: "Catarata OD", solicitud: "Cirugía de catarata.", llevaLio: true },
+  });
+
+  it("el ojo sale del presupuesto cuando no hay aceptación", () => {
+    // `tratamiento.ojoTratar` lo trae el 98,9% de los presupuestos. Sin este
+    // respaldo el pedido saldría sin ojo, que es el dato más importante.
+    const ctx = sinAceptar();
+    expect(ctx.ojo).toBe("OD"); // P813 tiene ojoTratar: "derecho"
+    expect(ctx.ojoTexto).toBe("ojo derecho (OD)");
+  });
+
+  it("imprime paciente, práctica y diagnóstico", () => {
+    const t = textoDe(construir(docPedidoCirugia, sinAceptar()));
+    expect(t).toContain("Pedido de cirugía");
+    expect(t).toContain("Murgo");
+    expect(t).toContain("Catarata OD");
+  });
+
+  it("sin ojoTratar el renglón sale vacío, no roto", () => {
+    const sinOjo = {
+      ...P813,
+      datos_completos: {
+        ...P813.datos_completos,
+        tratamiento: { ...P813.datos_completos.tratamiento, ojoTratar: "" },
+      },
+    };
+    const ctx = sinAceptar(sinOjo);
+    expect(ctx.ojo).toBeNull();
+    expect(ctx.ojoTexto).toBe("");
+    // El documento tiene que salir igual: un renglón en blanco se completa a
+    // mano, y es lo que hacía el pedido cuando el dato no estaba.
+    const t = textoDe(construir(docPedidoCirugia, ctx));
+    expect(t).toContain("Pedido de cirugía");
+  });
+
+  it("la aceptación MANDA sobre el ojo del presupuesto", () => {
+    // Verificado el 04/10/2026: las 21 aceptaciones vigentes coinciden con el
+    // ojo de su presupuesto. Si algún día divergen, gana la aceptación, que es
+    // la que quedó congelada y la que sale en el resto del sobre.
+    const ctx = ctxDe(P813, { rama_cobertura: "PARTICULAR", lio_id: "l2", ojo: "OI" });
+    expect(ctx.ojo).toBe("OI"); // el presupuesto dice "derecho"
+  });
+
+  it("sin convenio, los renglones del convenio quedan vacíos", () => {
+    const ctx = sinAceptar();
+    expect(ctx.convenio).toBeNull();
+    expect(ctx.esObraSocial).toBe(false);
+    // No explota ni inventa: simplemente no hay leyenda ni cuenta que imprimir.
+    const t = textoDe(construir(docPedidoCirugia, ctx));
+    expect(t).toContain("Pedido de cirugía");
+  });
+});
