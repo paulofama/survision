@@ -6,7 +6,7 @@ import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 import AnalisisResultados from "../components/AnalisisResultados";
 import { normalizarTelefonoAR } from "../utils/seguimiento";
 import { conCodigo } from "../utils/nombrePrestacion";
-import { sbGet, type Lio, type Convenio } from "../utils/circuito";
+import { sbGet, sbInsert, type Lio, type Convenio } from "../utils/circuito";
 import { generarPedidoDePresupuesto, coberturaSugerida, type CoberturaPedido } from "../utils/sobre";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2999,6 +2999,8 @@ export default function Presupuestador() {
           administrativasOptions={administrativasOptions}
           yaGuardado={yaGuardado}
           datosGuardados={datosGuardados}
+          presupuestoId={editId}
+          username={usuarioAdminValue || null}
           loading={loading}
           onGuardar={guardar}
           onClose={() => setShowPreview(false)}
@@ -3457,12 +3459,16 @@ interface PreviewModalProps {
   administrativasOptions: SelectOption[];
   yaGuardado: boolean;
   datosGuardados: DatosCompletos | null;
+  /** UUID del presupuesto guardado, para registrar la emisión del pedido. */
+  presupuestoId: string | null;
+  /** Usuario de la sesión: quien imprime, no quien atendió. */
+  username: string | null;
   loading: boolean;
   onGuardar: () => void;
   onClose: () => void;
 }
 
-function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelefonoMap, administrativasOptions, yaGuardado, datosGuardados, loading, onGuardar, onClose }: PreviewModalProps) {
+function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelefonoMap, administrativasOptions, yaGuardado, datosGuardados, presupuestoId, username, loading, onGuardar, onClose }: PreviewModalProps) {
   const prestDesc = prestaciones.find((p) => p.codigo === form.prestacionCodigo)?.practica || "";
   /** Mientras se arma el Pedido de cirugía, para no disparar dos descargas. */
   const [generandoPedido, setGenerandoPedido] = useState(false);
@@ -3892,7 +3898,7 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
       // generador.
       const pac = datosGuardados.paciente ?? {};
       const trat = datosGuardados.tratamiento ?? {};
-      await generarPedidoDePresupuesto({
+      const emitido = await generarPedidoDePresupuesto({
         numero_presupuesto: numeroPresupuesto,
         paciente_apellido: pac.apellido || "",
         paciente_nombre: pac.nombre || "",
@@ -3903,6 +3909,25 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
         datos_completos: datosGuardados,
       }, lios, convenios, cobertura);
       setPedidoAbierto(false);
+      // Deja constancia de qué se emitió y con qué vía (migraciones 46 y 72).
+      //
+      // Nunca bloquea ni avisa: el papel YA salió, y el registro es interno.
+      // La etiqueta se guarda como la devolvió el generador, o sea como salió
+      // impresa, así el registro y el papel no pueden divergir.
+      if (presupuestoId) {
+        try {
+          await sbInsert("presupuestos_sobres", {
+            presupuesto_id: presupuestoId,
+            documentos: ["pedido"],
+            modo: "documento",
+            generado_por: username,
+            cobertura: emitido.cobertura,
+            convenio_id: emitido.convenioId,
+          });
+        } catch (e) {
+          console.error("registro del pedido:", e);
+        }
+      }
     } catch (e) {
       window.alert("No se pudo generar el pedido: " + ((e as Error).message || "error desconocido"));
     } finally {

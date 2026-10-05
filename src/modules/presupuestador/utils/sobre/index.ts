@@ -691,6 +691,13 @@ export function generarDocumento(clave: string, ctx: SobreCtx): void {
  * el botón está deshabilitado hasta guardar. Un pedido firmado que no coincida
  * con ningún presupuesto guardado es exactamente el problema que las fases 2 y
  * 4 vinieron a cerrar.
+ *
+ * DEVUELVE LO QUE IMPRIMIÓ
+ * -------------------------
+ * `cobertura` es la etiqueta tal como salió en el papel, no la que el operador
+ * eligió: son la misma cosa salvo con la vía sin definir, donde el pedido
+ * imprime la obra social de la ficha. Quien registra la emisión guarda esto, y
+ * así el registro y el papel no pueden divergir (migración 72).
  */
 export async function generarPedidoDePresupuesto(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -698,7 +705,7 @@ export async function generarPedidoDePresupuesto(
   lios: Lio[],
   convenios: Convenio[],
   cobertura: CoberturaPedido,
-): Promise<void> {
+): Promise<{ cobertura: string; convenioId: string | null }> {
   const practica = practicaDelPresupuesto(presupuesto);
   const diag = await cargarDiagnosticoPractica(practica.codigo, null);
   const ctx = armarContexto({
@@ -720,6 +727,7 @@ export async function generarPedidoDePresupuesto(
     lioNombre: lios.find((l) => l.id === lioId)?.nombre || "",
   };
   generarDocumento("pedido", ctxConLio);
+  return { cobertura: ctxConLio.coberturaLabel, convenioId: cobertura.convenioId };
 }
 
 /** Genera y descarga el Sobre con los documentos elegidos (todos si no se acota). */

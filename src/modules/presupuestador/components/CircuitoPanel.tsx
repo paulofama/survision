@@ -7,12 +7,13 @@
 // presupuestos_aceptacion y presupuestos_checklist (RLS 'presupuestador').
 // ============================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Aceptacion, ChecklistRow, Convenio, Lio, CajaEntrega,
+  Aceptacion, ChecklistRow, Convenio, Lio, CajaEntrega, Emision, HistorialFila,
   CHECKLIST_ITEMS, OJOS, SUB_RAMAS,
-  clavesAplicables, listoParaCirugia, progresoChecklist,
+  clavesAplicables, listoParaCirugia, progresoChecklist, esPedido,
   cargarEntregas, sumaEntregas, anularEntrega, practicaDelPresupuesto,
+  cargarHistorial,
   sbGet, sbPatch, sbInsert,
 } from "../utils/circuito";
 import {
@@ -23,6 +24,7 @@ import {
   generarDocumento, generarSobreCompleto,
   valorTotalCaja, requiereFactura, restaPagar,
 } from "../utils/sobre";
+import { lineaDeTiempo } from "../utils/lineaDeTiempo";
 import CajaIngresoModal from "./CajaIngresoModal";
 import AceptacionModal from "./AceptacionModal";
 
@@ -71,6 +73,77 @@ const fmtFecha = (d: string | null | undefined): string => {
   } catch { return "—"; }
 };
 
+/** Fecha y hora, para la línea de tiempo: dos cambios del mismo día se ordenan. */
+const fmtFechaHora = (d: string | null | undefined): string => {
+  if (!d) return "—";
+  try {
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return "—";
+    const hh = dt.getHours().toString().padStart(2, "0");
+    const mm = dt.getMinutes().toString().padStart(2, "0");
+    return `${fmtFecha(d)} ${hh}:${mm}`;
+  } catch { return "—"; }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// LÍNEA DE TIEMPO DEL PRESUPUESTO
+// ═══════════════════════════════════════════════════════════════
+// El armado de los eventos es puro y vive en `utils/lineaDeTiempo.ts`, con sus
+// tests. Acá sólo se dibuja.
+
+function LineaDeTiempo({
+  historial,
+  emisiones,
+  convenios,
+}: {
+  historial: HistorialFila[];
+  emisiones: Emision[];
+  convenios: Convenio[];
+}) {
+  const eventos = useMemo(
+    () => lineaDeTiempo(historial, emisiones, convenios),
+    [historial, emisiones, convenios],
+  );
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      <h4 className="text-sm font-semibold text-gray-700 mb-2">Qué pasó con este presupuesto</h4>
+      {eventos.length === 0 ? (
+        <p className="text-xs text-gray-500">
+          Todavía no se emitió ningún documento ni se registró ningún cambio.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {eventos.map((ev, i) => (
+            <li
+              key={`${ev.cuando}-${i}`}
+              className="flex items-start gap-2.5 text-xs bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-2"
+            >
+              <span
+                className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${
+                  ev.clase === "emision" ? "bg-blue-500" : "bg-amber-500"
+                }`}
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium text-gray-900 break-words">{ev.titulo}</span>
+                {ev.detalle && <span className="block text-gray-600 break-words">{ev.detalle}</span>}
+                <span className="block text-gray-400">
+                  {fmtFechaHora(ev.cuando)}
+                  {ev.quien ? ` · ${ev.quien}` : ""}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] text-gray-500 mt-2">
+        Azul: documentos emitidos. Ámbar: cambios registrados.
+      </p>
+    </div>
+  );
+}
+
 export default function CircuitoPanel({
   presupuesto,
   convenios,
@@ -94,8 +167,25 @@ export default function CircuitoPanel({
   const [documentosDesactivados, setDocumentosDesactivados] = useState<string[]>([]);
   /** Modal de edición de los datos del circuito (migración 71). */
   const [editando, setEditando] = useState(false);
-  /** Cuántas veces se imprimió el sobre: el modal avisa si ya salió. */
-  const [sobres, setSobres] = useState<{ n: number; ultimo: string | null }>({ n: 0, ultimo: null });
+  /**
+   * Todo lo que se emitió de este presupuesto (migraciones 46 y 72).
+   *
+   * Se guardan las filas completas, no un contador, porque sirven para dos
+   * cosas: avisar en el modal que ya salió un papel con el ojo y el convenio
+   * anteriores, y armar la línea de tiempo del final del panel. El Pedido de
+   * cirugía emitido antes de aceptar también está acá, con la vía que eligió
+   * quien lo emitió.
+   */
+  const [emisiones, setEmisiones] = useState<Emision[]>([]);
+  /** Cambios registrados (migraciones 70 y 71), para la línea de tiempo. */
+  const [historial, setHistorial] = useState<HistorialFila[]>([]);
+  /**
+   * Las emisiones vienen de la más nueva a la más vieja, y se parten en dos
+   * porque avisan cosas distintas: un sobre impreso lo tienen el paciente y
+   * quirófano; un pedido emitido ya está en la obra social.
+   */
+  const pedidosEmitidos = useMemo(() => emisiones.filter(esPedido), [emisiones]);
+  const sobresEmitidos = useMemo(() => emisiones.filter((e) => !esPedido(e)), [emisiones]);
   const [receta, setReceta] = useState<RecetaDeCostos | null>(null);
   // Diagnóstico y solicitud de la práctica, para el pedido de cirugía.
   const [diag, setDiag] = useState<{ diagnostico: string; solicitud: string; llevaLio: boolean } | null>(null);
@@ -114,7 +204,7 @@ export default function CircuitoPanel({
     setError("");
     try {
       const practica = practicaDelPresupuesto(presupuesto);
-      const [a, ch, ent, cons, rec, desact, sbs] = await Promise.all([
+      const [a, ch, ent, cons, rec, desact, sbs, hist] = await Promise.all([
         // Sólo la VIGENTE: una aceptación revertida conserva sus datos pero no
         // habilita el circuito (migración 70).
         sbGet<Aceptacion>(`presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&revertida_at=is.null&select=*`),
@@ -126,9 +216,11 @@ export default function CircuitoPanel({
         cargarRecetaDeCostos(practica.codigo, practica.descripcion),
         // Qué documentos pidió la clínica no imprimir (migración 69).
         cargarDocumentosDesactivados(),
-        // Si el sobre ya se imprimió, editar el ojo o el convenio deja un papel
+        // Si ya salió un papel, editar el ojo o el convenio deja algo
         // circulando que dice otra cosa. El modal lo advierte.
-        sbGet<{ generado_en: string }>(`presupuestos_sobres?presupuesto_id=eq.${presupuesto.id}&select=generado_en&order=generado_en.desc`),
+        sbGet<Emision>(`presupuestos_sobres?presupuesto_id=eq.${presupuesto.id}&select=documentos,modo,cobertura,generado_por,generado_en&order=generado_en.desc`),
+        // Los cambios registrados, para la línea de tiempo del final.
+        cargarHistorial(presupuesto.id),
       ]);
       const acept = a[0] || null;
       // El diagnóstico va DESPUÉS y no en paralelo: cuando la práctica se hace
@@ -139,7 +231,8 @@ export default function CircuitoPanel({
       setEntregas(ent || []);
       setConsentimiento(cons);
       setDocumentosDesactivados(desact);
-      setSobres({ n: sbs.length, ultimo: sbs[0]?.generado_en ?? null });
+      setEmisiones(sbs || []);
+      setHistorial(hist || []);
       setReceta(rec);
       setDiag(dx);
       // Sólo los ítems que existen para esta cobertura (ej. "Orden autorizada"
@@ -632,6 +725,13 @@ export default function CircuitoPanel({
               )}
             </>
           )}
+
+          {/*
+            Va FUERA de la rama de la aceptación, a propósito: el Pedido de
+            cirugía se emite antes de aceptar, así que un presupuesto sin
+            aceptación puede tener historia para mostrar.
+          */}
+          <LineaDeTiempo historial={historial} emisiones={emisiones} convenios={convenios} />
         </div>
 
         <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
@@ -715,8 +815,10 @@ export default function CircuitoPanel({
             lio_id: aceptacion.lio_id,
             diagnostico_opcion_id: aceptacion.diagnostico_opcion_id,
             requiere_analisis_ecg: aceptacion.requiere_analisis_ecg,
-            sobresImpresos: sobres.n,
-            ultimoSobre: fmtFecha(sobres.ultimo),
+            sobresImpresos: sobresEmitidos.length,
+            ultimoSobre: fmtFecha(sobresEmitidos[0]?.generado_en ?? null),
+            pedidosEmitidos: pedidosEmitidos.length,
+            ultimoPedido: fmtFecha(pedidosEmitidos[0]?.generado_en ?? null),
           }}
           onClose={() => setEditando(false)}
           onDone={() => { setEditando(false); cargar(); }}

@@ -59,6 +59,13 @@ export interface AceptacionEditable {
   requiere_analisis_ecg: boolean;
   sobresImpresos: number;
   ultimoSobre: string | null;
+  /**
+   * Pedidos de cirugía emitidos ANTES de aceptar (migración 72). Avisan algo
+   * distinto del sobre: el pedido ya está en la obra social, no en manos del
+   * paciente, y si cambia el ojo o el convenio hay que pedirlo de nuevo.
+   */
+  pedidosEmitidos: number;
+  ultimoPedido: string | null;
 }
 
 export default function AceptacionModal({
@@ -253,9 +260,13 @@ export default function AceptacionModal({
             campo: k,
             valor_anterior: antes[k],
             valor_nuevo: despues[k],
-            observaciones: edicion.sobresImpresos > 0
-              ? `Editado con el sobre ya impreso (${edicion.sobresImpresos})`
-              : null,
+            // Queda registrado qué papel ya estaba circulando cuando se editó:
+            // es lo que permite reconstruir después por qué un papel y la base
+            // dicen cosas distintas.
+            observaciones: [
+              edicion.sobresImpresos > 0 ? `sobre ya impreso (${edicion.sobresImpresos})` : "",
+              edicion.pedidosEmitidos > 0 ? `pedido ya emitido (${edicion.pedidosEmitidos})` : "",
+            ].filter(Boolean).join(" + ") || null,
             usuario: username,
           }));
         if (cambios.length) {
@@ -307,6 +318,23 @@ export default function AceptacionModal({
                 y quirófano va a decir otra cosa.
               </p>
               <p className="text-amber-800">Hay que reimprimir el sobre y recuperar el anterior.</p>
+            </div>
+          )}
+          {/*
+            El pedido viaja a la obra social, no al paciente: no se puede
+            "recuperar el anterior". Se avisa aparte del sobre porque la acción
+            que corresponde es otra.
+          */}
+          {edicion && edicion.pedidosEmitidos > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 space-y-1">
+              <p className="font-semibold">
+                El pedido de cirugía ya se emitió{edicion.ultimoPedido ? ` el ${edicion.ultimoPedido}` : ""}
+              </p>
+              <p>
+                Si cambiás el ojo o el convenio, el pedido que está en la obra social va a decir
+                otra cosa que la autorización.
+              </p>
+              <p className="text-amber-800">Hay que emitir el pedido de nuevo y avisar a la obra social.</p>
             </div>
           )}
           {/* Rama de cobertura */}

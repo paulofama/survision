@@ -210,6 +210,69 @@ export interface CajaEntrega {
   anulacion_motivo: string | null;
 }
 
+/**
+ * Un documento (o un sobre entero) que ya se emitió — `presupuestos_sobres`,
+ * migración 46.
+ *
+ * Es el único rastro de qué papel está circulando. Importa porque el ojo, el
+ * convenio y el diagnóstico salen impresos: si después se editan, el paciente,
+ * quirófano o la obra social se quedan con una hoja que dice otra cosa.
+ */
+export interface Emision {
+  /** Claves de documento. Un pedido previo a la aceptación es `["pedido"]`. */
+  documentos: string[];
+  modo: "sobre" | "documento";
+  /**
+   * Vía de autorización con la que salió impreso (migración 72). La carga sólo
+   * el Pedido de cirugía previo a la aceptación, donde la elige quien emite;
+   * null en todo lo que sale del Sobre, que la toma de la aceptación.
+   */
+  cobertura: string | null;
+  generado_por: string | null;
+  generado_en: string;
+}
+
+/** Una emisión es un pedido de cirugía cuando su lista de documentos lo incluye. */
+export const esPedido = (e: Emision): boolean => e.documentos.includes("pedido");
+
+/**
+ * Una fila del historial del presupuesto — `presupuestos_historial`,
+ * migraciones 70 y 71.
+ *
+ * Es una tabla de DIFFS: cada fila dice qué campo cambió, de qué a qué, quién
+ * y cuándo. Las transiciones de estado y resultado pasan por acá, y también
+ * los datos del circuito de un presupuesto ya aceptado.
+ */
+export interface HistorialFila {
+  campo: string;
+  valor_anterior: string | null;
+  valor_nuevo: string | null;
+  observaciones: string | null;
+  usuario: string | null;
+  created_at: string;
+  /** Motivo del catálogo, embebido por la FK. Null cuando el cambio no pide motivo. */
+  motivo: { nombre: string } | null;
+}
+
+/**
+ * Historial de un presupuesto, del cambio más nuevo al más viejo.
+ *
+ * Devuelve vacío si falla: no poder mostrar la línea de tiempo no puede
+ * impedir operar el circuito.
+ */
+export async function cargarHistorial(presupuestoId: string): Promise<HistorialFila[]> {
+  try {
+    return await sbGet<HistorialFila>(
+      `presupuestos_historial?presupuesto_id=eq.${presupuestoId}`
+      + '&order=created_at.desc'
+      + '&select=campo,valor_anterior,valor_nuevo,observaciones,usuario,created_at,'
+      + 'motivo:presupuestos_motivos_resultado(nombre)',
+    );
+  } catch {
+    return [];
+  }
+}
+
 /** Entregas ya registradas, de la más vieja a la más nueva. */
 export async function cargarEntregas(presupuestoId: string): Promise<CajaEntrega[]> {
   return sbGet<CajaEntrega>(
