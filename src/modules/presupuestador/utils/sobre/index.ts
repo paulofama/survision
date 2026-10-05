@@ -298,12 +298,56 @@ export function cajaDesdeAceptacion(a: Aceptacion | null): CajaOpts {
   };
 }
 
+/**
+ * Cobertura con la que se emite el Pedido de cirugía antes de aceptar.
+ *
+ * `convenioId` en null con `esObraSocial` en true es un estado válido y
+ * deliberado: "es obra social, la vía todavía no está definida". El pedido
+ * imprime la obra social de la ficha y deja en blanco el código, la leyenda y
+ * la cuenta, que es lo que Administración completa a mano. Un blanco se nota y
+ * se llena; una vía de autorización equivocada se firma.
+ */
+export interface CoberturaPedido {
+  esObraSocial: boolean;
+  convenioId: string | null;
+}
+
+/**
+ * Lo único que el presupuesto guardado sabe por sí mismo sobre la cobertura.
+ *
+ * `precios.coberturaOS > 0` significa que se presupuestó con cobertura de obra
+ * social. Verificado el 05/10/2026 contra las 21 aceptaciones vigentes: acierta
+ * las 21, incluido P-2026-965, donde la ficha dice "Osep" pero el presupuesto
+ * se aceptó como Particular — la cobertura acierta justo donde la ficha miente.
+ *
+ * QUÉ **NO** DEVUELVE, A PROPÓSITO: el convenio.
+ * De los 10 casos de obra social, los 10 tienen "Osep" (o ".") en la ficha,
+ * pero 7 se aceptaron por OSEP y 3 por Círculo Médico San Rafael. Deducir la
+ * vía del texto de la ficha erraría 3 de cada 10, que es el bug de P-2026-813
+ * otra vez. El `circuloMedico` de la ficha tampoco sirve: está en false en las
+ * 21 aceptaciones, incluidas las 3 de Círculo Médico — es un flag de precio.
+ */
+export function coberturaSugerida(
+  presupuesto: { datos_completos?: { precios?: { coberturaOS?: number | string | null } } } | null | undefined,
+): CoberturaPedido {
+  const cob = num(presupuesto?.datos_completos?.precios?.coberturaOS);
+  return { esObraSocial: cob > 0, convenioId: null };
+}
+
 export function armarContexto(args: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   presupuesto: any;
   aceptacion: Aceptacion | null;
   convenios: Convenio[];
   lios: Lio[];
+  /**
+   * Cobertura elegida al emitir el Pedido de cirugía ANTES de aceptar.
+   *
+   * SÓLO se mira cuando no hay aceptación. Con aceptación manda ella y esto se
+   * ignora: el convenio de la aceptación es el snapshot y ningún camino de
+   * impresión puede pisarlo. Ver `generarPedidoDePresupuesto`.
+   */
+  coberturaPedido?: CoberturaPedido | null;
   /** Documentos desactivados (ver `cargarDocumentosDesactivados`). Vacío = sobre completo. */
   documentosDesactivados?: string[];
   consentimiento: Consentimiento;
@@ -325,7 +369,13 @@ export function armarContexto(args: {
   const dp = datos.paciente || {};
   const prec = datos.precios || {};
 
-  const convenio = a?.convenio_id ? convenios.find((c) => c.id === a.convenio_id) || null : null;
+  /**
+   * La aceptación manda siempre. Sólo cuando NO hay aceptación —el camino del
+   * Pedido de cirugía previo— se usa la cobertura que eligió el operador.
+   */
+  const cob = a ? null : (args.coberturaPedido ?? null);
+  const convenioId = a ? (a.convenio_id ?? null) : (cob?.convenioId ?? null);
+  const convenio = convenioId ? convenios.find((c) => c.id === convenioId) || null : null;
   const lio = a?.lio_id ? lios.find((l) => l.id === a.lio_id) || null : null;
   /**
    * El ojo manda el de la ACEPTACIÓN, que es el que quedó congelado y el que
@@ -342,7 +392,7 @@ export function armarContexto(args: {
    */
   const ojo = (a?.ojo as SobreCtx["ojo"]) ?? ojoDelPresupuesto(p);
 
-  const esObraSocial = a?.rama_cobertura === "OBRA_SOCIAL";
+  const esObraSocial = a ? a.rama_cobertura === "OBRA_SOCIAL" : (cob?.esObraSocial ?? false);
 
   // OSEP carga las recetas por su propio sistema (electrónicas). Se resuelve
   // por config del convenio (`recetas_por_sistema`, migración 34) para que sea
@@ -397,7 +447,9 @@ export function armarContexto(args: {
     lioLeyenda: lio?.leyenda_resultado || "",
     requiereAnalisisEcg: !!a?.requiere_analisis_ecg,
     esObraSocial,
-    subRama: a?.sub_rama ?? null,
+    // Sin aceptación la sub-rama la define el convenio elegido: de ella depende
+    // el renglón "Vía de autorización" del pedido (sólo Círculo Médico).
+    subRama: a ? (a.sub_rama ?? null) : (convenio?.sub_rama ?? null),
     // ── FUENTE ÚNICA DE VERDAD DE LA COBERTURA ──────────────────────────────
     // Manda el CONVENIO DE LA ACEPTACIÓN, no la obra social de la ficha.
     //
@@ -412,8 +464,11 @@ export function armarContexto(args: {
     // el presupuesto, así que editar después la ficha del paciente no altera
     // ningún documento ya emitido.
     //
-    // `dp.obraSocial` queda sólo como último recurso, para el caso de una
-    // aceptación vieja marcada como obra social pero sin `convenio_id`.
+    // `dp.obraSocial` queda sólo como último recurso, en dos casos donde no hay
+    // convenio con el cual contradecirlo: una aceptación vieja marcada como
+    // obra social pero sin `convenio_id`, y el Pedido de cirugía emitido antes
+    // de aceptar cuando el operador eligió "obra social, vía sin definir".
+    // No es la precedencia invertida del bug: si hay convenio, gana el convenio.
     coberturaLabel: esObraSocial
       ? (convenio?.nombre || dp.obraSocial || "Obra social")
       : "Particular",
@@ -615,10 +670,22 @@ export function generarDocumento(clave: string, ctx: SobreCtx): void {
  * tiene el 98,9 % de los registros), diagnóstico y solicitud por práctica
  * (migración 48) y el LIO que la prestación implica.
  *
- * NO sale lo que nace al aceptar: el convenio —y con él su leyenda, sus
- * renglones y la cuenta— y la fecha de cirugía. Esos renglones salen en
- * blanco, que es lo mismo que hace el pedido cuando el dato no está, y lo que
- * Administración completa a mano.
+ * LA COBERTURA LA ELIGE QUIEN EMITE
+ * ----------------------------------
+ * Antes este camino pasaba `aceptacion: null` y nada más, así que
+ * `rama_cobertura` quedaba sin valor y el pedido imprimía "Cobertura:
+ * Particular" para TODOS: a un paciente de OSEP le salía un pedido que afirmaba
+ * que era particular, y sin los campos de obra social ni N° de afiliado. No era
+ * un renglón que faltaba, era un renglón que mentía.
+ *
+ * Ahora la cobertura es un parámetro explícito (`cobertura`). No se deduce del
+ * texto de la ficha —erraría la vía en 3 de cada 10, ver `coberturaSugerida`—:
+ * la elige quien emite el pedido, que es la misma persona que después elige el
+ * convenio al aceptar. Con la vía sin definir, el pedido sale con la obra
+ * social de la ficha y el código, la leyenda y la cuenta en blanco.
+ *
+ * NO sale la fecha de cirugía, que nace al aceptar: el renglón combinado
+ * "CUPO / FECHA PROBABLE" queda en blanco para completar a mano.
  *
  * El PDF se arma desde el SNAPSHOT guardado, nunca desde el formulario: por eso
  * el botón está deshabilitado hasta guardar. Un pedido firmado que no coincida
@@ -629,6 +696,8 @@ export async function generarPedidoDePresupuesto(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   presupuesto: any,
   lios: Lio[],
+  convenios: Convenio[],
+  cobertura: CoberturaPedido,
 ): Promise<void> {
   const practica = practicaDelPresupuesto(presupuesto);
   const diag = await cargarDiagnosticoPractica(practica.codigo, null);
@@ -636,7 +705,8 @@ export async function generarPedidoDePresupuesto(
     presupuesto,
     // Todavía no hay aceptación: ése es el punto de este camino.
     aceptacion: null,
-    convenios: [],
+    convenios,
+    coberturaPedido: cobertura,
     lios,
     consentimiento: { secciones: [], esPlaceholder: true },
     diag,

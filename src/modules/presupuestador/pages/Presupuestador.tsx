@@ -6,8 +6,8 @@ import supabase, { ENV_CONFIG } from "@shared/lib/supabase";
 import AnalisisResultados from "../components/AnalisisResultados";
 import { normalizarTelefonoAR } from "../utils/seguimiento";
 import { conCodigo } from "../utils/nombrePrestacion";
-import { sbGet, type Lio } from "../utils/circuito";
-import { generarPedidoDePresupuesto } from "../utils/sobre";
+import { sbGet, type Lio, type Convenio } from "../utils/circuito";
+import { generarPedidoDePresupuesto, coberturaSugerida, type CoberturaPedido } from "../utils/sobre";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -3321,6 +3321,131 @@ function TratamientoExtraCard({ item, index, prestacionesByGroup, preciosMap, on
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SELECTOR DE COBERTURA DEL PEDIDO DE CIRUGÍA
+// ═══════════════════════════════════════════════════════════════
+/**
+ * Pregunta la vía de autorización antes de emitir el Pedido de cirugía.
+ *
+ * POR QUÉ SE PREGUNTA Y NO SE DEDUCE
+ * -----------------------------------
+ * El presupuesto sabe UNA sola cosa confiable: si se presupuestó con cobertura
+ * de obra social (`precios.coberturaOS`), que acierta las 21 aceptaciones
+ * vigentes. Lo que no sabe es la VÍA: de los 10 casos de obra social, los 10
+ * dicen "Osep" en la ficha, pero 7 se aceptaron por OSEP y 3 por Círculo
+ * Médico San Rafael. Deducirla del texto de la ficha erraría 3 de cada 10 — es
+ * el bug de P-2026-813 otra vez, y acá se firmaría impreso.
+ *
+ * Así que el sistema muestra la evidencia que tiene —la cobertura del
+ * presupuesto y lo que dice la ficha— y la vía la elige quien emite, que es la
+ * misma persona que después elige el convenio al aceptar.
+ *
+ * El valor es "PART", "OS" (obra social con la vía sin definir) o el id de un
+ * convenio del catálogo.
+ */
+const COB_PARTICULAR = "PART";
+const COB_OS_SIN_VIA = "OS";
+
+interface SelectorCoberturaPedidoProps {
+  convenios: Convenio[];
+  cargando: boolean;
+  elegido: string;
+  onElegir: (valor: string) => void;
+  /** Texto libre de la ficha, como evidencia para el operador. Nunca decide. */
+  obraSocialFicha: string;
+  coberturaOS: number;
+  generando: boolean;
+  onGenerar: () => void;
+  onCancelar: () => void;
+}
+
+function SelectorCoberturaPedido({
+  convenios, cargando, elegido, onElegir, obraSocialFicha, coberturaOS,
+  generando, onGenerar, onCancelar,
+}: SelectorCoberturaPedidoProps) {
+  const opcion = (valor: string, etiqueta: string, detalle: string) => (
+    <label
+      key={valor}
+      className={`flex items-start gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+        elegido === valor ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:bg-gray-50"
+      }`}
+    >
+      <input
+        type="radio"
+        id={`cob-pedido-${valor}`}
+        name="cob-pedido"
+        value={valor}
+        checked={elegido === valor}
+        onChange={() => onElegir(valor)}
+        className="mt-0.5 text-blue-600 focus:ring-2 focus:ring-blue-500"
+      />
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-gray-900">{etiqueta}</span>
+        {detalle && <span className="block text-xs text-gray-500">{detalle}</span>}
+      </span>
+    </label>
+  );
+
+  return (
+    <div className="mt-3 border border-gray-200 rounded-lg p-4 bg-gray-50">
+      <p className="text-sm font-semibold text-gray-900">¿Cómo se autoriza esta cirugía?</p>
+      <p className="text-xs text-gray-500 mt-0.5">
+        Define qué imprime el pedido: obra social y N° de afiliado, código de práctica,
+        leyenda y cuenta.
+      </p>
+      <p className="text-xs text-gray-600 mt-2">
+        {coberturaOS > 0
+          ? `El presupuesto se hizo con cobertura de obra social por ${fmtPesos(coberturaOS)}.`
+          : "El presupuesto se hizo sin cobertura de obra social."}
+        {obraSocialFicha
+          ? ` La ficha del paciente dice "${obraSocialFicha}".`
+          : " La ficha del paciente no tiene obra social cargada."}
+      </p>
+
+      {cargando ? (
+        <p className="text-sm text-gray-500 mt-3">Cargando convenios…</p>
+      ) : (
+        <div className="mt-3 flex flex-col gap-1.5">
+          {opcion(COB_PARTICULAR, "Particular", "Sin obra social: no imprime afiliado ni código")}
+          {convenios.map((c) => opcion(
+            c.id,
+            c.nombre,
+            [
+              c.codigo_practica ? `Código ${c.codigo_practica}` : "",
+              c.sub_rama === "circulo_medico" ? "imprime vía de autorización, leyenda y cuenta" : "",
+            ].filter(Boolean).join(" · "),
+          ))}
+          {opcion(
+            COB_OS_SIN_VIA,
+            "Obra social, vía sin definir",
+            "Imprime la obra social de la ficha; código, leyenda y cuenta quedan en blanco",
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2 mt-4">
+        <button
+          onClick={onCancelar}
+          className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={onGenerar}
+          disabled={cargando || generando}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+            cargando || generando
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 text-white"
+          }`}
+        >
+          {generando ? "Generando…" : "Generar pedido"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface PreviewModalProps {
   form: FormState;
   calcs: CalculosResult;
@@ -3341,6 +3466,11 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
   const prestDesc = prestaciones.find((p) => p.codigo === form.prestacionCodigo)?.practica || "";
   /** Mientras se arma el Pedido de cirugía, para no disparar dos descargas. */
   const [generandoPedido, setGenerandoPedido] = useState(false);
+  /** Panel de cobertura del pedido: si está abierto, el catálogo y la opción elegida. */
+  const [pedidoAbierto, setPedidoAbierto] = useState(false);
+  const [convenios, setConvenios] = useState<Convenio[]>([]);
+  const [cargandoConvenios, setCargandoConvenios] = useState(false);
+  const [cobElegida, setCobElegida] = useState<string>(COB_PARTICULAR);
   const cirujanoLabel = CIRUJANOS_FALLBACK.find((c) => c.value === form.cirujano)?.label || form.cirujano;
   // Nombre a mostrar: primero entre los usuarios del sistema; si no está, es un
   // presupuesto viejo guardado con el formato de la lista histórica.
@@ -3715,6 +3845,31 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
   const handlePrint = () => openPrintWindow(true);
 
   /**
+   * Abre el panel de cobertura del pedido y trae el catálogo de convenios.
+   *
+   * La preselección usa lo único que el presupuesto sabe por sí mismo: si se
+   * presupuestó con cobertura de obra social. La VÍA no se preselecciona a
+   * propósito — ver `SelectorCoberturaPedido`.
+   */
+  const abrirPedido = async () => {
+    if (!yaGuardado || !datosGuardados) return;
+    const sug = coberturaSugerida({ datos_completos: datosGuardados });
+    setCobElegida(sug.esObraSocial ? COB_OS_SIN_VIA : COB_PARTICULAR);
+    setPedidoAbierto(true);
+    if (convenios.length > 0) return;
+    setCargandoConvenios(true);
+    try {
+      setConvenios(await sbGet<Convenio>("presupuestos_convenios?activo=eq.true&order=orden.asc&select=*"));
+    } catch (e) {
+      // Sin catálogo se puede emitir igual: Particular o con la vía sin definir.
+      window.alert("No se pudieron cargar los convenios: " + ((e as Error).message || "error desconocido")
+        + ". Podés emitir el pedido como Particular o con la vía sin definir.");
+    } finally {
+      setCargandoConvenios(false);
+    }
+  };
+
+  /**
    * Emite el Pedido de cirugía del presupuesto guardado.
    *
    * Sale del snapshot (`datosGuardados`), no del formulario: por eso el botón
@@ -3726,6 +3881,12 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
     setGenerandoPedido(true);
     try {
       const lios = await sbGet<Lio>("presupuestos_lios?activo=eq.true&order=orden.asc&select=*");
+      // "PART" es particular; "OS" es obra social con la vía sin definir, que
+      // imprime la obra social de la ficha y deja el resto en blanco.
+      const cobertura: CoberturaPedido = {
+        esObraSocial: cobElegida !== COB_PARTICULAR,
+        convenioId: cobElegida === COB_PARTICULAR || cobElegida === COB_OS_SIN_VIA ? null : cobElegida,
+      };
       // TODO sale del SNAPSHOT, no del formulario. Los campos planos replican
       // las columnas de la tabla `presupuestos`, que es la forma que espera el
       // generador.
@@ -3740,7 +3901,8 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
         prestacion_descripcion: trat.prestacionDescripcion || "",
         total_final: datosGuardados.precios?.total ?? 0,
         datos_completos: datosGuardados,
-      }, lios);
+      }, lios, convenios, cobertura);
+      setPedidoAbierto(false);
     } catch (e) {
       window.alert("No se pudo generar el pedido: " + ((e as Error).message || "error desconocido"));
     } finally {
@@ -3948,11 +4110,11 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
               presupuesto guardado es el problema que venimos cerrando.
             */}
             <button
-              onClick={handlePedido}
-              disabled={!yaGuardado || generandoPedido}
+              onClick={abrirPedido}
+              disabled={!yaGuardado || generandoPedido || pedidoAbierto}
               title={!yaGuardado ? "Guardá el presupuesto primero" : "Emite el pedido para la obra social"}
               className={`flex-1 py-2.5 rounded-lg font-medium transition-colors border flex items-center justify-center gap-2 ${
-                yaGuardado && !generandoPedido
+                yaGuardado && !generandoPedido && !pedidoAbierto
                   ? "bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
                   : "bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed"
               }`}
@@ -3969,6 +4131,25 @@ function PreviewModal({ form, calcs, prestaciones, numeroPresupuesto, adminTelef
               Cerrar
             </button>
           </div>
+
+          {/*
+            La vía de autorización se pregunta acá, no se deduce. Antes el
+            pedido previo a la aceptación imprimía "Cobertura: Particular" para
+            todos, incluidos los pacientes de obra social.
+          */}
+          {pedidoAbierto && (
+            <SelectorCoberturaPedido
+              convenios={convenios}
+              cargando={cargandoConvenios}
+              elegido={cobElegida}
+              onElegir={setCobElegida}
+              obraSocialFicha={datosGuardados?.paciente?.obraSocial || ""}
+              coberturaOS={datosGuardados?.precios?.coberturaOS ?? 0}
+              generando={generandoPedido}
+              onGenerar={handlePedido}
+              onCancelar={() => setPedidoAbierto(false)}
+            />
+          )}
         </div>
       </div>
     </div>

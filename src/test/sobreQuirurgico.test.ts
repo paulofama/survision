@@ -25,6 +25,7 @@ import {
   armarContexto, docsDelSobre, docsElegidos, armarSobreCompleto,
   nombreArchivoSobre, nombreArchivoDocumento, DOCS,
   conceptoCompleto, recetasDelSobre, recetasDeMedicacionAdicional, fmtFechaISO,
+  coberturaSugerida, type CoberturaPedido,
 } from "../modules/presupuestador/utils/sobre";
 import {
   lioSugerido, itemsAplicables, clavesAplicables, Lio,
@@ -490,6 +491,151 @@ describe("Pedido de cirugía", () => {
   it("el renglón combinado también sale en Particular (no depende del convenio)", () => {
     const ctx = ctxDe(P810, { rama_cobertura: "PARTICULAR", lio_id: "l5" });
     expect(textoDe(construir(docPedidoCirugia, ctx))).toContain("CUPO / FECHA PROBABLE DE CIRUGÍA");
+  });
+});
+
+// ============================================================
+// 3 bis. Pedido de cirugía ANTES de aceptar — la cobertura la elige quien emite
+// ============================================================
+// El camino previo a la aceptación pasaba `aceptacion: null` y nada más, así que
+// `rama_cobertura` quedaba sin valor: el pedido imprimía "Cobertura: Particular"
+// para TODOS. A un paciente de OSEP le salía un pedido que afirmaba que era
+// particular, sin obra social ni N° de afiliado. No era un renglón que faltaba,
+// era un renglón que mentía.
+//
+// La vía NO se deduce del texto de la ficha: de las 10 aceptaciones de obra
+// social, las 10 dicen "Osep" ahí, pero 7 son OSEP y 3 Círculo Médico San
+// Rafael (medido el 05/10/2026). Erraría 3 de cada 10, impreso y firmado.
+
+/** Los mismos presupuestos, con el `coberturaOS` que tienen en producción. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const conCobertura = (p: any, coberturaOS: number) => ({
+  ...p,
+  datos_completos: { ...p.datos_completos, precios: { ...p.datos_completos.precios, coberturaOS } },
+});
+
+const P812_OS = conCobertura(P812, 399999);
+const P810_PART = conCobertura(P810, 0);
+const P813_OS = conCobertura(P813, 400000);
+
+/** Contexto del pedido previo: sin aceptación, con la cobertura elegida. */
+const ctxPedido = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  presupuesto: any,
+  cobertura: CoberturaPedido,
+  diag: SobreCtx["diag"] | null = DIAG_CATARATA,
+): SobreCtx =>
+  armarContexto({
+    presupuesto,
+    aceptacion: null,
+    coberturaPedido: cobertura,
+    convenios: CONVENIOS,
+    lios: LIOS,
+    consentimiento: { secciones: [], esPlaceholder: true },
+    diag,
+  });
+
+const textoPedido = (ctx: SobreCtx): string => textoDe(construir(docPedidoCirugia, ctx));
+
+describe("Pedido de cirugía antes de aceptar — cobertura", () => {
+  it("la cobertura sugerida sale de coberturaOS, no de la ficha", () => {
+    expect(coberturaSugerida(P812_OS)).toEqual({ esObraSocial: true, convenioId: null });
+    expect(coberturaSugerida(P810_PART)).toEqual({ esObraSocial: false, convenioId: null });
+  });
+
+  it("la sugerencia NUNCA adivina el convenio, ni cuando la ficha dice Osep", () => {
+    // La ficha de P812 dice "Osep" y existe el convenio OSEP en el catálogo.
+    // Igual devuelve convenioId null: la vía la elige quien emite.
+    expect(P812_OS.datos_completos.paciente.obraSocial).toBe("Osep");
+    expect(coberturaSugerida(P812_OS).convenioId).toBeNull();
+  });
+
+  it("un presupuesto con cobertura pero ficha 'Osep' que se cobra particular: manda coberturaOS", () => {
+    // El caso P-2026-965: la ficha dice "Osep" y se aceptó como Particular.
+    const ficticioSinCobertura = conCobertura(P812, 0);
+    expect(coberturaSugerida(ficticioSinCobertura).esObraSocial).toBe(false);
+  });
+
+  it("obra social con la vía sin definir: imprime la obra social de la ficha y el afiliado", () => {
+    const t = textoPedido(ctxPedido(P812_OS, { esObraSocial: true, convenioId: null }));
+    expect(t).toContain("Obra social");
+    expect(t).toContain("Osep");
+    expect(t).toContain("N° de afiliado");
+    expect(t).toContain("4400499/00");
+    // La regresión del bug: ya NO afirma que es particular.
+    expect(t).not.toContain("Particular");
+    // Y lo que no se sabe queda en blanco, no inventado.
+    expect(t).not.toContain("02.09.03");
+    expect(t).not.toContain("Vía de autorización");
+  });
+
+  it("con OSEP elegido, imprime su código de práctica", () => {
+    const t = textoPedido(ctxPedido(P812_OS, { esObraSocial: true, convenioId: "c2" }));
+    expect(t).toContain("OSEP");
+    expect(t).toContain("02.09.03");
+    expect(t).not.toContain("Particular");
+  });
+
+  it("con Círculo Médico elegido, imprime vía de autorización, código, leyenda y cuenta", () => {
+    const t = textoPedido(ctxPedido(P813_OS, { esObraSocial: true, convenioId: "c1" }));
+    expect(t).toContain("Vía de autorización");
+    expect(t).toContain("Círculo Médico San Rafael");
+    expect(t).toContain("020701");
+    expect(t).toContain("Valor según Círculo Médico San Rafael");
+    expect(t).toContain("62252");
+    expect(t).toContain("Honorarios de Especialista");
+  });
+
+  it("Particular elegido: ni obra social ni afiliado", () => {
+    const t = textoPedido(ctxPedido(P810_PART, { esObraSocial: false, convenioId: null }));
+    expect(t).toContain("Particular");
+    expect(t).not.toContain("afiliado");
+    expect(t).not.toContain("Obra social");
+  });
+
+  it("el pedido previo sigue saliendo sin fecha de cirugía, para completar a mano", () => {
+    const t = textoPedido(ctxPedido(P812_OS, { esObraSocial: true, convenioId: "c2" }));
+    expect(t).toContain("CUPO / FECHA PROBABLE DE CIRUGÍA");
+    expect(t).not.toContain("11/08/2026");
+  });
+
+  it("el ojo del presupuesto sale igual sin aceptación", () => {
+    const t = textoPedido(ctxPedido(P812_OS, { esObraSocial: true, convenioId: "c2" }));
+    expect(t).toContain("ojo derecho (OD)");
+    expect(t).toContain("Catarata OD");
+  });
+
+  it("CON aceptación, la cobertura elegida se IGNORA: manda el snapshot", () => {
+    // Una aceptación por OSEP más una elección de Círculo Médico: tiene que
+    // ganar OSEP. Ningún camino de impresión puede pisar el convenio aceptado.
+    const ctx = armarContexto({
+      presupuesto: P812_OS,
+      aceptacion: aceptacionDe({ rama_cobertura: "OBRA_SOCIAL", sub_rama: "directa", convenio_id: "c2", lio_id: "l3" }),
+      coberturaPedido: { esObraSocial: true, convenioId: "c1" },
+      convenios: CONVENIOS,
+      lios: LIOS,
+      consentimiento: CONSENTIMIENTO,
+      diag: DIAG_CATARATA,
+    });
+    expect(ctx.convenio?.nombre).toBe("OSEP");
+    expect(ctx.subRama).toBe("directa");
+    const t = textoPedido(ctx);
+    expect(t).toContain("02.09.03");
+    expect(t).not.toContain("Círculo Médico San Rafael");
+  });
+
+  it("CON aceptación Particular, una cobertura de obra social elegida no la convierte", () => {
+    const ctx = armarContexto({
+      presupuesto: P810_PART,
+      aceptacion: aceptacionDe({ rama_cobertura: "PARTICULAR", lio_id: "l5" }),
+      coberturaPedido: { esObraSocial: true, convenioId: "c2" },
+      convenios: CONVENIOS,
+      lios: LIOS,
+      consentimiento: CONSENTIMIENTO,
+      diag: DIAG_CATARATA,
+    });
+    expect(ctx.esObraSocial).toBe(false);
+    expect(ctx.coberturaLabel).toBe("Particular");
   });
 });
 
