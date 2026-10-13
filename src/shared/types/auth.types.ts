@@ -48,6 +48,16 @@ export const MODULOS_SISTEMA = {
   // panel de la Dirección pide además `requiereAdmin` (migración 56).
   // Sin asignarlo a ningún rol, lo ven sólo los admin — que es como nace.
   comisiones: { nombre: 'Comisiones', descripcion: 'Comisiones por presupuestos entregados y liquidaciones' },
+  // Conciliación agenda vs facturación: la sección al pie de Por Prestación y
+  // la RLS de `conciliacion_agenda` (migraciones 73 y 74).
+  //
+  // Tiene permiso PROPIO y no usa `informes` a propósito. Quien trabaja esta
+  // lista es Administración —es quien corrige los códigos en GECLISA— y el rol
+  // Administracion no tiene `informes`: gatearla con ése les mostraba la
+  // sección vacía, sin error. Darles `informes` habría sido abrirles todo
+  // Análisis (rentabilidad, márgenes, resultado por prestación) para resolver
+  // esto. El permiso propio da la lista de diferencias y nada más.
+  conciliacion: { nombre: 'Conciliación agenda', descripcion: 'Diferencias entre la agenda y lo facturado, para corregir en GECLISA' },
 } as const;
 
 export type ModuloSistema = keyof typeof MODULOS_SISTEMA;
@@ -200,6 +210,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   turnos: false,
   fiscal: false,
   comisiones: false,
+  conciliacion: false,
 };
 
 // Permisos para admin (todos en true)
@@ -225,4 +236,5 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   turnos: true,
   fiscal: true,
   comisiones: true,
+  conciliacion: true,
 };

@@ -113,6 +113,15 @@ export default function useConciliacionAgenda(
 
   useEffect(() => {
     let vivo = true;
+    // Sin período no hay nada que pedir. Pasar "" es como lo apaga quien no
+    // tiene el permiso: los hooks corren antes del early return del
+    // componente, así que sin este corte saldría una consulta al vacío.
+    if (!mesClave) {
+      setDatos(VACIO);
+      setLoading(false);
+      setError('');
+      return () => { vivo = false; };
+    }
     const cargar = async () => {
       setLoading(true);
       setError('');

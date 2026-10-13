@@ -15,6 +15,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronUp, CheckCircle2, Loader2 } from 'lucide-react';
+import { useAuth } from '@shared/context/auth-context';
 import useConciliacionAgenda, { FilaConciliacion } from '../hooks/useConciliacionAgenda';
 
 const fmtARS = (n: number): string =>
@@ -56,10 +57,18 @@ interface Props {
 }
 
 const ConciliacionAgendaSeccion: React.FC<Props> = ({ mesClave, periodoLabel }) => {
+  const { tienePermiso } = useAuth();
   const [abierta, setAbierta] = useState(false);
   const [verResueltas, setVerResueltas] = useState(false);
+  const puedeVer = tienePermiso('conciliacion');
   const { filas, porCausa, turnos, monto, resueltas, sinDatos, loading, error } =
-    useConciliacionAgenda(mesClave, verResueltas);
+    useConciliacionAgenda(puedeVer ? mesClave : '', verResueltas);
+
+  // Sin el permiso, la sección no existe. Mostrarla igual no filtraría datos
+  // —la RLS devuelve cero filas— pero diría "sin datos espejados", que es
+  // falso: los datos están, lo que falta es el permiso. Un cartel que miente
+  // sobre los datos es justo lo que esta sección vino a corregir.
+  if (!puedeVer) return null;
 
   return (
     <div className="mt-6 bg-white rounded-xl border border-gray-200 overflow-hidden">

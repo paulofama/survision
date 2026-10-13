@@ -39,6 +39,7 @@ import {
   Banknote,
   Receipt,
   Award,
+  GitCompareArrows,
 } from 'lucide-react';
 import { supabase } from '@shared/lib/supabase';
 import { useRoles } from '../hooks/useRoles';
@@ -147,6 +148,12 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     descripcion: 'Comisiones por presupuestos entregados y sus liquidaciones',
     icono: Award,
     color: 'green'
+  },
+  conciliacion: {
+    nombre: 'Conciliación agenda',
+    descripcion: 'Diferencias entre la agenda y lo facturado, para corregir en GECLISA',
+    icono: GitCompareArrows,
+    color: 'amber'
   },
   liquidaciones: {
     nombre: 'Liquidaciones',
