@@ -54,6 +54,7 @@ import PorPrestadorPageMarginal from '@modules/analisis-marginal/pages/PorPresta
 import PorObraSocialPageMarginal from '@modules/analisis-marginal/pages/PorObraSocialPage';
 import PorGrupoPageMarginal from '@modules/analisis-marginal/pages/PorGrupoPage';
 import EvolucionTemporalPageMarginal from '@modules/analisis-marginal/pages/EvolucionTemporalPage';
+import ConciliacionAgendaPage from '@modules/conciliacion/pages/ConciliacionAgendaPage';
 
 // ============================================
 // ANÁLISIS - PÁGINAS IMPLEMENTADAS
@@ -295,6 +296,16 @@ const App: React.FC = () => {
                       <Route path="/analisis-marginal/por-obra-social" element={<PorObraSocialPageMarginal />} />
                       <Route path="/analisis-marginal/por-grupo" element={<PorGrupoPageMarginal />} />
                       <Route path="/analisis-marginal/evolucion" element={<EvolucionTemporalPageMarginal />} />
+
+                      {/* ============================================ */}
+                      {/* CONCILIACIÓN AGENDA VS FACTURACIÓN */}
+                      {/* ============================================ */}
+                      {/*
+                        Entrada propia y permiso propio: la trabaja
+                        Administración, que no tiene `analisis_marginal`. La
+                        misma sección vive también al pie de Por Prestación.
+                      */}
+                      <Route path="/conciliacion-agenda" element={<ProtectedRoute modulo="conciliacion"><ConciliacionAgendaPage /></ProtectedRoute>} />
                       
                       {/* ============================================ */}
                       {/* ANÁLISIS - PÁGINAS IMPLEMENTADAS */}

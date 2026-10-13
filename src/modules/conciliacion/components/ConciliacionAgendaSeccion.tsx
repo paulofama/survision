@@ -18,6 +18,18 @@ import { AlertTriangle, ChevronDown, ChevronUp, CheckCircle2, Loader2 } from 'lu
 import { useAuth } from '@shared/context/auth-context';
 import useConciliacionAgenda, { FilaConciliacion } from '../hooks/useConciliacionAgenda';
 
+/**
+ * Dónde se usa este componente
+ * -----------------------------
+ * En dos lugares, con el mismo hook y los mismos números:
+ *
+ *  · al pie de Análisis › Por Prestación, cerrado, porque contesta una
+ *    pregunta sobre ESE informe;
+ *  · como pantalla propia en Conciliación agenda, abierta, que es la que ve
+ *    Administración —quien corrige los códigos en GECLISA— sin necesitar el
+ *    permiso de Análisis Marginal.
+ */
+
 const fmtARS = (n: number): string =>
   new Intl.NumberFormat('es-AR', {
     style: 'currency', currency: 'ARS',
@@ -54,11 +66,19 @@ interface Props {
   mesClave: string;
   /** Para el encabezado: "septiembre 2026". */
   periodoLabel: string;
+  /**
+   * Abierta de entrada. En la pantalla propia sí —es el contenido de la
+   * página—; al pie de Por Prestación no, porque ahí compite con la tabla de
+   * rentabilidad, que es a lo que fue el usuario.
+   */
+  abiertaPorDefecto?: boolean;
 }
 
-const ConciliacionAgendaSeccion: React.FC<Props> = ({ mesClave, periodoLabel }) => {
+const ConciliacionAgendaSeccion: React.FC<Props> = ({
+  mesClave, periodoLabel, abiertaPorDefecto = false,
+}) => {
   const { tienePermiso } = useAuth();
-  const [abierta, setAbierta] = useState(false);
+  const [abierta, setAbierta] = useState(abiertaPorDefecto);
   const [verResueltas, setVerResueltas] = useState(false);
   const puedeVer = tienePermiso('conciliacion');
   const { filas, porCausa, turnos, monto, resueltas, sinDatos, loading, error } =

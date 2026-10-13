@@ -32,7 +32,7 @@ import useCostosFijosDistribucion, {
   semaforoDot,
 } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
-import ConciliacionAgendaSeccion from '../components/ConciliacionAgendaSeccion';
+import ConciliacionAgendaSeccion from '@modules/conciliacion/components/ConciliacionAgendaSeccion';
 import { MESES_NOMBRE } from '../utils/periodo';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';

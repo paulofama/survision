@@ -22,6 +22,9 @@ const RUTA_POR_MODULO: { modulo: ModuloSistema; ruta: string }[] = [
   { modulo: 'analisis_marginal', ruta: '/analisis-marginal' },
   { modulo: 'insumos', ruta: '/recetas-costos' },
   { modulo: 'herramientas', ruta: '/recetario' },
+  // Último: hoy nadie tiene SÓLO este permiso, pero si mañana se crea un rol
+  // acotado a corregir la agenda, que no caiga en un dashboard vacío.
+  { modulo: 'conciliacion', ruta: '/conciliacion-agenda' },
 ];
 
 export function rutaInicialPara(usuario: UsuarioPublico | null): string {

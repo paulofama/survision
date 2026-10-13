@@ -37,6 +37,7 @@ import {
   BarChart3,
   Lock,
   FileBarChart,
+  GitCompareArrows,
   // Nuevos iconos para Tesorería
   Landmark,
   CreditCard,
@@ -167,6 +168,20 @@ const navItems: NavItem[] = [
       { path: '/analisis-marginal/por-grupo', label: 'Por Grupo', icon: PieChart },
       { path: '/analisis-marginal/evolucion', label: 'Evolución Temporal', icon: Clock }
     ]
+  },
+
+  // ============================================
+  // CONCILIACIÓN AGENDA VS FACTURACIÓN
+  // ============================================
+  // Entrada de primer nivel y permiso propio, no un subitem de Análisis
+  // Marginal: la trabaja Administración —es quien corrige en GECLISA— y ese
+  // módulo pide `analisis_marginal`, que el rol no tiene. Meterla ahí dejaba la
+  // lista sólo para la Dirección.
+  {
+    path: '/conciliacion-agenda',
+    icon: GitCompareArrows,
+    label: 'Conciliación Agenda',
+    requierePermiso: 'conciliacion'
   },
 
   // ============================================
