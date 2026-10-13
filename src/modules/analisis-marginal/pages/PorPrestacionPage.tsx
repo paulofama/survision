@@ -32,6 +32,8 @@ import useCostosFijosDistribucion, {
   semaforoDot,
 } from '@shared/hooks/useCostosFijosDistribucion';
 import useNombreMapping from '@shared/hooks/useNombreMapping';
+import ConciliacionAgendaSeccion from '../components/ConciliacionAgendaSeccion';
+import { MESES_NOMBRE } from '../utils/periodo';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 
@@ -820,6 +822,16 @@ const PorPrestacionContent: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/*
+        Al pie y cerrada: contesta una pregunta SOBRE este informe —si
+        sub-registra prácticas— pero no es un número de gestión. Quien entra
+        acá viene a ver rentabilidad.
+      */}
+      <ConciliacionAgendaSeccion
+        mesClave={mesClave}
+        periodoLabel={`${MESES_NOMBRE[mesActual - 1]} ${anioActual}`}
+      />
     </div>
   );
 };
