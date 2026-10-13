@@ -37,6 +37,7 @@ const { sincronizarTipoCambio } = require('../services/tipoCambioExtractor');
 const { sincronizarTesoreria } = require('../services/tesoreriaExtractor');
 const { sincronizarErogaciones } = require('../services/erogacionesExtractor');
 const { sincronizarTurnosFuturos } = require('../services/turnosFuturosExtractor');
+const { sincronizarConciliacionAgenda } = require('../services/conciliacionAgendaExtractor');
 const { correrMatch } = require('../services/matchPracticasService');
 const { correrCierres } = require('../services/seguimientoJob');
 const { correrDevengos } = require('../services/comisionesService');
@@ -91,6 +92,12 @@ const SYNCS = [
   { nombre: 'erogaciones (GECLISA→Supabase)', fn: () => sincronizarErogaciones({ write: true }) },
   // Turnos futuros: full refresh de turnos vigentes (~245 filas) para la agenda + recordatorios.
   { nombre: 'turnos futuros (GECLISA→Supabase)', fn: () => sincronizarTurnosFuturos({ write: true }) },
+  // Conciliación agenda vs facturación: CORRE POR LA PURGA, no por conveniencia.
+  // `Turnos` es una ventana móvil de ~4.500 filas: sostiene tres meses cerrados
+  // y después borra. Medido el 09/10/2026 julio tenía 1.112 atendidos; el
+  // 13/10/2026, 911. Lo que no se espeja deja de ser verificable para siempre.
+  // Las filas NO se borran: lo que se corrige en GECLISA se marca resuelto.
+  { nombre: 'conciliación agenda (GECLISA→Supabase)', fn: () => sincronizarConciliacionAgenda({ write: true }) },
   // Match presupuesto→práctica realizada (solo Supabase; corre después de movimientos):
   // auto-marca practicado los matches inequívocos y deja los ambiguos como sugeridos.
   { nombre: 'match presupuesto→práctica (Supabase)', fn: () => correrMatch({ write: true }) },
