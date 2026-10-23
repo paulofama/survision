@@ -36,6 +36,7 @@ import ConciliacionAgendaSeccion from '@modules/conciliacion/components/Concilia
 import { MESES_NOMBRE } from '../utils/periodo';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import { comisionDePrestacion } from '@shared/utils/comisionIntermediario';
 
 // ============================================
 // TIPOS
@@ -50,6 +51,7 @@ interface PrestacionAgrupada {
   honorarios: number;
   costoPools: number;
   costoInsumos: number;
+  comisionCirculo: number;
   costoTotal: number;
   margenContrib: number;
   margenContribPct: number;
@@ -62,7 +64,7 @@ interface PrestacionAgrupada {
 
 type SortField =
   | 'nombre' | 'cantidad' | 'facturado'
-  | 'honorarios' | 'costoPools' | 'costoInsumos' | 'costoTotal'
+  | 'honorarios' | 'costoPools' | 'costoInsumos' | 'comisionCirculo' | 'costoTotal'
   | 'margenContrib' | 'margenContribPct'
   | 'costoFijoAsignado' | 'resultadoNeto' | 'resultadoNetoPct';
 
@@ -143,6 +145,7 @@ const PorPrestacionContent: React.FC = () => {
     recetasConPools,
     configHonorarios,
     prestadoresHonorarios,
+    comisionCirculo,
     filtros,
     loading,
   } = useMarginalContext();
@@ -184,7 +187,7 @@ const PorPrestacionContent: React.FC = () => {
     const agrupado = new Map<string, {
       nombre: string; codigo: string; segmento: 'Consultas' | 'Estudios' | 'Cirugias';
       cantidad: number; facturado: number; honorarios: number; costoPools: number; costoInsumos: number;
-      tieneReceta: boolean;
+      comisionCirculo: number; tieneReceta: boolean;
     }>();
 
     prestaciones.forEach(prest => {
@@ -198,6 +201,8 @@ const PorPrestacionContent: React.FC = () => {
             const receta = indiceRecetas.buscar(codigo, nombre);
       const costoPools  = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
+      // Comisión del Círculo Médico como intermediario (0 si la OS no pasa por él).
+      const comisionCirculoPrest = comisionDePrestacion(comisionCirculo, prest);
 
       let honorario = 0;
       if (prest.prestador) {
@@ -218,18 +223,20 @@ const PorPrestacionContent: React.FC = () => {
         existing.honorarios += honorario;
         existing.costoPools += costoPools;
         existing.costoInsumos += costoInsumos;
+        existing.comisionCirculo += comisionCirculoPrest;
       } else {
         agrupado.set(nombre, {
           nombre, codigo, segmento,
           cantidad: 1, facturado,
           honorarios: honorario, costoPools, costoInsumos,
+          comisionCirculo: comisionCirculoPrest,
           tieneReceta: receta !== null,
         });
       }
     });
 
     return Array.from(agrupado.values()).map(item => {
-      const costoTotal     = item.honorarios + item.costoPools + item.costoInsumos;
+      const costoTotal     = item.honorarios + item.costoPools + item.costoInsumos + item.comisionCirculo;
       const margenContrib  = item.facturado - costoTotal;
       const margenContribPct = item.facturado > 0 ? (margenContrib / item.facturado) * 100 : 0;
       return { ...item, costoTotal, margenContrib, margenContribPct };
@@ -237,7 +244,7 @@ const PorPrestacionContent: React.FC = () => {
   // `mesClave` va en las dependencias porque el memo lo usa para resolver qué
   // porcentaje de honorarios regía (`configVigente`). Sin él, cambiar el período
   // sin que cambie la identidad de `prestaciones` dejaba el porcentaje viejo.
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings, mesClave]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, comisionCirculo, mappings, mesClave]);
 
   // Total facturado para calcular ratios de distribución CF
   const totalFacturadoGlobal = useMemo(
@@ -279,6 +286,7 @@ const PorPrestacionContent: React.FC = () => {
         case 'honorarios':      cmp = a.honorarios - b.honorarios; break;
         case 'costoPools':      cmp = a.costoPools - b.costoPools; break;
         case 'costoInsumos':    cmp = a.costoInsumos - b.costoInsumos; break;
+        case 'comisionCirculo': cmp = a.comisionCirculo - b.comisionCirculo; break;
         case 'costoTotal':      cmp = a.costoTotal - b.costoTotal; break;
         case 'margenContrib':   cmp = a.margenContrib - b.margenContrib; break;
         case 'margenContribPct':cmp = a.margenContribPct - b.margenContribPct; break;
@@ -301,13 +309,14 @@ const PorPrestacionContent: React.FC = () => {
       honorarios:         acc.honorarios + p.honorarios,
       costoPools:         acc.costoPools + p.costoPools,
       costoInsumos:       acc.costoInsumos + p.costoInsumos,
+      comisionCirculo:    acc.comisionCirculo + p.comisionCirculo,
       costoTotal:         acc.costoTotal + p.costoTotal,
       margenContrib:      acc.margenContrib + p.margenContrib,
       costoFijoAsignado:  acc.costoFijoAsignado + p.costoFijoAsignado,
       resultadoNeto:      acc.resultadoNeto + p.resultadoNeto,
     }), {
       cantidad: 0, facturado: 0, honorarios: 0, costoPools: 0,
-      costoInsumos: 0, costoTotal: 0, margenContrib: 0,
+      costoInsumos: 0, comisionCirculo: 0, costoTotal: 0, margenContrib: 0,
       costoFijoAsignado: 0, resultadoNeto: 0,
     });
 
@@ -414,7 +423,7 @@ const PorPrestacionContent: React.FC = () => {
       )}
 
       {/* ── KPIs ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">Prestaciones</p>
           <p className="text-2xl font-bold text-gray-900">{formatNumber(prestacionesFiltradas.length)}</p>
@@ -440,6 +449,10 @@ const PorPrestacionContent: React.FC = () => {
           <p className="text-2xl font-bold text-orange-600">{formatCurrency(totales.costoInsumos)}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Círculo</p>
+          <p className="text-2xl font-bold text-red-600">{formatCurrency(totales.comisionCirculo)}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">Margen Contrib.</p>
           <p className={`text-2xl font-bold ${totales.margenContrib >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(totales.margenContrib)}
@@ -454,7 +467,7 @@ const PorPrestacionContent: React.FC = () => {
           <div>
             <p className="text-blue-100 text-sm">Margen de Contribución</p>
             <p className="text-3xl font-bold">{formatPercent(totales.margenContribPct)}</p>
-            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Insumos</p>
+            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Insumos − Círculo</p>
           </div>
           <div className="text-right text-blue-100 text-sm">
             <p>{formatCurrency(totales.margenContrib)}</p>
@@ -545,6 +558,9 @@ const PorPrestacionContent: React.FC = () => {
                 </th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-orange-600 uppercase bg-orange-50/50 whitespace-nowrap">
                   Insumos
+                </th>
+                <th className="px-2 py-3 text-right text-xs font-medium text-red-600 uppercase bg-red-50/50 whitespace-nowrap">
+                  Círculo
                 </th>
 
                 {/* ── MARGEN DE CONTRIBUCIÓN ─── */}
@@ -637,6 +653,9 @@ const PorPrestacionContent: React.FC = () => {
                         <td className="px-2 py-3 text-sm text-right text-orange-600 bg-orange-50/20">
                           {formatCurrency(prest.costoInsumos)}
                         </td>
+                        <td className="px-2 py-3 text-sm text-right text-red-600 bg-red-50/20">
+                          {formatCurrency(prest.comisionCirculo)}
+                        </td>
 
                         {/* ── MARGEN CONTRIBUCIÓN ─── */}
                         <td className={`px-2 py-3 text-sm text-right font-semibold ${
@@ -689,6 +708,7 @@ const PorPrestacionContent: React.FC = () => {
                                 <span>Honorarios: <strong className="text-purple-600">{formatCurrency(prest.honorarios)}</strong></span>
                                 <span>Pools: <strong className="text-yellow-600">{formatCurrency(prest.costoPools)}</strong></span>
                                 <span>Insumos: <strong className="text-orange-600">{formatCurrency(prest.costoInsumos)}</strong></span>
+                                <span>Círculo: <strong className="text-red-600">{formatCurrency(prest.comisionCirculo)}</strong></span>
                                 <span className="border-t pt-1 mt-1">
                                   Total variable: <strong>{formatCurrency(prest.costoTotal)}</strong>
                                 </span>
@@ -783,6 +803,9 @@ const PorPrestacionContent: React.FC = () => {
                   </td>
                   <td className="px-2 py-3 text-sm text-right text-orange-700 bg-orange-50/30">
                     {formatCurrency(totales.costoInsumos)}
+                  </td>
+                  <td className="px-2 py-3 text-sm text-right text-red-700 bg-red-50/30">
+                    {formatCurrency(totales.comisionCirculo)}
                   </td>
 
                   {/* Margen */}

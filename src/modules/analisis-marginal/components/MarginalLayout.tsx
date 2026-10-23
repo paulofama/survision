@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useMovimientosPrestaciones } from '@shared/hooks/useMovimientosPrestaciones';
 import { useHonorariosConfig } from '@shared/hooks/useHonorariosConfig';
+import { useComisionIntermediario } from '@shared/hooks/useComisionIntermediario';
 import {
   MarginalContext,
   type MarginalContextType,
@@ -241,6 +242,9 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
     loading: loadingHonorarios
   } = useHonorariosConfig();
 
+  // Comisión del Círculo Médico (migración 76)
+  const { config: comisionCirculo, loading: loadingComision } = useComisionIntermediario();
+
   // Estados locales
   const [recetasConPools, setRecetasConPools] = useState<RecetaConPools[]>([]);
   const [loadingRecetas, setLoadingRecetas] = useState(true);
@@ -336,11 +340,12 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
     recetasConPools,
     configHonorarios,
     prestadoresHonorarios,
+    comisionCirculo,
     rango,
     setRango,
     filtros,
     opcionesFiltros,
-    loading: loading || loadingHonorarios,
+    loading: loading || loadingHonorarios || loadingComision,
     loadingRecetas,
     error,
     isConnected,
@@ -352,6 +357,8 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
     recetasConPools,
     configHonorarios,
     prestadoresHonorarios,
+    comisionCirculo,
+    loadingComision,
     rango,
     filtros,
     opcionesFiltros,
@@ -365,7 +372,7 @@ export const MarginalLayout: React.FC<MarginalLayoutProps> = ({
     refetch
   ]);
 
-  const isLoading = loading || loadingHonorarios || loadingRecetas;
+  const isLoading = loading || loadingHonorarios || loadingRecetas || loadingComision;
 
   // ============================================
   // RENDER

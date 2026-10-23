@@ -69,6 +69,7 @@ export const FILA = {
   CV_HONORARIOS: 'cv.honorarios',
   CV_POOLS: 'cv.pools',
   CV_INSUMOS: 'cv.insumos',
+  CV_COMISION_CIRCULO: 'cv.comision_circulo',
   MARGEN: 'margen_contribucion',
   COSTOS_FIJOS: 'costos_fijos',
   NO_IDENTIFICADOS: 'costos_no_identificados',
@@ -140,6 +141,8 @@ export interface CifrasMes {
   honorarios: number;
   pools: number;
   insumos: number;
+  /** Comisión del Círculo Médico devengada (migración 76). */
+  comisionCirculo: number;
   costosVariables: number;
 
   margenContribucion: number;
@@ -323,6 +326,7 @@ function armarCifras(
   const honorarios = valorDe(idx, FILA.CV_HONORARIOS, mes);
   const pools = valorDe(idx, FILA.CV_POOLS, mes);
   const insumos = valorDe(idx, FILA.CV_INSUMOS, mes);
+  const comisionCirculo = valorDe(idx, FILA.CV_COMISION_CIRCULO, mes);
   const costosVariables = valorDe(idx, FILA.COSTOS_VARIABLES, mes);
   const margen = valorDe(idx, FILA.MARGEN, mes);
 
@@ -370,7 +374,7 @@ function armarCifras(
       Estudios: valorDe(idx, FILA.FACT_ESTUDIOS, mes),
       Cirugias: valorDe(idx, FILA.FACT_CIRUGIAS, mes),
     },
-    honorarios, pools, insumos, costosVariables,
+    honorarios, pools, insumos, comisionCirculo, costosVariables,
     margenContribucion: margen,
     margenContribucionPct: facturacion > 0 ? (margen / facturacion) * 100 : 0,
     costosFijos: cfTotal,

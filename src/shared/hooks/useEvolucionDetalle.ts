@@ -45,6 +45,7 @@ import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
 import type { RecetaIndexable, AliasNombre } from '@shared/utils/buscadorRecetas';
 import { traerTodo } from '../lib/traerTodo';
+import { cargarConfigComisionIntermediario, comisionIntermediario } from '@shared/utils/comisionIntermediario';
 import type {
   FilaMovimiento, FilaPrestador, FilaHonorarioConfig, FilaRecetaCosto,
 } from '../types/filasEspejo';
@@ -262,17 +263,18 @@ async function cargarAtenciones(p: ParamsDetalle): Promise<Agrupado[]> {
   }).sort((a, b) => (a.grupo || '').localeCompare(b.grupo || '', 'es') || a.label.localeCompare(b.label, 'es'));
 }
 
-/** Prestaciones que componen honorarios / pools / insumos. */
+/** Prestaciones que componen honorarios / pools / insumos / comisión del Círculo. */
 async function cargarCostosVariables(p: ParamsDetalle): Promise<Agrupado[]> {
-  const [mov, rec, maps, pres, cfg] = await Promise.all([
-    traerTodo<FilaMovimiento>((d) => supabase.from('movimientos_geclisa')
-      .select('anio, mes, practica_codigo, practica_nombre, prestador_nombre, total')
+  const [mov, rec, maps, pres, cfg, comision] = await Promise.all([
+    traerTodo<FilaMovimiento & { os_id: number | null; cobertura: number | null }>((d) => supabase.from('movimientos_geclisa')
+      .select('anio, mes, practica_codigo, practica_nombre, prestador_nombre, os_id, cobertura, total')
       .eq('es_principal', true).or(filtroMeses(p.meses)).range(d, d + 999)),
     traerTodo<FilaRecetaCosto>((d) => supabase.from('v_recetas_costos_por_pool')
       .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos').range(d, d + 999)),
     traerTodo<AliasNombre>((d) => supabase.from('prestaciones_nombre_mapping').select('nombre_geclisa, nombre_receta').range(d, d + 999)),
     traerTodo<FilaPrestador>((d) => supabase.from('prestadores').select('nombre, es_socio').range(d, d + 999)),
     traerTodo<FilaHonorarioConfig>((d) => supabase.from('honorarios_config').select('segmento, porcentaje_socio, porcentaje_no_socio, vigencia_desde').range(d, d + 999)),
+    cargarConfigComisionIntermediario(),
   ]);
 
   const rm = crearIndiceRecetas(rec, maps);
@@ -292,6 +294,8 @@ async function cargarCostosVariables(p: ParamsDetalle): Promise<Agrupado[]> {
       monto = calcularHonorarioPrestacion(facturado, r.prestador_nombre, inf?.es_socio || false, cfgSeg, r.practica_codigo);
     } else if (p.clave === 'pools') {
       monto = receta ? Number(receta.costo_total_pools) || 0 : 0;
+    } else if (p.clave === 'comision_circulo') {
+      monto = comisionIntermediario(comision, r.os_id, r.cobertura, toMesKey(r.anio, r.mes));
     } else {
       monto = receta ? Number(receta.costo_insumos_directos) || 0 : 0;
     }

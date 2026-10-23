@@ -32,6 +32,7 @@ import useCostosFijosDistribucion, {
 import useNombreMapping from '@shared/hooks/useNombreMapping';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import { comisionDePrestacion } from '@shared/utils/comisionIntermediario';
 
 // ============================================
 // TIPOS
@@ -49,6 +50,7 @@ interface ObraSocialAgrupada {
   honorarios: number;
   costoPools: number;
   costoInsumos: number;
+  comisionCirculo: number;
   costoTotal: number;
   margenContrib: number;
   margenContribPct: number;
@@ -103,6 +105,7 @@ const PorObraSocialContent: React.FC = () => {
     recetasConPools,
     configHonorarios,
     prestadoresHonorarios,
+    comisionCirculo,
     filtros,
     loading
   } = useMarginalContext();
@@ -141,7 +144,7 @@ const PorObraSocialContent: React.FC = () => {
       sigla: string; nombre: string; esParticular: boolean;
       cantidad: number; pacientes: Set<string>;
       facturado: number; coseguro: number; cobertura: number;
-      honorarios: number; costoPools: number; costoInsumos: number;
+      honorarios: number; costoPools: number; costoInsumos: number; comisionCirculo: number;
       consultas: number; estudios: number; cirugias: number;
     }>();
 
@@ -161,6 +164,8 @@ const PorObraSocialContent: React.FC = () => {
             const receta = indiceRecetas.buscar(prest.codigo_prestacion, prest.prestacion);
       const costoPools = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
+      // Comisión del Círculo Médico como intermediario (0 si la OS no pasa por él).
+      const comisionCirculoPrest = comisionDePrestacion(comisionCirculo, prest);
 
       // Honorarios
       let honorario = 0;
@@ -185,6 +190,7 @@ const PorObraSocialContent: React.FC = () => {
         existing.honorarios += honorario;
         existing.costoPools += costoPools;
         existing.costoInsumos += costoInsumos;
+        existing.comisionCirculo += comisionCirculoPrest;
         if (segmento === 'Consultas') existing.consultas++;
         if (segmento === 'Estudios') existing.estudios++;
         if (segmento === 'Cirugias') existing.cirugias++;
@@ -195,6 +201,7 @@ const PorObraSocialContent: React.FC = () => {
           sigla, nombre, esParticular,
           cantidad: 1, pacientes, facturado, coseguro, cobertura,
           honorarios: honorario, costoPools, costoInsumos,
+          comisionCirculo: comisionCirculoPrest,
           consultas: segmento === 'Consultas' ? 1 : 0,
           estudios: segmento === 'Estudios' ? 1 : 0,
           cirugias: segmento === 'Cirugias' ? 1 : 0,
@@ -203,7 +210,7 @@ const PorObraSocialContent: React.FC = () => {
     });
 
     return Array.from(agrupado.values()).map(item => {
-      const costoTotal = item.honorarios + item.costoPools + item.costoInsumos;
+      const costoTotal = item.honorarios + item.costoPools + item.costoInsumos + item.comisionCirculo;
       const margenContrib = item.facturado - costoTotal;
       const margenContribPct = item.facturado > 0 ? (margenContrib / item.facturado) * 100 : 0;
       const ticketPromedio = item.cantidad > 0 ? item.facturado / item.cantidad : 0;
@@ -212,6 +219,7 @@ const PorObraSocialContent: React.FC = () => {
         cantidad: item.cantidad, pacientesUnicos: item.pacientes.size,
         facturado: item.facturado, coseguro: item.coseguro, cobertura: item.cobertura,
         honorarios: item.honorarios, costoPools: item.costoPools, costoInsumos: item.costoInsumos,
+        comisionCirculo: item.comisionCirculo,
         costoTotal, margenContrib, margenContribPct, ticketPromedio,
         consultas: item.consultas, estudios: item.estudios, cirugias: item.cirugias,
       };
@@ -219,7 +227,7 @@ const PorObraSocialContent: React.FC = () => {
   // `mesClave` va en las dependencias porque el memo lo usa para resolver qué
   // porcentaje de honorarios regía (`configVigente`). Sin él, cambiar el período
   // sin que cambie la identidad de `prestaciones` dejaba el porcentaje viejo.
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings, mesClave]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, comisionCirculo, mappings, mesClave]);
 
   // Total facturado para distribución CF
   const totalFacturadoGlobal = useMemo(
@@ -278,11 +286,12 @@ const PorObraSocialContent: React.FC = () => {
       honorarios: acc.honorarios + os.honorarios,
       costoPools: acc.costoPools + os.costoPools,
       costoInsumos: acc.costoInsumos + os.costoInsumos,
+      comisionCirculo: acc.comisionCirculo + os.comisionCirculo,
       margenContrib: acc.margenContrib + os.margenContrib,
       costoFijoAsignado: acc.costoFijoAsignado + os.costoFijoAsignado,
       resultadoNeto: acc.resultadoNeto + os.resultadoNeto,
       pacientes: acc.pacientes + os.pacientesUnicos,
-    }), { cantidad: 0, facturado: 0, honorarios: 0, costoPools: 0, costoInsumos: 0, margenContrib: 0, costoFijoAsignado: 0, resultadoNeto: 0, pacientes: 0 });
+    }), { cantidad: 0, facturado: 0, honorarios: 0, costoPools: 0, costoInsumos: 0, comisionCirculo: 0, margenContrib: 0, costoFijoAsignado: 0, resultadoNeto: 0, pacientes: 0 });
 
     return {
       ...t,
@@ -401,7 +410,7 @@ const PorObraSocialContent: React.FC = () => {
           <div>
             <p className="text-blue-100 text-sm">Margen de Contribución</p>
             <p className="text-3xl font-bold">{formatPercent(totales.margenContribPct)}</p>
-            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Pools − Insumos</p>
+            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Pools − Insumos − Círculo</p>
           </div>
           <div className="text-right text-blue-100 text-sm">
             <p>{formatCurrency(totales.margenContrib)}</p>
@@ -469,6 +478,7 @@ const PorObraSocialContent: React.FC = () => {
                 <th className="px-2 py-3 text-right text-xs font-medium text-purple-600 uppercase bg-purple-50/50 whitespace-nowrap">Honor.</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-yellow-600 uppercase bg-yellow-50/50 whitespace-nowrap">Pools</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-orange-600 uppercase bg-orange-50/50 whitespace-nowrap">Insumos</th>
+                <th className="px-2 py-3 text-right text-xs font-medium text-red-600 uppercase bg-red-50/50 whitespace-nowrap">Círculo</th>
 
                 {/* Margen */}
                 <ThSort field="margenContrib">M. Contrib.</ThSort>
@@ -485,7 +495,7 @@ const PorObraSocialContent: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {obrasSocialesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={14}className="px-6 py-12 text-center text-gray-500">
                     <Building2 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                     <p>No se encontraron obras sociales</p>
                   </td>
@@ -523,6 +533,7 @@ const PorObraSocialContent: React.FC = () => {
                     <td className="px-2 py-3 text-sm text-right text-purple-600 bg-purple-50/20">{formatCurrency(os.honorarios)}</td>
                     <td className="px-2 py-3 text-sm text-right text-yellow-600 bg-yellow-50/20">{formatCurrency(os.costoPools)}</td>
                     <td className="px-2 py-3 text-sm text-right text-orange-600 bg-orange-50/20">{formatCurrency(os.costoInsumos)}</td>
+                    <td className="px-2 py-3 text-sm text-right text-red-600 bg-red-50/20">{formatCurrency(os.comisionCirculo)}</td>
 
                     {/* Margen */}
                     <td className={`px-2 py-3 text-sm text-right font-semibold ${os.margenContrib >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -566,6 +577,7 @@ const PorObraSocialContent: React.FC = () => {
                   <td className="px-2 py-3 text-sm text-right text-purple-700 bg-purple-50/30">{formatCurrency(totales.honorarios)}</td>
                   <td className="px-2 py-3 text-sm text-right text-yellow-700 bg-yellow-50/30">{formatCurrency(totales.costoPools)}</td>
                   <td className="px-2 py-3 text-sm text-right text-orange-700 bg-orange-50/30">{formatCurrency(totales.costoInsumos)}</td>
+                  <td className="px-2 py-3 text-sm text-right text-red-700 bg-red-50/30">{formatCurrency(totales.comisionCirculo)}</td>
                   <td className={`px-2 py-3 text-sm text-right font-bold ${totales.margenContrib >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                     {formatCurrency(totales.margenContrib)}
                   </td>

@@ -35,6 +35,7 @@ import useCostosFijosDistribucion, {
 import useNombreMapping from '@shared/hooks/useNombreMapping';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import { comisionDePrestacion } from '@shared/utils/comisionIntermediario';
 
 // ============================================
 // TIPOS
@@ -50,6 +51,7 @@ interface PrestacionPorGrupo {
   honorarios: number;
   costoPools: number;
   costoInsumos: number;
+  comisionCirculo: number;
   costoTotal: number;
   margenContrib: number;
   margenContribPct: number;
@@ -68,6 +70,7 @@ interface GrupoStats {
   honorarios: number;
   costoPools: number;
   costoInsumos: number;
+  comisionCirculo: number;
   costoTotal: number;
   margenContrib: number;
   margenContribPct: number;
@@ -122,7 +125,7 @@ const SemaforoBadge: React.FC<{ pct: number }> = ({ pct }) => {
 
 const PorGrupoContent: React.FC = () => {
   const {
-    prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, filtros, loading
+    prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, comisionCirculo, filtros, loading
   } = useMarginalContext();
 
   const anioActual = Number(filtros?.anio) || new Date().getFullYear();
@@ -151,11 +154,11 @@ const PorGrupoContent: React.FC = () => {
 
     const acumulado = new Map<Segmento, {
       cantidad: number; facturado: number; honorarios: number; costoPools: number; costoInsumos: number;
-      prestaciones: Map<string, PrestacionPorGrupo>;
+      comisionCirculo: number; prestaciones: Map<string, PrestacionPorGrupo>;
     }>();
 
     (['Consultas', 'Estudios', 'Cirugias'] as Segmento[]).forEach(seg => {
-      acumulado.set(seg, { cantidad: 0, facturado: 0, honorarios: 0, costoPools: 0, costoInsumos: 0, prestaciones: new Map() });
+      acumulado.set(seg, { cantidad: 0, facturado: 0, honorarios: 0, costoPools: 0, costoInsumos: 0, comisionCirculo: 0, prestaciones: new Map() });
     });
 
     prestaciones.forEach(prest => {
@@ -165,6 +168,8 @@ const PorGrupoContent: React.FC = () => {
             const receta = indiceRecetas.buscar(prest.codigo_prestacion, prest.prestacion);
       const costoPools = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
+      // Comisión del Círculo Médico como intermediario (0 si la OS no pasa por él).
+      const comisionCirculoPrest = comisionDePrestacion(comisionCirculo, prest);
 
       let honorario = 0;
       if (prest.prestador) {
@@ -184,6 +189,7 @@ const PorGrupoContent: React.FC = () => {
       segData.honorarios += honorario;
       segData.costoPools += costoPools;
       segData.costoInsumos += costoInsumos;
+      segData.comisionCirculo += comisionCirculoPrest;
 
       const nombre = prest.prestacion;
       const existing = segData.prestaciones.get(nombre);
@@ -193,10 +199,12 @@ const PorGrupoContent: React.FC = () => {
         existing.honorarios += honorario;
         existing.costoPools += costoPools;
         existing.costoInsumos += costoInsumos;
+        existing.comisionCirculo += comisionCirculoPrest;
       } else {
         segData.prestaciones.set(nombre, {
           nombre, codigo: '', cantidad: 1, facturado,
           honorarios: honorario, costoPools, costoInsumos,
+          comisionCirculo: comisionCirculoPrest,
           costoTotal: 0, margenContrib: 0, margenContribPct: 0,
           tieneReceta: receta !== null,
           costoFijoAsignado: 0, resultadoNeto: 0, resultadoNetoPct: 0,
@@ -211,14 +219,15 @@ const PorGrupoContent: React.FC = () => {
     const prestacionesPorGrupo = new Map<Segmento, PrestacionPorGrupo[]>();
 
     acumulado.forEach((data, segmento) => {
-      const costoTotal = data.honorarios + data.costoPools + data.costoInsumos;
+      const costoTotal = data.honorarios + data.costoPools + data.costoInsumos + data.comisionCirculo;
       const margenContrib = data.facturado - costoTotal;
       const margenContribPct = data.facturado > 0 ? (margenContrib / data.facturado) * 100 : 0;
 
       gruposStats.push({
         segmento, cantidad: data.cantidad, prestacionesUnicas: data.prestaciones.size,
         facturado: data.facturado, honorarios: data.honorarios,
-        costoPools: data.costoPools, costoInsumos: data.costoInsumos, costoTotal,
+        costoPools: data.costoPools, costoInsumos: data.costoInsumos,
+        comisionCirculo: data.comisionCirculo, costoTotal,
         margenContrib, margenContribPct,
         participacion: totalFact > 0 ? (data.facturado / totalFact) * 100 : 0,
         costoFijoAsignado: 0, resultadoNeto: 0, resultadoNetoPct: 0,
@@ -226,7 +235,7 @@ const PorGrupoContent: React.FC = () => {
 
       const prests: PrestacionPorGrupo[] = [];
       data.prestaciones.forEach(p => {
-        p.costoTotal = p.honorarios + p.costoPools + p.costoInsumos;
+        p.costoTotal = p.honorarios + p.costoPools + p.costoInsumos + p.comisionCirculo;
         p.margenContrib = p.facturado - p.costoTotal;
         p.margenContribPct = p.facturado > 0 ? (p.margenContrib / p.facturado) * 100 : 0;
         prests.push(p);
@@ -238,7 +247,7 @@ const PorGrupoContent: React.FC = () => {
   // `mesClave` va en las dependencias porque el memo lo usa para resolver qué
   // porcentaje de honorarios regía (`configVigente`). Sin él, cambiar el período
   // sin que cambie la identidad de `prestaciones` dejaba el porcentaje viejo.
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings, mesClave]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, comisionCirculo, mappings, mesClave]);
 
   // Agregar CF a grupos y prestaciones
   const gruposConCF = useMemo((): GrupoStats[] => {
@@ -400,6 +409,7 @@ const PorGrupoContent: React.FC = () => {
                 <th className="px-2 py-3 text-right text-xs font-medium text-purple-600 uppercase bg-purple-50/50 whitespace-nowrap">Honor.</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-yellow-600 uppercase bg-yellow-50/50 whitespace-nowrap">Pools</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-orange-600 uppercase bg-orange-50/50 whitespace-nowrap">Insumos</th>
+                <th className="px-2 py-3 text-right text-xs font-medium text-red-600 uppercase bg-red-50/50 whitespace-nowrap">Círculo</th>
                 <ThSort field="margenContrib">M. Contrib.</ThSort>
                 <ThSort field="margenContribPct">M.C.%</ThSort>
                 <th className="px-2 py-3 text-right text-xs font-medium text-teal-600 uppercase bg-teal-50/50 whitespace-nowrap">C.Fijos</th>
@@ -409,7 +419,7 @@ const PorGrupoContent: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {prestacionesFiltradas.length === 0 ? (
-                <tr><td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                <tr><td colSpan={12}className="px-6 py-12 text-center text-gray-500">
                   <PieChart className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                   <p>No se encontraron prestaciones</p>
                 </td></tr>
@@ -427,6 +437,7 @@ const PorGrupoContent: React.FC = () => {
                     <td className="px-2 py-3 text-sm text-right text-purple-600 bg-purple-50/20">{formatCurrency(prest.honorarios)}</td>
                     <td className="px-2 py-3 text-sm text-right text-yellow-600 bg-yellow-50/20">{formatCurrency(prest.costoPools)}</td>
                     <td className="px-2 py-3 text-sm text-right text-orange-600 bg-orange-50/20">{formatCurrency(prest.costoInsumos)}</td>
+                    <td className="px-2 py-3 text-sm text-right text-red-600 bg-red-50/20">{formatCurrency(prest.comisionCirculo)}</td>
                     <td className={`px-2 py-3 text-sm text-right font-semibold ${prest.margenContrib >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(prest.margenContrib)}
                     </td>

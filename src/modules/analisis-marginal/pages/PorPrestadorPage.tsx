@@ -33,6 +33,7 @@ import useCostosFijosDistribucion, {
 import useNombreMapping from '@shared/hooks/useNombreMapping';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import { comisionDePrestacion } from '@shared/utils/comisionIntermediario';
 
 // ============================================
 // TIPOS
@@ -46,6 +47,7 @@ interface PrestadorAgrupado {
   honorarios: number;
   costoPools: number;
   costoInsumos: number;
+  comisionCirculo: number;
   costoTotal: number;
   margenContrib: number;
   margenContribPct: number;
@@ -96,7 +98,7 @@ const SemaforoBadge: React.FC<{ pct: number }> = ({ pct }) => {
 
 const PorPrestadorContent: React.FC = () => {
   const {
-    prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, filtros, loading
+    prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, comisionCirculo, filtros, loading
   } = useMarginalContext();
 
   const anioActual = Number(filtros?.anio) || new Date().getFullYear();
@@ -127,7 +129,7 @@ const PorPrestadorContent: React.FC = () => {
     const agrupado = new Map<string, {
       nombre: string; esSocio: boolean;
       cantidad: number; facturado: number; honorarios: number;
-      costoPools: number; costoInsumos: number;
+      costoPools: number; costoInsumos: number; comisionCirculo: number;
       consultas: number; estudios: number; cirugias: number;
     }>();
 
@@ -140,6 +142,8 @@ const PorPrestadorContent: React.FC = () => {
             const receta = indiceRecetas.buscar(prest.codigo_prestacion, prest.prestacion);
       const costoPools = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
+      // Comisión del Círculo Médico como intermediario (0 si la OS no pasa por él).
+      const comisionCirculoPrest = comisionDePrestacion(comisionCirculo, prest);
 
       // Honorarios
       const prestadorInfo = prestadoresInfoMap.get(prestadorNombre.toUpperCase());
@@ -159,6 +163,7 @@ const PorPrestadorContent: React.FC = () => {
         existing.honorarios += honorario;
         existing.costoPools += costoPools;
         existing.costoInsumos += costoInsumos;
+        existing.comisionCirculo += comisionCirculoPrest;
         if (segmento === 'Consultas') existing.consultas++;
         if (segmento === 'Estudios') existing.estudios++;
         if (segmento === 'Cirugias') existing.cirugias++;
@@ -167,6 +172,7 @@ const PorPrestadorContent: React.FC = () => {
           nombre: prestadorNombre, esSocio,
           cantidad: 1, facturado, honorarios: honorario,
           costoPools, costoInsumos,
+          comisionCirculo: comisionCirculoPrest,
           consultas: segmento === 'Consultas' ? 1 : 0,
           estudios: segmento === 'Estudios' ? 1 : 0,
           cirugias: segmento === 'Cirugias' ? 1 : 0,
@@ -175,7 +181,7 @@ const PorPrestadorContent: React.FC = () => {
     });
 
     return Array.from(agrupado.values()).map(item => {
-      const costoTotal = item.honorarios + item.costoPools + item.costoInsumos;
+      const costoTotal = item.honorarios + item.costoPools + item.costoInsumos + item.comisionCirculo;
       const margenContrib = item.facturado - costoTotal;
       const margenContribPct = item.facturado > 0 ? (margenContrib / item.facturado) * 100 : 0;
       const ticketPromedio = item.cantidad > 0 ? item.facturado / item.cantidad : 0;
@@ -184,7 +190,7 @@ const PorPrestadorContent: React.FC = () => {
   // `mesClave` va en las dependencias porque el memo lo usa para resolver qué
   // porcentaje de honorarios regía (`configVigente`). Sin él, cambiar el período
   // sin que cambie la identidad de `prestaciones` dejaba el porcentaje viejo.
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings, mesClave]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, comisionCirculo, mappings, mesClave]);
 
   // Total facturado para distribución CF
   const totalFacturadoGlobal = useMemo(
@@ -240,10 +246,11 @@ const PorPrestadorContent: React.FC = () => {
       honorarios: acc.honorarios + p.honorarios,
       costoPools: acc.costoPools + p.costoPools,
       costoInsumos: acc.costoInsumos + p.costoInsumos,
+      comisionCirculo: acc.comisionCirculo + p.comisionCirculo,
       margenContrib: acc.margenContrib + p.margenContrib,
       costoFijoAsignado: acc.costoFijoAsignado + p.costoFijoAsignado,
       resultadoNeto: acc.resultadoNeto + p.resultadoNeto,
-    }), { cantidad: 0, facturado: 0, honorarios: 0, costoPools: 0, costoInsumos: 0, margenContrib: 0, costoFijoAsignado: 0, resultadoNeto: 0 });
+    }), { cantidad: 0, facturado: 0, honorarios: 0, costoPools: 0, costoInsumos: 0, comisionCirculo: 0, margenContrib: 0, costoFijoAsignado: 0, resultadoNeto: 0 });
 
     return {
       ...t,
@@ -305,7 +312,7 @@ const PorPrestadorContent: React.FC = () => {
           <div>
             <p className="text-blue-100 text-sm">Margen de Contribución</p>
             <p className="text-3xl font-bold">{formatPercent(totales.margenContribPct)}</p>
-            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Pools − Insumos</p>
+            <p className="text-blue-200 text-xs mt-1">Facturado − Honorarios − Pools − Insumos − Círculo</p>
           </div>
           <div className="text-right text-blue-100 text-sm"><p>{formatCurrency(totales.margenContrib)}</p></div>
         </div>
@@ -349,6 +356,7 @@ const PorPrestadorContent: React.FC = () => {
                 <th className="px-2 py-3 text-right text-xs font-medium text-purple-600 uppercase bg-purple-50/50 whitespace-nowrap">Honor.</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-yellow-600 uppercase bg-yellow-50/50 whitespace-nowrap">Pools</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-orange-600 uppercase bg-orange-50/50 whitespace-nowrap">Insumos</th>
+                <th className="px-2 py-3 text-right text-xs font-medium text-red-600 uppercase bg-red-50/50 whitespace-nowrap">Círculo</th>
                 <ThSort field="margenContrib">M. Contrib.</ThSort>
                 <ThSort field="margenContribPct">M.C.%</ThSort>
                 <th className="px-2 py-3 text-right text-xs font-medium text-teal-600 uppercase bg-teal-50/50 whitespace-nowrap">C.Fijos</th>
@@ -358,7 +366,7 @@ const PorPrestadorContent: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {prestadoresFiltrados.length === 0 ? (
-                <tr><td colSpan={12} className="px-6 py-12 text-center text-gray-500">
+                <tr><td colSpan={13}className="px-6 py-12 text-center text-gray-500">
                   <UserCheck className="h-12 w-12 mx-auto text-gray-300 mb-3" /><p>No se encontraron prestadores</p>
                 </td></tr>
               ) : (
@@ -390,6 +398,7 @@ const PorPrestadorContent: React.FC = () => {
                         <td className="px-2 py-3 text-sm text-right text-purple-600 bg-purple-50/20">{formatCurrency(prest.honorarios)}</td>
                         <td className="px-2 py-3 text-sm text-right text-yellow-600 bg-yellow-50/20">{formatCurrency(prest.costoPools)}</td>
                         <td className="px-2 py-3 text-sm text-right text-orange-600 bg-orange-50/20">{formatCurrency(prest.costoInsumos)}</td>
+                        <td className="px-2 py-3 text-sm text-right text-red-600 bg-red-50/20">{formatCurrency(prest.comisionCirculo)}</td>
                         <td className={`px-2 py-3 text-sm text-right font-semibold ${prest.margenContrib >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {formatCurrency(prest.margenContrib)}
                         </td>
@@ -412,7 +421,7 @@ const PorPrestadorContent: React.FC = () => {
                       {isExpanded && (
                         <tr className="bg-gray-50">
                           <td />
-                          <td colSpan={11} className="px-6 py-3">
+                          <td colSpan={12}className="px-6 py-3">
                             <div className="flex flex-wrap gap-6 text-xs text-gray-600">
                               <div className="flex flex-col gap-1">
                                 <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] mb-1">Mix de Prácticas</span>
@@ -428,6 +437,7 @@ const PorPrestadorContent: React.FC = () => {
                                 <span>Honorarios: <strong className="text-purple-600">{formatCurrency(prest.honorarios)}</strong></span>
                                 <span>Pools: <strong className="text-yellow-600">{formatCurrency(prest.costoPools)}</strong></span>
                                 <span>Insumos: <strong className="text-orange-600">{formatCurrency(prest.costoInsumos)}</strong></span>
+                                <span>Círculo: <strong className="text-red-600">{formatCurrency(prest.comisionCirculo)}</strong></span>
                                 <span className="border-t pt-1 mt-1">Total: <strong>{formatCurrency(prest.costoTotal)}</strong></span>
                               </div>
                               <div className="border-l border-gray-300 pl-4 flex flex-col gap-1">
@@ -460,6 +470,7 @@ const PorPrestadorContent: React.FC = () => {
                   <td className="px-2 py-3 text-sm text-right text-purple-700 bg-purple-50/30">{formatCurrency(totales.honorarios)}</td>
                   <td className="px-2 py-3 text-sm text-right text-yellow-700 bg-yellow-50/30">{formatCurrency(totales.costoPools)}</td>
                   <td className="px-2 py-3 text-sm text-right text-orange-700 bg-orange-50/30">{formatCurrency(totales.costoInsumos)}</td>
+                  <td className="px-2 py-3 text-sm text-right text-red-700 bg-red-50/30">{formatCurrency(totales.comisionCirculo)}</td>
                   <td className={`px-2 py-3 text-sm text-right font-bold ${totales.margenContrib >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                     {formatCurrency(totales.margenContrib)}
                   </td>

@@ -31,6 +31,7 @@ import { useAuth } from '@shared/context/auth-context';
 import { formatearPeriodo } from '../utils/periodo';
 import { detectarSegmento } from '@shared/utils/nombresPrestaciones';
 import { crearIndiceRecetas } from '@shared/utils/buscadorRecetas';
+import { comisionDePrestacion } from '@shared/utils/comisionIntermediario';
 
 // ============================================
 // TIPOS
@@ -167,6 +168,7 @@ const DashboardMarginalContent: React.FC = () => {
     recetasConPools,
     configHonorarios,
     prestadoresHonorarios,
+    comisionCirculo,
     rango,
     loading
   } = useMarginalContext();
@@ -261,6 +263,8 @@ const DashboardMarginalContent: React.FC = () => {
       const costoPools = Number(receta?.costo_total_pools) || 0;
       const costoInsumos = Number(receta?.costo_insumos_directos) || 0;
       const costoReceta = costoPools + costoInsumos;
+      // Comisión del Círculo Médico: sólo obras sociales que van por el Círculo.
+      const comision = comisionDePrestacion(comisionCirculo, prest);
       
       // Calcular honorarios
       let honorario = 0;
@@ -278,12 +282,12 @@ const DashboardMarginalContent: React.FC = () => {
       // Acumular totales
       totalFacturado += facturado;
       totalHonorarios += honorario;
-      totalCostos += honorario + costoReceta;
+      totalCostos += honorario + costoReceta + comision;
 
       // Por segmento
       porSegmento[segmento].cantidad++;
       porSegmento[segmento].facturado += facturado;
-      porSegmento[segmento].costos += honorario + costoReceta;
+      porSegmento[segmento].costos += honorario + costoReceta + comision;
 
       // Prestadores y OS únicos
       if (prest.prestador) prestadoresSet.add(prest.prestador);
@@ -295,13 +299,13 @@ const DashboardMarginalContent: React.FC = () => {
       if (existPrest) {
         existPrest.cantidad++;
         existPrest.facturado += facturado;
-        existPrest.costos += honorario + costoReceta;
+        existPrest.costos += honorario + costoReceta + comision;
       } else {
         prestacionesAgregadas.set(keyPrest, {
           nombre: keyPrest,
           cantidad: 1,
           facturado,
-          costos: honorario + costoReceta,
+          costos: honorario + costoReceta + comision,
         });
       }
 
@@ -330,14 +334,14 @@ const DashboardMarginalContent: React.FC = () => {
         if (existOS) {
           existOS.cantidad++;
           existOS.facturado += facturado;
-          existOS.costos += honorario + costoReceta;
+          existOS.costos += honorario + costoReceta + comision;
         } else {
           obrasSocialesAgregadas.set(keyOS, {
             nombre: prest.os_nombre || keyOS,
             sigla: keyOS,
             cantidad: 1,
             facturado,
-            costos: honorario + costoReceta,
+            costos: honorario + costoReceta + comision,
           });
         }
       }
@@ -409,7 +413,7 @@ const DashboardMarginalContent: React.FC = () => {
   // `mesClave` va en las dependencias porque el memo lo usa para resolver qué
   // porcentaje de honorarios regía (`configVigente`). Sin él, cambiar el período
   // sin que cambie la identidad de `prestaciones` dejaba el porcentaje viejo.
-  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, mappings, mesClave]);
+  }, [prestaciones, recetasConPools, configHonorarios, prestadoresHonorarios, comisionCirculo, mappings, mesClave]);
 
   // ============================================
   // RENDER

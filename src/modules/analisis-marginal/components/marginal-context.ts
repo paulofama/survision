@@ -16,6 +16,7 @@ import { createContext, useContext } from 'react';
 import type { OpcionesFiltros, PrestacionRealizada } from '@shared/hooks/useMovimientosPrestaciones';
 import type { HonorarioConfig, Prestador } from '@shared/hooks/useHonorariosConfig';
 import type { RangoPeriodo } from '../utils/periodo';
+import type { ConfigComisionIntermediario } from '@shared/utils/comisionIntermediario';
 
 /** Una receta con el costo ya prorrateado por pool. */
 export interface RecetaConPools {
@@ -44,6 +45,8 @@ export interface MarginalContextType {
   recetasConPools: RecetaConPools[];
   configHonorarios: HonorarioConfig[];
   prestadoresHonorarios: Prestador[];
+  /** Comisión del Círculo Médico: porcentaje y obras sociales (migración 76). */
+  comisionCirculo: ConfigComisionIntermediario;
 
   // Período (rango canónico: un mes o varios). Fuente de verdad del período.
   rango: RangoPeriodo;

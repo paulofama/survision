@@ -635,6 +635,7 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
       filaEERR('Honorarios', c => -c.honorarios),
       filaEERR('Pools', c => -c.pools),
       filaEERR('Insumos', c => -c.insumos),
+      filaEERR('Comisión Círculo', c => -c.comisionCirculo),
       filaEERR('Margen de contribución', c => c.margenContribucion),
       filaEERR('Costos fijos', c => -c.costosFijos),
       filaEERR('Resultado operativo', c => c.resultadoOperativo),
@@ -644,7 +645,7 @@ function seccionEvolucion(L: Lienzo, d: DatosInformeMensual) {
     columnStyles: { 0: { cellWidth: 36, fontStyle: 'bold' } },
     didParseCell: (h: CellHookData) => {
       if (h.column.index > 0) h.cell.styles.halign = 'right';
-      if (h.section === 'body' && (h.row.index === 5 || h.row.index === 7)) {
+      if (h.section === 'body' && (h.row.index === 6 || h.row.index === 8)) {
         h.cell.styles.fillColor = C.primaryLight;
         h.cell.styles.fontStyle = 'bold';
       }
@@ -1016,12 +1017,13 @@ function seccionCostos(L: Lienzo, d: DatosInformeMensual, opts: OpcionesInforme)
       ['Honorarios de prestadores', fmt(m.honorarios), fmtPct(m.facturacion > 0 ? (m.honorarios / m.facturacion) * 100 : 0), a ? vari(m.honorarios, a.honorarios).texto : '—'],
       ['Costos de pools', fmt(m.pools), fmtPct(m.facturacion > 0 ? (m.pools / m.facturacion) * 100 : 0), a ? vari(m.pools, a.pools).texto : '—'],
       ['Insumos directos', fmt(m.insumos), fmtPct(m.facturacion > 0 ? (m.insumos / m.facturacion) * 100 : 0), a ? vari(m.insumos, a.insumos).texto : '—'],
+      ['Comisión Círculo Médico', fmt(m.comisionCirculo), fmtPct(m.facturacion > 0 ? (m.comisionCirculo / m.facturacion) * 100 : 0), a ? vari(m.comisionCirculo, a.comisionCirculo).texto : '—'],
       ['TOTAL VARIABLES', fmt(m.costosVariables), fmtPct(m.facturacion > 0 ? (m.costosVariables / m.facturacion) * 100 : 0), a ? vari(m.costosVariables, a.costosVariables).texto : '—'],
     ],
     columnStyles: { 0: { cellWidth: 62 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
     didParseCell: (h: CellHookData) => {
       alinear(h, { 1: 'right', 2: 'right', 3: 'right' });
-      if (h.section === 'body' && h.row.index === 3) {
+      if (h.section === 'body' && h.row.index === 4) {
         h.cell.styles.fillColor = C.primaryLight;
         h.cell.styles.fontStyle = 'bold';
       }

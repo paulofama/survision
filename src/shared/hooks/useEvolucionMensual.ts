@@ -31,6 +31,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { calcularHonorarioPrestacion, configVigente } from '@shared/utils/honorariosPrestador';
+import { cargarConfigComisionIntermediario, comisionIntermediario } from '@shared/utils/comisionIntermediario';
 import { supabase } from '../lib/supabase';
 import useRecetasCostos from './useRecetasCostos';
 import useHonorariosConfig from './useHonorariosConfig';
@@ -151,6 +152,8 @@ interface AtencionRaw {
   prestador: string | null;
   os_sigla: string | null;
   os_nombre: string | null;
+  os_id: number | null;          // para la comisión del Círculo Médico
+  cobertura: number;             // lo que paga la obra social (sin coseguro)
   total: number;                 // ARS
 }
 
@@ -216,7 +219,7 @@ const useEvolucionMensual = (
     // es_principal). Antes pegaba a /api/movimientos; ahora anda desde afuera.
     const crudas = await traerTodo<FilaMovimientoDetalle>((desde) => supabase
       .from('movimientos_geclisa')
-      .select('fecha, practica_codigo, practica_nombre, prestador_nombre, os_sigla, os_nombre, total')
+      .select('fecha, practica_codigo, practica_nombre, prestador_nombre, os_id, os_sigla, os_nombre, cobertura, total')
       .eq('anio', anio)
       .eq('mes', mesN)
       .eq('es_principal', true)
@@ -229,6 +232,8 @@ const useEvolucionMensual = (
       prestador: r.prestador_nombre ?? null,
       os_sigla: r.os_sigla ?? null,
       os_nombre: r.os_nombre ?? null,
+      os_id: r.os_id ?? null,
+      cobertura: Number(r.cobertura) || 0,
       total: Number(r.total) || 0,
     }));
   }, []);
@@ -466,6 +471,9 @@ const useEvolucionMensual = (
           .select('codigo_practica, nombre_practica, costo_total_pools, costo_insumos_directos')
           .range(desde, desde + 999));
       const recetasMap = crearIndiceRecetas(recetasVista, mapeosNombre);
+      // Comisión del Círculo Médico (migración 76): sin esto el costo variable
+      // de las obras sociales que van por el Círculo sale de menos.
+      const configComision = await cargarConfigComisionIntermediario();
       const prestadoresMap = new Map(prestadoresHonorarios.map(p => [p.nombre.toUpperCase(), p]));
       /** nombre de prestación → su código, para el detalle que agrupa por nombre. */
       const codigoPorNombre = new Map<string, string>();
@@ -490,6 +498,7 @@ const useEvolucionMensual = (
       const honorariosPorMes = makeEmpty();
       const poolsPorMes = makeEmpty();
       const insumosPorMes = makeEmpty();
+      const comisionCirculoPorMes = makeEmpty();
 
       const facturadoSinRecetaPorMes = makeEmpty();
       const facturadoConRecetaPorMes = makeEmpty();
@@ -524,6 +533,7 @@ const useEvolucionMensual = (
           honorariosPorMes[m] += honorario;
           poolsPorMes[m] += costoPools;
           insumosPorMes[m] += costoInsumos;
+          comisionCirculoPorMes[m] += comisionIntermediario(configComision, a.os_id, a.cobertura, m);
 
           if (receta) {
             facturadoConRecetaPorMes[m] += facturado;
@@ -589,7 +599,7 @@ const useEvolucionMensual = (
 
       const costosVariables = makeEmpty();
       meses.forEach(m => {
-        costosVariables[m] = honorariosPorMes[m] + poolsPorMes[m] + insumosPorMes[m];
+        costosVariables[m] = honorariosPorMes[m] + poolsPorMes[m] + insumosPorMes[m] + comisionCirculoPorMes[m];
       });
 
       const margenContrib = makeEmpty();
@@ -703,7 +713,7 @@ const useEvolucionMensual = (
         { expandible: true, hijos: [filaConsultas, filaEstudios, filaCirugias] }
       );
 
-      // --- Costos Variables: 3 subgrupos (honorarios / pools / insumos) ---
+      // --- Costos Variables: 4 subgrupos (honorarios / pools / insumos / Círculo) ---
       const filaHonorarios = filaBase(
         'cv.honorarios', 'Honorarios prestadores', 'subgrupo', 1, honorariosPorMes,
         { expandible: true, detalleLazy: { bloque: 'costos_variables', clave: 'honorarios', label: 'Honorarios prestadores' } }
@@ -716,10 +726,14 @@ const useEvolucionMensual = (
         'cv.insumos', 'Insumos directos', 'subgrupo', 1, insumosPorMes,
         { expandible: true, detalleLazy: { bloque: 'costos_variables', clave: 'insumos', label: 'Insumos directos' } }
       );
+      const filaComisionCirculo = filaBase(
+        'cv.comision_circulo', 'Comisión Círculo Médico', 'subgrupo', 1, comisionCirculoPorMes,
+        { expandible: true, detalleLazy: { bloque: 'costos_variables', clave: 'comision_circulo', label: 'Comisión Círculo Médico' } }
+      );
 
       const filaCostosVariables = filaBase(
         'costos_variables', 'COSTOS VARIABLES', 'costos_variables', 0, costosVariables,
-        { expandible: true, hijos: [filaHonorarios, filaPools, filaInsumos] }
+        { expandible: true, hijos: [filaHonorarios, filaPools, filaInsumos, filaComisionCirculo] }
       );
 
       // --- Margen de contribución (subtotal, no expandible) ---

@@ -42,6 +42,9 @@ export interface FilaMovimientoDetalle extends FilaMovimiento {
   fecha: string | null;
   os_sigla: string | null;
   os_nombre: string | null;
+  /** Para la comisión del Círculo Médico (migración 76). */
+  os_id?: number | null;
+  cobertura?: number | null;
 }
 
 /** Espejo de prestadores. `es_socio` lo togglea el usuario y el sync lo respeta. */
