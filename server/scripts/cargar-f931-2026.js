@@ -6,6 +6,11 @@
 //   node scripts/cargar-f931-2026.js            -> DRY-RUN (parsea y muestra)
 //   node scripts/cargar-f931-2026.js --write     -> sube PDF + crea declaracion confirmada
 //
+// OPCIONAL (agregado 2026-10-15): --archivo="C:/ruta/otro.pdf" junto con --mes=N,
+// para PDFs que no siguen el nombre 'F 931 MM2026.pdf'. Ej: el de 09-2026 llego
+// como 'F 931 202610.pdf' (mes de presentacion, no periodo). Con --archivo el
+// periodo detectado en el PDF TIENE que coincidir con --mes o no se escribe.
+//
 // Carga los meses en MESES (actual: ene-may 2026). Espera los PDFs nombrados
 // 'F 931 MM2026.pdf' en C:\FISCAL\931\931\. Para sumar mas meses (jun-2026+),
 // agregar el numero a MESES; es idempotente (los ya confirmados se saltean).
@@ -30,6 +35,9 @@ const { parsearF931, SURVISION_CUIT } = require('../services/f931Parser');
 // sin el flag se procesan los de MESES, como siempre.
 const argMes = process.argv.find((x) => x.startsWith('--mes='));
 const MES_FILTRO = argMes ? parseInt(argMes.slice(6), 10) : null;
+const argArchivo = process.argv.find((x) => x.startsWith('--archivo='));
+const ARCHIVO = argArchivo ? argArchivo.slice(10).replace(/^["']|["']$/g, '') : null;
+if (ARCHIVO && !MES_FILTRO) { console.error('ERROR: --archivo requiere --mes=N'); process.exit(1); }
 
 const DIR = 'C:\\FISCAL\\931\\931\\';
 const WRITE = process.argv.includes('--write');
@@ -84,8 +92,8 @@ async function inicializarMes(mes) {
   let okCount = 0;
   for (const mes of MESES) {
     const mm = String(mes).padStart(2, '0');
-    const nombre = `F 931 ${mm}${ANIO}.pdf`;
-    const ruta = DIR + nombre;
+    const ruta = ARCHIVO || DIR + `F 931 ${mm}${ANIO}.pdf`;
+    const nombre = require('path').basename(ruta);
 
     if (!fs.existsSync(ruta)) { log(`\n${mm}/${ANIO}: NO existe ${nombre}, salteo.`); continue; }
 
@@ -105,6 +113,7 @@ async function inicializarMes(mes) {
     log(`   rem_1=$ ${$(c.rem_1)}  301=$ ${$(c.aporte_ss_301)}  302=$ ${$(c.aporte_os_302)}  351=$ ${$(c.contrib_ss_351)}  352=$ ${$(c.contrib_os_352)}  ART=$ ${$(c.art)}  SCVO=$ ${$(c.scvo)}`);
     if (res.warnings && res.warnings.length) log('   warnings: ' + res.warnings.join(' | '));
 
+    if (ARCHIVO && !periodoOk) { log('   -> el periodo del PDF no coincide con --mes, NO se escribe.'); continue; }
     if (!WRITE) continue;
 
     if (yaExiste && yaExiste.estado === 'REVISADO_CONFIRMADO') { log('   -> ya confirmada, salteo.'); continue; }
