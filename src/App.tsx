@@ -74,149 +74,129 @@ import GestionAccesosPage from '@modules/accesos/pages/GestionAccesosPage';
 
 // Páginas Coming Soon
 import ComingSoonPage from '@shared/components/ComingSoonPage';
+import { importarPagina } from '@shared/lib/importarPagina';
 
 // ============================================
 // TESORERÍA - LAZY LOADING (Safe Import)
 // ============================================
-const TesoreriaDashboardPage = lazy(() =>
-  import('@modules/tesoreria/pages/TesoreriaDashboardPage').catch(() => ({
-    default: () => <ComingSoonPage title="Tesorería - Dashboard" />
-  }))
-);
+const TesoreriaDashboardPage = lazy(importarPagina(
+  () => import('@modules/tesoreria/pages/TesoreriaDashboardPage'),
+  () => <ComingSoonPage title="Tesorería - Dashboard" />,
+));
 
-const CajaMovimientosPage = lazy(() =>
-  import('@modules/tesoreria/pages/CajaMovimientosPage').catch(() => ({
-    default: () => <ComingSoonPage title="Movimientos de Caja" />
-  }))
-);
+const CajaMovimientosPage = lazy(importarPagina(
+  () => import('@modules/tesoreria/pages/CajaMovimientosPage'),
+  () => <ComingSoonPage title="Movimientos de Caja" />,
+));
 
-const SaldoHistoricoPage = lazy(() =>
-  import('@modules/tesoreria/pages/SaldoHistoricoPage').catch(() => ({
-    default: () => <ComingSoonPage title="Saldo Histórico" />
-  }))
-);
-const PagosProveedoresPage = lazy(() =>
-  import('@modules/tesoreria/pages/PagosProveedoresPage').catch(() => ({
-    default: () => <ComingSoonPage title="Pagos a Proveedores" />
-  }))
-);
-const BancosPage = lazy(() =>
-  import('@modules/tesoreria/bancos/pages/BancosPage').catch(() => ({
-    default: () => <ComingSoonPage title="Bancos" />
-  }))
-);
-const FiscalDashboardPage = lazy(() =>
-  import('@modules/fiscal/pages/FiscalDashboardPage').catch(() => ({
-    default: () => <ComingSoonPage title="Fiscal - Dashboard IVA" />
-  }))
-);
-const IvaVentasPage = lazy(() =>
-  import('@modules/fiscal/pages/IvaVentasPage').catch(() => ({
-    default: () => <ComingSoonPage title="IVA Ventas" />
-  }))
-);
-const IvaComprasPage = lazy(() =>
-  import('@modules/fiscal/pages/IvaComprasPage').catch(() => ({
-    default: () => <ComingSoonPage title="IVA Compras" />
-  }))
-);
-const ResumenAnualPage = lazy(() =>
-  import('@modules/fiscal/pages/ResumenAnualPage').catch(() => ({
-    default: () => <ComingSoonPage title="Resumen Anual IVA" />
-  }))
-);
+const SaldoHistoricoPage = lazy(importarPagina(
+  () => import('@modules/tesoreria/pages/SaldoHistoricoPage'),
+  () => <ComingSoonPage title="Saldo Histórico" />,
+));
+const PagosProveedoresPage = lazy(importarPagina(
+  () => import('@modules/tesoreria/pages/PagosProveedoresPage'),
+  () => <ComingSoonPage title="Pagos a Proveedores" />,
+));
+const BancosPage = lazy(importarPagina(
+  () => import('@modules/tesoreria/bancos/pages/BancosPage'),
+  () => <ComingSoonPage title="Bancos" />,
+));
+const FiscalDashboardPage = lazy(importarPagina(
+  () => import('@modules/fiscal/pages/FiscalDashboardPage'),
+  () => <ComingSoonPage title="Fiscal - Dashboard IVA" />,
+));
+const IvaVentasPage = lazy(importarPagina(
+  () => import('@modules/fiscal/pages/IvaVentasPage'),
+  () => <ComingSoonPage title="IVA Ventas" />,
+));
+const IvaComprasPage = lazy(importarPagina(
+  () => import('@modules/fiscal/pages/IvaComprasPage'),
+  () => <ComingSoonPage title="IVA Compras" />,
+));
+const ResumenAnualPage = lazy(importarPagina(
+  () => import('@modules/fiscal/pages/ResumenAnualPage'),
+  () => <ComingSoonPage title="Resumen Anual IVA" />,
+));
 
 // ============================================
 // DERIVACIONES - LAZY LOADING
 // ============================================
-const DerivacionesLiquidacionPage = lazy(() => 
-  import('@modules/liquidaciones/pages/DerivacionesLiquidacionPage').catch(() => ({
-    default: () => <ComingSoonPage title="Liquidación Derivaciones" />
-  }))
-);
+const DerivacionesLiquidacionPage = lazy(importarPagina(
+  () => import('@modules/liquidaciones/pages/DerivacionesLiquidacionPage'),
+  () => <ComingSoonPage title="Liquidación Derivaciones" />,
+));
 
 // ============================================
 // LIQUIDACIÓN DE HONORARIOS - LAZY LOADING
 // ============================================
-const LiqHonorariosPage = lazy(() => 
-  import('@modules/liquidaciones/liq-honorarios/LiqHonorariosPage').catch(() => ({
-    default: () => <ComingSoonPage title="Liquidación de Honorarios" />
-  }))
-);
+const LiqHonorariosPage = lazy(importarPagina(
+  () => import('@modules/liquidaciones/liq-honorarios/LiqHonorariosPage'),
+  () => <ComingSoonPage title="Liquidación de Honorarios" />,
+));
 
 // ============================================
 // INFORMES - LAZY LOADING
 // ============================================
-const InformesPage = lazy(() => 
-  import('@modules/informes/pages/InformesPage').catch(() => ({
-    default: () => <ComingSoonPage title="Informes de Gestión" />
-  }))
-);
+const InformesPage = lazy(importarPagina(
+  () => import('@modules/informes/pages/InformesPage'),
+  () => <ComingSoonPage title="Informes de Gestión" />,
+));
 
 // ============================================
 // COMISIONES - LAZY LOADING
 // ============================================
 // Régimen de comisiones sobre presupuestos. Nace inerte: sin parámetros
 // cargados las pantallas explican qué falta, no muestran una lista vacía.
-const MisComisionesPage = lazy(() =>
-  import('@modules/comisiones/pages/MisComisionesPage').catch(() => ({
-    default: () => <ComingSoonPage title="Mis Comisiones" />
-  }))
-);
+const MisComisionesPage = lazy(importarPagina(
+  () => import('@modules/comisiones/pages/MisComisionesPage'),
+  () => <ComingSoonPage title="Mis Comisiones" />,
+));
 
-const PanelComisionesPage = lazy(() =>
-  import('@modules/comisiones/pages/PanelComisionesPage').catch(() => ({
-    default: () => <ComingSoonPage title="Panel de Comisiones" />
-  }))
-);
+const PanelComisionesPage = lazy(importarPagina(
+  () => import('@modules/comisiones/pages/PanelComisionesPage'),
+  () => <ComingSoonPage title="Panel de Comisiones" />,
+));
 
-const ParametrosComisionesPage = lazy(() =>
-  import('@modules/comisiones/pages/ParametrosComisionesPage').catch(() => ({
-    default: () => <ComingSoonPage title="Parámetros de Comisiones" />
-  }))
-);
+const ParametrosComisionesPage = lazy(importarPagina(
+  () => import('@modules/comisiones/pages/ParametrosComisionesPage'),
+  () => <ComingSoonPage title="Parámetros de Comisiones" />,
+));
 
 // ============================================
 // SEGUIMIENTO DE PACIENTES - LAZY LOADING
 // ============================================
-const SeguimientoPacientesPage = lazy(() =>
-  import('@modules/seguimiento/pages/SeguimientoPacientesPage').catch(() => ({
-    default: () => <ComingSoonPage title="Seguimiento de Pacientes" />
-  }))
-);
+const SeguimientoPacientesPage = lazy(importarPagina(
+  () => import('@modules/seguimiento/pages/SeguimientoPacientesPage'),
+  () => <ComingSoonPage title="Seguimiento de Pacientes" />,
+));
 
 // ============================================
 // SUELDOS - MODULO NUEVO (Fase 1) - LAZY LOADING
 // ============================================
-const SueldosDashboardPage = lazy(() =>
-  import('@modules/sueldos/pages/DashboardSueldosPage').catch(() => ({
-    default: () => <ComingSoonPage />
-  }))
-);
+const SueldosDashboardPage = lazy(importarPagina(
+  () => import('@modules/sueldos/pages/DashboardSueldosPage'),
+  () => <ComingSoonPage />,
+));
 
-const SueldosEmpleadosPage = lazy(() =>
-  import('@modules/sueldos/pages/EmpleadosPage').catch(() => ({
-    default: () => <ComingSoonPage />
-  }))
-);
+const SueldosEmpleadosPage = lazy(importarPagina(
+  () => import('@modules/sueldos/pages/EmpleadosPage'),
+  () => <ComingSoonPage />,
+));
 
-const SueldosEmpleadoFormPage = lazy(() =>
-  import('@modules/sueldos/pages/EmpleadoFormPage').catch(() => ({
-    default: () => <ComingSoonPage />
-  }))
-);
+const SueldosEmpleadoFormPage = lazy(importarPagina(
+  () => import('@modules/sueldos/pages/EmpleadoFormPage'),
+  () => <ComingSoonPage />,
+));
 
-const SueldosMesDetallePage = lazy(() =>
-  import('@modules/sueldos/pages/MesDetallePage').catch(() => ({
-    default: () => <ComingSoonPage />
-  }))
-);
+const SueldosMesDetallePage = lazy(importarPagina(
+  () => import('@modules/sueldos/pages/MesDetallePage'),
+  () => <ComingSoonPage />,
+));
 
-const SueldosReportesPage = lazy(() =>
-  import('@modules/sueldos/pages/ReportesSueldosPage').catch(() => ({
-    default: () => <ComingSoonPage />
-  }))
-);
+const SueldosReportesPage = lazy(importarPagina(
+  () => import('@modules/sueldos/pages/ReportesSueldosPage'),
+  () => <ComingSoonPage />,
+));
 
 // ============================================
 // COMPONENTE DE CARGA
