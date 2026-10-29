@@ -250,6 +250,13 @@ export interface HistorialFila {
   observaciones: string | null;
   usuario: string | null;
   created_at: string;
+  /**
+   * Sólo en cambios de resultado (migración 79): cuándo y quién había
+   * registrado el resultado que se reemplazó. Volver a pendiente borra esos
+   * datos del presupuesto; acá quedan.
+   */
+  resultado_fecha_anterior?: string | null;
+  resultado_por_anterior?: string | null;
   /** Motivo del catálogo, embebido por la FK. Null cuando el cambio no pide motivo. */
   motivo: { nombre: string } | null;
 }
@@ -266,6 +273,7 @@ export async function cargarHistorial(presupuestoId: string): Promise<HistorialF
       `presupuestos_historial?presupuesto_id=eq.${presupuestoId}`
       + '&order=created_at.desc'
       + '&select=campo,valor_anterior,valor_nuevo,observaciones,usuario,created_at,'
+      + 'resultado_fecha_anterior,resultado_por_anterior,'
       + 'motivo:presupuestos_motivos_resultado(nombre)',
     );
   } catch {

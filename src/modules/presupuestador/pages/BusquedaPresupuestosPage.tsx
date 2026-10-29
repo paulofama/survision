@@ -17,6 +17,7 @@ import CircuitoPanel from "../components/CircuitoPanel";
 import MatchesRevisionModal from "../components/MatchesRevisionModal";
 import CambioEstadoModal, { type AccionEstado } from "../components/CambioEstadoModal";
 import HistorialSeguimientoModal from "../components/HistorialSeguimientoModal";
+import HistorialCambiosModal from "../components/HistorialCambiosModal";
 import { derivarSeguimiento, ESTADO_CONTACTO_META, Seguimiento } from "../utils/seguimiento";
 import { nombrePrestacionCorto } from "../utils/nombrePrestacion";
 
@@ -59,7 +60,22 @@ interface Presupuesto {
    * después no puede cambiar lo que dice el papel. Antes de aceptar todavía no
    * existe, y ahí se cae al del presupuesto.
    */
-  ace?: { ojo: string | null } | { ojo: string | null }[] | null;
+  ace?: AceEmbed | AceEmbed[] | null;
+  /**
+   * Cuántas filas tiene el historial (embed `count`). Con alguna, la celda
+   * del resultado ofrece verlo: después de volver a pendiente es el único
+   * lugar donde queda quién lo había aceptado (migración 79).
+   */
+  hist?: { count: number }[] | null;
+}
+
+/**
+ * Lo que se embebe de la aceptación. `revertida_at` hace falta para no
+ * mostrar el ojo de una aceptación que ya no está vigente.
+ */
+interface AceEmbed {
+  ojo: string | null;
+  revertida_at: string | null;
 }
 
 type ToastType = "success" | "error" | "warning";
@@ -315,7 +331,9 @@ function TransicionBtn({ onClick, title, color, Icon }: { onClick: () => void; t
  */
 function ojoDe(p: Presupuesto): "OD" | "OI" | "AMBOS" | null {
   const ace = Array.isArray(p.ace) ? (p.ace[0] ?? null) : (p.ace ?? null);
-  const dela = String(ace?.ojo || "").toUpperCase();
+  // Una aceptación revertida conserva el ojo para precargar si se vuelve a
+  // aceptar, pero no es lo que se va a operar: manda el del presupuesto.
+  const dela = ace && !ace.revertida_at ? String(ace.ojo || "").toUpperCase() : "";
   if (dela === "OD" || dela === "OI" || dela === "AMBOS") return dela;
 
   const crudo = String(p.datos_completos?.tratamiento?.ojoTratar || "")
@@ -378,6 +396,7 @@ function CeldaResultado({
   onRevertir,
   onAnular,
   onCircuito,
+  onHistorialCambios,
   puedeAnularPracticado,
 }: {
   p: Presupuesto;
@@ -388,6 +407,7 @@ function CeldaResultado({
   onRevertir: () => void;
   onAnular: () => void;
   onCircuito: () => void;
+  onHistorialCambios: () => void;
   /** `presupuestador:config`: anular una cirugía ya realizada no es rutina. */
   puedeAnularPracticado: boolean;
 }) {
@@ -395,6 +415,17 @@ function CeldaResultado({
   if (!esEmitido(p.estado)) {
     return <span className="text-xs text-gray-300">—</span>;
   }
+
+  const cambios = Array.isArray(p.hist) ? (p.hist[0]?.count ?? 0) : 0;
+  const linkHistorial = cambios > 0 && (
+    <button
+      onClick={onHistorialCambios}
+      title="Ver qué cambió, quién y cuándo"
+      className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline"
+    >
+      Historial
+    </button>
+  );
 
   const esPracticado = p.estado === "practicado";
 
@@ -432,11 +463,15 @@ function CeldaResultado({
               className="text-[11px] text-gray-300 cursor-not-allowed"
               title="La cirugía ya se realizó: el resultado no se revierte."
             >
-              Cambiar
+              Volver a pendiente
             </span>
           ) : (
-            <button onClick={onRevertir} className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
-              Cambiar
+            <button
+              onClick={onRevertir}
+              title="Deshacer el resultado cargado: queda en el historial"
+              className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline"
+            >
+              Volver a pendiente
             </button>
           )}
           {/* Anular un practicado queda para quien tenga `presupuestador:config`. */}
@@ -446,6 +481,7 @@ function CeldaResultado({
             </button>
           )}
         </div>
+        {linkHistorial}
       </div>
     );
   }
@@ -463,6 +499,7 @@ function CeldaResultado({
             Anular
           </button>
         )}
+        {linkHistorial}
       </div>
     );
   }
@@ -489,6 +526,7 @@ function CeldaResultado({
           </button>
         )}
       </div>
+      {linkHistorial}
     </div>
   );
 }
@@ -535,6 +573,7 @@ export default function BusquedaPresupuestosPage() {
   const [showMatches, setShowMatches] = useState(false);
   const [filterContacto, setFilterContacto] = useState<string>(""); // "" | pendiente | en_seguimiento | contactado | contactado_whatsapp | sin_respuesta
   const [historial, setHistorial] = useState<Presupuesto | null>(null);
+  const [historialCambios, setHistorialCambios] = useState<Presupuesto | null>(null);
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
@@ -583,8 +622,9 @@ export default function BusquedaPresupuestosPage() {
       // Embed 1:1 del seguimiento; inner cuando se filtra por un estado persistido.
       const embedInner = !!con && con !== "pendiente";
       const embed = `seg:presupuestos_seguimiento${embedInner ? "!inner" : ""}(estado_contacto,ronda,intentos_ronda,whatsapp_enviado_at,rellamada_at,cerrado_at)`;
-      const embedAce = "ace:presupuestos_aceptacion(ojo)";
-      const parts: string[] = ["order=fecha_creacion.desc", `select=*,${embed},${embedAce}`];
+      const embedAce = "ace:presupuestos_aceptacion(ojo,revertida_at)";
+      const embedHist = "hist:presupuestos_historial(count)";
+      const parts: string[] = ["order=fecha_creacion.desc", `select=*,${embed},${embedAce},${embedHist}`];
       const t = term.trim();
       if (t.length >= 2) {
         parts.push(
@@ -730,6 +770,9 @@ export default function BusquedaPresupuestosPage() {
         headers,
         body: JSON.stringify({
           resultado: "SIN_RESPUESTA",
+          // El historial escribe una fila por presupuesto (migración 79); esto
+          // dice que vinieron todos del mismo cierre masivo.
+          resultado_observaciones: `Cierre masivo: más de ${plazoDias} días sin respuesta`,
           fecha_resultado: new Date().toISOString(),
           resultado_por: username,
         }),
@@ -1050,6 +1093,7 @@ export default function BusquedaPresupuestosPage() {
                             onAnular={() => setCambioEstado({ p, accion: "anular" })}
                             puedeAnularPracticado={puedeAnularPracticado}
                             onCircuito={() => setCircuito(p)}
+                            onHistorialCambios={() => setHistorialCambios(p)}
                           />
                         </td>
 
@@ -1186,7 +1230,6 @@ export default function BusquedaPresupuestosPage() {
         <CambioEstadoModal
           presupuesto={cambioEstado.p}
           accion={cambioEstado.accion}
-          usuario={username}
           onHecho={cambioEstadoHecho}
           onClose={() => setCambioEstado(null)}
           onIrAlCircuito={() => {
@@ -1203,6 +1246,15 @@ export default function BusquedaPresupuestosPage() {
           confirmLabel={`Marcar ${bulk.count}`}
           onClose={() => setBulk(null)}
           onConfirm={confirmarBulk}
+        />
+      )}
+
+      {historialCambios && (
+        <HistorialCambiosModal
+          presupuestoId={historialCambios.id}
+          numero={historialCambios.numero_presupuesto}
+          convenios={convenios}
+          onClose={() => setHistorialCambios(null)}
         />
       )}
 

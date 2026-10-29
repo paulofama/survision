@@ -190,8 +190,11 @@ export async function cargarPanelDiagnosticos(): Promise<PanelDiagnosticos> {
         .range(desde, desde + 999)),
     traerTodo<{ id: string; prestacion_codigo: string | null }>((desde) =>
       supabase.from('presupuestos').select('id,prestacion_codigo').range(desde, desde + 999)),
+    // Sólo las VIGENTES: una aceptación revertida (migración 70) ya no va a
+    // imprimir ningún pedido.
     traerTodo<{ presupuesto_id: string }>((desde) =>
-      supabase.from('presupuestos_aceptacion').select('presupuesto_id').range(desde, desde + 999)),
+      supabase.from('presupuestos_aceptacion').select('presupuesto_id')
+        .is('revertida_at', null).range(desde, desde + 999)),
   ]);
 
   const aceptados = new Set(aceptaciones.map((a) => a.presupuesto_id));

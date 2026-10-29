@@ -24,7 +24,7 @@ import {
   generarDocumento, generarSobreCompleto,
   valorTotalCaja, requiereFactura, restaPagar,
 } from "../utils/sobre";
-import { lineaDeTiempo } from "../utils/lineaDeTiempo";
+import LineaDeTiempo from "./LineaDeTiempo";
 import CajaIngresoModal from "./CajaIngresoModal";
 import AceptacionModal from "./AceptacionModal";
 
@@ -72,77 +72,6 @@ const fmtFecha = (d: string | null | undefined): string => {
     return `${dt.getDate().toString().padStart(2, "0")}/${(dt.getMonth() + 1).toString().padStart(2, "0")}/${dt.getFullYear()}`;
   } catch { return "—"; }
 };
-
-/** Fecha y hora, para la línea de tiempo: dos cambios del mismo día se ordenan. */
-const fmtFechaHora = (d: string | null | undefined): string => {
-  if (!d) return "—";
-  try {
-    const dt = new Date(d);
-    if (isNaN(dt.getTime())) return "—";
-    const hh = dt.getHours().toString().padStart(2, "0");
-    const mm = dt.getMinutes().toString().padStart(2, "0");
-    return `${fmtFecha(d)} ${hh}:${mm}`;
-  } catch { return "—"; }
-};
-
-// ═══════════════════════════════════════════════════════════════
-// LÍNEA DE TIEMPO DEL PRESUPUESTO
-// ═══════════════════════════════════════════════════════════════
-// El armado de los eventos es puro y vive en `utils/lineaDeTiempo.ts`, con sus
-// tests. Acá sólo se dibuja.
-
-function LineaDeTiempo({
-  historial,
-  emisiones,
-  convenios,
-}: {
-  historial: HistorialFila[];
-  emisiones: Emision[];
-  convenios: Convenio[];
-}) {
-  const eventos = useMemo(
-    () => lineaDeTiempo(historial, emisiones, convenios),
-    [historial, emisiones, convenios],
-  );
-
-  return (
-    <div className="mt-4 pt-4 border-t border-gray-100">
-      <h4 className="text-sm font-semibold text-gray-700 mb-2">Qué pasó con este presupuesto</h4>
-      {eventos.length === 0 ? (
-        <p className="text-xs text-gray-500">
-          Todavía no se emitió ningún documento ni se registró ningún cambio.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
-          {eventos.map((ev, i) => (
-            <li
-              key={`${ev.cuando}-${i}`}
-              className="flex items-start gap-2.5 text-xs bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-2"
-            >
-              <span
-                className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${
-                  ev.clase === "emision" ? "bg-blue-500" : "bg-amber-500"
-                }`}
-                aria-hidden="true"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium text-gray-900 break-words">{ev.titulo}</span>
-                {ev.detalle && <span className="block text-gray-600 break-words">{ev.detalle}</span>}
-                <span className="block text-gray-400">
-                  {fmtFechaHora(ev.cuando)}
-                  {ev.quien ? ` · ${ev.quien}` : ""}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="text-[11px] text-gray-500 mt-2">
-        Azul: documentos emitidos. Ámbar: cambios registrados.
-      </p>
-    </div>
-  );
-}
 
 export default function CircuitoPanel({
   presupuesto,

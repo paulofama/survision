@@ -9,13 +9,13 @@
 //   3) filas del checklist (con no_aplica según la rama)
 // ============================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Convenio, Lio, RamaCobertura, SubRama, Ojo,
   OJOS, SUB_RAMAS, CHECKLIST_ITEMS,
   itemsAplicables, clavesAplicables, lioSugerido, cargarLlevaLente,
   practicaDelPresupuesto,
-  sbPatch, sbUpsert, sbDelete, sbInsert,
+  sbGet, sbPatch, sbUpsert, sbDelete, sbInsert,
 } from "../utils/circuito";
 import { cargarOpcionesDiagnostico, type OpcionDiagnostico } from "../utils/sobre";
 
@@ -40,6 +40,19 @@ function ojoDesdeSnapshot(p: PresupuestoMin): Ojo | "" {
   if (o.includes("izq")) return "OI";
   if (o.includes("der")) return "OD";
   return "";
+}
+
+/** Lo que se precarga de una aceptación revertida (migración 70). */
+interface AceptacionRevertida {
+  rama_cobertura: RamaCobertura | null;
+  sub_rama: SubRama | null;
+  convenio_id: string | null;
+  fecha_tentativa_cirugia: string | null;
+  ojo: Ojo | null;
+  lio_id: string | null;
+  diagnostico_opcion_id: string | null;
+  requiere_analisis_ecg: boolean | null;
+  revertida_at: string;
 }
 
 /**
@@ -125,6 +138,41 @@ export default function AceptacionModal({
   // y el modal queda exactamente como estaba.
   const [opcionesDx, setOpcionesDx] = useState<OpcionDiagnostico[]>([]);
   const [opcionDxId, setOpcionDxId] = useState<string>(edicion?.diagnostico_opcion_id ?? "");
+
+  // VOLVER A ACEPTAR DESPUÉS DE UNA REVERSIÓN. La aceptación revertida no se
+  // borra (migración 70) justamente para esto: si el paciente vuelve, el
+  // formulario llega con lo que ya se había definido. Sólo en alta, y sólo si
+  // el operador todavía no empezó a cargar.
+  const [precargadaDe, setPrecargadaDe] = useState<string | null>(null);
+  // La rama de ESTE momento, no la del render en que arrancó la carga.
+  const ramaActual = useRef(rama);
+  ramaActual.current = rama;
+  useEffect(() => {
+    if (edicion) return;
+    let vigente = true;
+    sbGet<AceptacionRevertida>(
+      `presupuestos_aceptacion?presupuesto_id=eq.${presupuesto.id}&revertida_at=not.is.null`
+      + "&select=rama_cobertura,sub_rama,convenio_id,fecha_tentativa_cirugia,ojo,lio_id,"
+      + "diagnostico_opcion_id,requiere_analisis_ecg,revertida_at",
+    ).then((filas) => {
+      const a = filas[0];
+      if (!vigente || !a?.rama_cobertura || ramaActual.current) return;
+      setRama(a.rama_cobertura);
+      setSubRama(a.sub_rama ?? "");
+      setConvenioId(a.convenio_id ?? "");
+      setFecha(a.fecha_tentativa_cirugia ?? "");
+      if (a.ojo) setOjo(a.ojo);
+      // El LIO deducido del presupuesto manda; el guardado sólo completa
+      // cuando la prestación no identifica uno.
+      if (!lioDelPresupuesto && a.lio_id) setLioId(a.lio_id);
+      setOpcionDxId(a.diagnostico_opcion_id ?? "");
+      setRequiere(!!a.requiere_analisis_ecg);
+      setPrecargadaDe(a.revertida_at);
+    }).catch(() => { /* sin precarga se carga a mano, como siempre */ });
+    return () => { vigente = false; };
+    // Sólo al abrir: volver a correr pisaría lo que el operador ya cambió.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presupuesto.id]);
 
   useEffect(() => {
     let vigente = true;
@@ -361,6 +409,12 @@ export default function AceptacionModal({
                 otra cosa que la autorización.
               </p>
               <p className="text-amber-800">Hay que emitir el pedido de nuevo y avisar a la obra social.</p>
+            </div>
+          )}
+          {precargadaDe && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs text-blue-900">
+              Se precargaron los datos de la aceptación anterior, que se había revertido el{" "}
+              {new Date(precargadaDe).toLocaleDateString("es-AR")}. Revisalos antes de confirmar.
             </div>
           )}
           {/* Rama de cobertura */}

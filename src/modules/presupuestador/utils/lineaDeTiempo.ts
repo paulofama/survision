@@ -41,7 +41,22 @@ export const CAMPO_LABEL: Record<string, string> = {
   fecha_tentativa_cirugia: "Fecha de cirugía",
   requiere_analisis_ecg: "Análisis y ECG",
   diagnostico_opcion_id: "Indicación",
+  lio_id: "LIO",
 };
+
+/**
+ * El resultado comercial como lo dice la pantalla. NULL es "Pendiente": desde
+ * la migración 79 volver a pendiente queda en el historial, y "(sin dato)"
+ * diría que se perdió algo cuando en realidad se revirtió.
+ */
+const RESULTADO_LEGIBLE: Record<string, string> = {
+  ACEPTADO: "Aceptado",
+  RECHAZADO: "Rechazado",
+  SIN_RESPUESTA: "Sin respuesta",
+  ANULADO: "Anulado",
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Un valor del historial, legible.
@@ -56,6 +71,8 @@ export const valorLegible = (
   convenios: Convenio[],
 ): string => {
   const v = String(valor ?? "").trim();
+  if (campo === "resultado") return v ? RESULTADO_LEGIBLE[v] || v : "Pendiente";
+  if (campo === "lio_id" && !v) return "sin lente";
   if (!v) return "(sin dato)";
   switch (campo) {
     case "convenio_id":
@@ -70,9 +87,25 @@ export const valorLegible = (
       // La opción elegida vive en una tabla que esta pantalla no carga. Decir
       // que cambió es honesto; imprimir el id, inútil.
       return "otra indicación";
+    case "lio_id":
+      // La edición del circuito guarda el id; la migración 78 guardó el nombre.
+      return UUID.test(v) ? "otro LIO" : v;
     default:
       return v;
   }
+};
+
+/**
+ * Quién y cuándo había registrado el resultado que se reemplazó (migración
+ * 79). Vacío en las filas viejas y en los cambios que no son de resultado.
+ */
+export const registroAnterior = (h: HistorialFila): string => {
+  if (h.campo !== "resultado" || !h.resultado_por_anterior) return "";
+  const f = h.resultado_fecha_anterior ? new Date(h.resultado_fecha_anterior) : null;
+  const cuando = f && !isNaN(f.getTime())
+    ? ` el ${String(f.getDate()).padStart(2, "0")}/${String(f.getMonth() + 1).padStart(2, "0")}/${f.getFullYear()}`
+    : "";
+  return `lo había registrado ${h.resultado_por_anterior}${cuando}`;
 };
 
 /** Qué se emitió, en palabras. */
@@ -119,7 +152,7 @@ export function lineaDeTiempo(
     titulo: `${CAMPO_LABEL[h.campo] || h.campo}: `
       + `${valorLegible(h.campo, h.valor_anterior, convenios)} → `
       + `${valorLegible(h.campo, h.valor_nuevo, convenios)}`,
-    detalle: [h.motivo?.nombre, h.observaciones].filter(Boolean).join(" · "),
+    detalle: [h.motivo?.nombre, h.observaciones, registroAnterior(h)].filter(Boolean).join(" · "),
     quien: h.usuario,
   }));
   return [...deEmisiones, ...deHistorial].sort(

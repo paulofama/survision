@@ -107,6 +107,10 @@ export default function AnalisisResultados() {
   }, []);
 
   const filtrados = useMemo(() => rows.filter((r) => {
+    // ANULADO es un presupuesto que no debió existir (duplicado, error de
+    // carga): no es un emitido que el paciente rechazó. Contarlo bajaría la
+    // tasa de aceptación, y si estaba practicado la subiría (migración 70).
+    if (r.resultado === "ANULADO") return false;
     const f = (r.fecha_creacion || "").slice(0, 10);
     if (desde && f < desde) return false;
     if (hasta && f > hasta) return false;

@@ -149,10 +149,31 @@ describe("Línea de tiempo — cambios legibles", () => {
   });
 
   it("un valor vacío dice que no hay dato, no queda la flecha suelta", () => {
-    expect(valorLegible("resultado", null, CONVENIOS)).toBe("(sin dato)");
-    expect(valorLegible("resultado", "   ", CONVENIOS)).toBe("(sin dato)");
+    expect(valorLegible("ojo", null, CONVENIOS)).toBe("(sin dato)");
+    expect(valorLegible("ojo", "   ", CONVENIOS)).toBe("(sin dato)");
+  });
+
+  it("un resultado vacío es Pendiente: volver a pendiente no es perder el dato (migración 79)", () => {
+    expect(valorLegible("resultado", null, CONVENIOS)).toBe("Pendiente");
+    expect(valorLegible("resultado", "SIN_RESPUESTA", CONVENIOS)).toBe("Sin respuesta");
     const ev = lineaDeTiempo([cambio({ campo: "resultado", valor_anterior: "ACEPTADO", valor_nuevo: null })], [], CONVENIOS);
-    expect(ev[0].titulo).toBe("Resultado: ACEPTADO → (sin dato)");
+    expect(ev[0].titulo).toBe("Resultado: Aceptado → Pendiente");
+  });
+
+  it("al volver a pendiente se lee quién había registrado el resultado y cuándo", () => {
+    const ev = lineaDeTiempo([cambio({
+      valor_anterior: "ACEPTADO", valor_nuevo: null,
+      motivo: { nombre: "Error de carga" }, observaciones: null,
+      resultado_por_anterior: "marianela_murgo",
+      resultado_fecha_anterior: "2026-10-06T18:00:07Z",
+    })], [], CONVENIOS);
+    expect(ev[0].detalle).toBe("Error de carga · lo había registrado marianela_murgo el 06/10/2026");
+  });
+
+  it("el LIO: vacío es sin lente y un id no se imprime", () => {
+    expect(valorLegible("lio_id", null, CONVENIOS)).toBe("sin lente");
+    expect(valorLegible("lio_id", "Básico", CONVENIOS)).toBe("Básico");
+    expect(valorLegible("lio_id", "7f3a1c2e-0000-4000-8000-000000000001", CONVENIOS)).toBe("otro LIO");
   });
 
   it("la indicación no imprime el UUID de la opción", () => {
@@ -193,7 +214,7 @@ describe("Línea de tiempo — el caso real de la base", () => {
     expect(ev).toHaveLength(3);
     expect(ev[0].titulo).toBe("Pedido de cirugía emitido");
     expect(ev[0].detalle).toBe("Vía: Círculo Médico San Rafael");
-    expect(ev[1].titulo).toBe("Resultado: ACEPTADO → RECHAZADO");
-    expect(ev[2].titulo).toBe("Resultado: ACEPTADO → (sin dato)");
+    expect(ev[1].titulo).toBe("Resultado: Aceptado → Rechazado");
+    expect(ev[2].titulo).toBe("Resultado: Aceptado → Pendiente");
   });
 });

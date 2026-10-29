@@ -119,7 +119,10 @@ async function correrMatch({ write = false } = {}) {
 
     // No auto-confirmar si el presupuesto está marcado rechazado/sin respuesta
     // (sería contradictorio): esos casos van a revisión como 'sugerido'.
-    const bloqueaAuto = p.resultado === 'RECHAZADO' || p.resultado === 'SIN_RESPUESTA';
+    // ANULADO tampoco: marcarlo practicado deshacería la anulación sin que
+    // nadie lo decida (migración 79).
+    const bloqueaAuto = p.resultado === 'RECHAZADO' || p.resultado === 'SIN_RESPUESTA'
+      || p.resultado === 'ANULADO';
 
     if (!hasRows && candidatos.length === 1 && !bloqueaAuto) {
       const m = candidatos[0];

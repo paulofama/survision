@@ -3,6 +3,49 @@
 Cambios por tarea, del más reciente al más viejo. Cada entrada corresponde a un
 commit propio, para poder revertirla por separado.
 
+## 2026-10-29 · Volver a pendiente un resultado cargado por error
+
+**Problema:** "Cambiar" revertía con tres escrituras sueltas desde la pantalla. Si
+fallaba la segunda, el presupuesto quedaba pendiente y la aceptación seguía
+vigente. Además se perdía quién había registrado el resultado y cuándo. Aceptar,
+rechazar, sin respuesta y el cierre masivo no dejaban historial. Los bloqueos
+(practicado) eran sólo un botón gris, y el historial se podía editar y borrar.
+
+**Cambios:**
+- `migrations/79_presupuestos_volver_a_pendiente.sql` (+ `_revert.sql`):
+  - Nuevas funciones `presupuesto_chequear_cambio()` y
+    `presupuesto_cambiar_resultado()`. Validan, cambian el resultado y bajan la
+    aceptación en una transacción.
+  - **Bloquean:** caja vigente, cirugía practicada, match confirmado con
+    GECLISA y comisión devengada o liquidada.
+  - **Advierten:** documentos emitidos. Para seguir hace falta
+    `presupuestador:config` y una confirmación.
+  - Un trigger escribe el historial de todo cambio de resultado, con quién lo
+    había registrado y cuándo. Hay dos columnas nuevas en el historial.
+  - Un trigger guardián rechaza el cambio directo a pendiente o a ANULADO.
+  - El historial queda SELECT + INSERT.
+- Búsqueda:
+  - "Cambiar" pasa a llamarse **"Volver a pendiente"**.
+  - Link **"Historial"** en la celda del resultado.
+  - El ojo de una aceptación revertida ya no se muestra.
+  - El cierre masivo deja la observación de que fue masivo.
+- Modal de reversión: muestra los bloqueos que devuelve la base y pide
+  confirmar si hay papeles emitidos.
+- Aceptación: al volver a aceptar, precarga los datos de la aceptación revertida.
+- Línea de tiempo:
+  - Pasa a un componente propio.
+  - Muestra "Pendiente" en vez de "(sin dato)".
+  - Dice quién había registrado el resultado anterior.
+  - Agrega el LIO.
+- Arreglos laterales:
+  - El Análisis de resultados excluye los ANULADO.
+  - Diagnósticos cuenta sólo las aceptaciones vigentes.
+  - El cruce con GECLISA no marca practicado un presupuesto ANULADO
+    (`server/services/matchPracticasService.js`).
+
+**Prueba:** P-2026-1081 (ACEPTADO por error) queda para revertirlo desde la
+pantalla. No se tocó en la base.
+
 ## 2026-10-29 · LIO: Mininuc y prácticas sin lente
 
 **Problema:** el modal de aceptación exigía un LIO para cualquier práctica: un

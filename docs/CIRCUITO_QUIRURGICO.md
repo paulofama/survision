@@ -270,6 +270,35 @@ Y al aceptar, si el convenio difiere de la obra social de la ficha, el modal mue
 
 ---
 
+## 4c. Volver a pendiente y anular (29/10/2026, migración 79)
+
+Corregir un resultado cargado por error (un "Aceptar" de más, un rechazo equivocado) es **"Volver a pendiente"** en la celda del resultado de la Búsqueda (antes se llamaba "Cambiar"). No borra nada: el resultado anterior, quién lo había cargado y cuándo quedan en `presupuestos_historial`, y la aceptación se marca `revertida_*` en vez de borrarse.
+
+Lo hace **una sola función de la base**, en una transacción: `presupuesto_cambiar_resultado(id, 'revertir' | 'anular', motivo, observaciones, confirma_documentos)`. Antes del motivo, el modal pregunta `presupuesto_chequear_cambio()`, que devuelve los bloqueos con su mensaje: la regla y el texto viven en un solo lugar.
+
+| Situación | Volver a pendiente | Anular |
+|---|---|---|
+| Entrega de caja vigente | bloquea | bloquea |
+| Cirugía practicada | bloquea | sólo `presupuestador:config` |
+| Vinculado a lo facturado en GECLISA (match confirmado) | bloquea | — |
+| Comisión devengada, o en liquidación aprobada/pagada | bloquea | bloquea |
+| Sobre o pedido ya emitido | advierte; seguir pide `presupuestador:config` y tildar la confirmación | igual |
+
+Lo demás alcanza con `presupuestador`: son los mismos que pueden aceptar.
+
+**Garantías de la base**, no de la pantalla:
+- Un trigger escribe el historial de **todo** cambio de resultado: aceptar, rechazar, sin respuesta, el cierre masivo (una fila por presupuesto), volver a pendiente y anular.
+- Otro trigger impide que un usuario lleve un resultado a pendiente o a ANULADO con una escritura directa: tiene que pasar por la función. El servidor (service key) no pasa por ese control.
+- El historial es SELECT + INSERT: no se edita ni se borra.
+
+**Dónde se ve:** el link "Historial" de la celda del resultado aparece en cualquier presupuesto con algo registrado. Antes la línea de tiempo vivía sólo en el panel Circuito, que se abre con el presupuesto aceptado, y después de revertir no había dónde verla.
+
+**Al volver a aceptar**, el modal precarga cobertura, convenio, ojo, fecha, indicación y análisis de la aceptación revertida, y avisa que lo hizo.
+
+ANULADO no cuenta en el Análisis de resultados ni puede ser marcado practicado por el cruce con GECLISA: va a revisión como sugerido.
+
+---
+
 ## 5. Dónde se configura cada cosa
 
 Todo lo que Administración puede querer cambiar está en datos, no en código:
@@ -297,6 +326,9 @@ Los `[DEFAULT]` de la FASE 3 que Administración todavía no cerró viven en **c
 src/modules/presupuestador/
 ├── components/
 │   ├── AceptacionModal.tsx     rama del circuito al aceptar (LIO solo lectura)
+│   ├── CambioEstadoModal.tsx   volver a pendiente / anular (migración 79)
+│   ├── HistorialCambiosModal.tsx  la línea de tiempo desde la Búsqueda
+│   ├── LineaDeTiempo.tsx       dibujo de la línea de tiempo (Circuito e Historial)
 │   ├── CircuitoPanel.tsx       checklist + botones del Sobre
 │   └── CajaIngresoModal.tsx    montos del comprobante de caja
 ├── utils/
