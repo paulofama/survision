@@ -3,6 +3,33 @@
 Cambios por tarea, del más reciente al más viejo. Cada entrada corresponde a un
 commit propio, para poder revertirla por separado.
 
+## 2026-10-29 · LIO: Mininuc y prácticas sin lente
+
+**Problema:** el modal de aceptación exigía un LIO para cualquier práctica: un
+entropión o una ptosis obligaban a inventar uno (P-2026-733, un láser, quedó
+con LIO "Básico"). Además Mininuc (030510) no estaba en la lista de LIO.
+
+**Cambios:**
+- `migrations/78_prestaciones_lleva_lio_mininuc.sql` (+ `_revert.sql`):
+  - `prestaciones.lleva_lio`: el dato de si la práctica lleva lente. Hay 10
+    códigos en true.
+  - Función `prestacion_set_lleva_lio()`, para que lo edite quien tenga el
+    permiso `presupuestador:config` o `prestaciones`.
+  - LIO "Mininuc" con el código 030510.
+  - El historial acepta el campo `lio_id`.
+  - P-2026-733 queda sin LIO, con constancia en el historial.
+- Modal de aceptación: si la práctica no lleva lente, muestra "No lleva lente",
+  guarda `lio_id = NULL` y deja "LIO definido" como no aplica. Si edita una
+  aceptación, también registra los cambios de LIO.
+- PDF: trazabilidad y consentimiento imprimen "No corresponde" en vez del renglón
+  en blanco. "LIO indicado" y "LIO ELEGIDO" ya se omitían.
+- Diagnósticos: el tilde "Lleva lente intraocular" lee y escribe el dato de la
+  prestación.
+
+**Casos de prueba:**
+- Mininuc: P-2026-1028, 1032, 1048 y 1050 deducen el LIO "Mininuc".
+- Sin lente: P-2026-1084 (entropión), 1076 y 1077 (ptosis).
+
 ## 2026-10-29 · Prestadoras nuevas en el Presupuestador y Liq. Honorarios (solución transitoria)
 
 **Problema:** la Dra. Francisca Arias (GECLISA `pre_id` 18) no aparecía al emitir

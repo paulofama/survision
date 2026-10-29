@@ -41,6 +41,11 @@ export interface PracticaConDx {
   nombre: string;
   /** null = imprime el renglón en blanco. */
   dx: Diagnostico | null;
+  /**
+   * Si la práctica lleva lente: `prestaciones.lleva_lio` (migración 78). Es la
+   * fuente; `dx.lleva_lio` queda como espejo de compatibilidad.
+   */
+  llevaLio: boolean;
   /** Presupuestos emitidos con esta práctica. */
   presupuestos: number;
   /** De esos, los que llegaron a aceptarse: son los que imprimen un pedido. */
@@ -138,7 +143,7 @@ export function filtrar(filas: PracticaConDx[], texto: string, carga: FiltroCarg
  * Separado de la carga para poder probarlo sin base.
  */
 export function cruzar(
-  practicas: { codigo: string; practica: string }[],
+  practicas: { codigo: string; practica: string; lleva_lio?: boolean | null }[],
   diagnosticos: Diagnostico[],
   presupuestosPorCodigo: Map<string, number>,
   aceptadosPorCodigo: Map<string, number>,
@@ -152,6 +157,7 @@ export function cruzar(
         codigo: cod,
         nombre: sinPrefijoCodigo(p.practica),
         dx: porCodigo.get(cod) ?? null,
+        llevaLio: !!p.lleva_lio,
         presupuestos: presupuestosPorCodigo.get(cod) ?? 0,
         aceptados: aceptadosPorCodigo.get(cod) ?? 0,
       };
@@ -176,8 +182,8 @@ export async function cargarPanelDiagnosticos(): Promise<PanelDiagnosticos> {
   // `traerTodo` pagina: `presupuestos` pasa las 1.000 filas y PostgREST corta
   // sin avisar, así que un conteo sin paginar saldría corto y creíble.
   const [practicas, diagnosticos, presupuestos, aceptaciones] = await Promise.all([
-    traerTodo<{ codigo: string; practica: string }>((desde) =>
-      supabase.from('prestaciones').select('codigo,practica').range(desde, desde + 999)),
+    traerTodo<{ codigo: string; practica: string; lleva_lio: boolean }>((desde) =>
+      supabase.from('prestaciones').select('codigo,practica,lleva_lio').range(desde, desde + 999)),
     traerTodo<Diagnostico>((desde) =>
       supabase.from('presupuestos_diagnosticos')
         .select('codigo_practica,diagnostico,solicitud,lleva_lio,activo,nota_interna')
@@ -230,4 +236,18 @@ export async function guardarDiagnostico(d: Diagnostico): Promise<void> {
       { onConflict: 'codigo_practica' },
     );
   if (e) throw new Error(e.message);
+}
+
+/**
+ * Si la práctica lleva lente (migración 78). Va por una función de la base
+ * porque escribir `prestaciones` pide el permiso 'prestaciones' y esta
+ * pantalla es de 'presupuestador:config': la función acepta cualquiera de los
+ * dos. También actualiza el espejo en `presupuestos_diagnosticos`.
+ */
+export async function guardarLlevaLente(codigo: string, valor: boolean): Promise<void> {
+  const { error } = await supabase.rpc('prestacion_set_lleva_lio', {
+    p_codigo: String(codigo).trim(),
+    p_valor: valor,
+  });
+  if (error) throw new Error(error.message);
 }

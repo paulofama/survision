@@ -13,7 +13,8 @@ import { useEffect, useState } from "react";
 import {
   Convenio, Lio, RamaCobertura, SubRama, Ojo,
   OJOS, SUB_RAMAS, CHECKLIST_ITEMS,
-  itemsAplicables, clavesAplicables, lioSugerido,
+  itemsAplicables, clavesAplicables, lioSugerido, cargarLlevaLente,
+  practicaDelPresupuesto,
   sbPatch, sbUpsert, sbDelete, sbInsert,
 } from "../utils/circuito";
 import { cargarOpcionesDiagnostico, type OpcionDiagnostico } from "../utils/sobre";
@@ -133,6 +134,22 @@ export default function AceptacionModal({
     return () => { vigente = false; };
   }, [presupuesto.prestacion_codigo]);
 
+  // Si la práctica lleva lente (migración 78). `undefined` mientras carga;
+  // `null` si no se pudo saber, y entonces se pide el LIO como antes. Sólo con
+  // un `false` explícito de la prestación el LIO deja de pedirse: un entropión
+  // o una ptosis no tienen lente, y obligar a elegir uno es lo que hizo que
+  // P-2026-733 (láser) quedara aceptado con LIO "Básico".
+  const codigoPractica = practicaDelPresupuesto(presupuesto).codigo;
+  const [llevaLente, setLlevaLente] = useState<boolean | null | undefined>(undefined);
+  useEffect(() => {
+    let vigente = true;
+    cargarLlevaLente(codigoPractica).then((v) => {
+      if (vigente) setLlevaLente(v);
+    });
+    return () => { vigente = false; };
+  }, [codigoPractica]);
+  const sinLente = llevaLente === false;
+
   const esOS = rama === "OBRA_SOCIAL";
   const conveniosDeSubRama = convenios.filter((c) => c.sub_rama === subRama && c.activo);
 
@@ -152,9 +169,10 @@ export default function AceptacionModal({
   // eso el pedido sale con el diagnóstico en blanco y hay que completarlo a
   // mano después, que es justo lo que este campo viene a evitar.
   const valido =
+    llevaLente !== undefined &&
     !!rama &&
     !!ojo &&
-    !!lioId &&
+    (sinLente || !!lioId) &&
     (opcionesDx.length === 0 || !!opcionDxId) &&
     (!esOS || (!!subRama && !!convenioId));
 
@@ -189,7 +207,8 @@ export default function AceptacionModal({
           convenio_id: esOS ? convenioId : null,
           fecha_tentativa_cirugia: fecha || null,
           ojo,
-          lio_id: lioId,
+          // NULL = la práctica no lleva lente (migración 78).
+          lio_id: sinLente ? null : lioId,
           diagnostico_opcion_id: opcionDxId || null,
           requiere_analisis_ecg: requiere,
           created_by: username,
@@ -209,7 +228,12 @@ export default function AceptacionModal({
       //    (ej. "Orden autorizada" no corresponde a un circuito Particular).
       //    `no_aplica` sigue marcando los que existen pero no corresponden a
       //    este caso puntual (ej. análisis/ECG no solicitados).
-      const aRef = { rama_cobertura: rama as RamaCobertura, requiere_analisis_ecg: requiere };
+      const aRef = {
+        rama_cobertura: rama as RamaCobertura,
+        requiere_analisis_ecg: requiere,
+        // Sin lente, "LIO definido" se crea como no aplica.
+        lleva_lio: sinLente ? false : null,
+      };
       const aplicables = itemsAplicables(aRef);
       const rows = aplicables.map((it) => ({
         presupuesto_id: presupuesto.id,
@@ -244,6 +268,7 @@ export default function AceptacionModal({
           fecha_tentativa_cirugia: edicion.fecha_tentativa_cirugia,
           requiere_analisis_ecg: String(edicion.requiere_analisis_ecg),
           diagnostico_opcion_id: edicion.diagnostico_opcion_id,
+          lio_id: edicion.lio_id,
         };
         const despues: Record<string, string | null> = {
           rama_cobertura: rama || null,
@@ -252,6 +277,7 @@ export default function AceptacionModal({
           fecha_tentativa_cirugia: fecha || null,
           requiere_analisis_ecg: String(requiere),
           diagnostico_opcion_id: opcionDxId || null,
+          lio_id: sinLente ? null : (lioId || null),
         };
         const cambios = Object.keys(antes)
           .filter((k) => (antes[k] ?? null) !== (despues[k] ?? null))
@@ -435,6 +461,19 @@ export default function AceptacionModal({
                 {OJOS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
+            {sinLente ? (
+              // La práctica no implanta lente (migración 78): no hay nada que
+              // elegir, y se guarda lio_id = NULL.
+              <div className="block text-sm">
+                <span className="block text-gray-600 mb-1 font-medium">LIO</span>
+                <div className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-sm text-gray-700">
+                  No lleva lente
+                </div>
+                <span className="text-[11px] text-gray-500 mt-1 block">
+                  Esta práctica no implanta lente intraocular.
+                </span>
+              </div>
+            ) : (
             <label className="block text-sm">
               <span className="block text-gray-600 mb-1 font-medium">LIO *</span>
               {/*
@@ -472,6 +511,7 @@ export default function AceptacionModal({
                 </span>
               )}
             </label>
+            )}
           </div>
 
           {/*

@@ -33,6 +33,7 @@ const fila = (over: Partial<PracticaConDx> = {}): PracticaConDx => ({
   codigo: '030501',
   nombre: 'Facoemulsificacion',
   dx: null,
+  llevaLio: false,
   presupuestos: 0,
   aceptados: 0,
   ...over,
@@ -225,6 +226,18 @@ describe('cruzar', () => {
     const r = cruzar(practicas, [dx({ codigo_practica: '030501' })], new Map(), new Map());
     expect(r[0].dx?.diagnostico).toBe('Catarata {ojo}');
     expect(r[1].dx).toBeNull();
+  });
+
+  it('"lleva lente" sale de la prestación, no del diagnóstico (migración 78)', () => {
+    const conDato = [
+      { codigo: '030305', practica: 'Entropion', lleva_lio: false },
+      { codigo: '030510', practica: 'Mininuc', lleva_lio: true },
+    ];
+    // El diagnóstico viejo dice que el entropión lleva lente: manda la prestación.
+    const r = cruzar(conDato, [dx({ codigo_practica: '030305', lleva_lio: true })], new Map(), new Map());
+    expect(r.find((f) => f.codigo === '030305')?.llevaLio).toBe(false);
+    expect(r.find((f) => f.codigo === '030510')?.llevaLio).toBe(true);
+    expect(r.find((f) => f.codigo === '030510')?.dx).toBeNull();
   });
 
   it('trae el volumen, y cuenta 0 —no undefined— cuando la práctica nunca se presupuestó', () => {

@@ -170,6 +170,15 @@ export interface DiagnosticoPractica {
 
 const pesos = (ctx: SobreCtx, n: number): string => `$ ${ctx.fmtARS(n)}`;
 
+/**
+ * El LIO como se imprime en trazabilidad y consentimiento (migración 78).
+ * Si hay LIO, va el LIO, siempre. Si no hay y la práctica no lleva lente,
+ * "No corresponde": en blanco parecería un dato que faltó cargar. Si no hay y
+ * la práctica sí lleva lente, en blanco para completar a mano.
+ */
+export const lioImpreso = (ctx: SobreCtx): string =>
+  ctx.lioNombre || (ctx.diag.llevaLio ? "" : "No corresponde");
+
 /** Respaldo de la solicitud: el nombre de la práctica, que siempre es cierto. */
 const conceptoDeLaPractica = (ctx: SobreCtx): string =>
   ctx.practicaDescripcion ? `${ctx.practicaDescripcion}.` : "Completar la práctica solicitada.";
@@ -870,7 +879,7 @@ export function docTrazabilidad(L: Lienzo, ctx: SobreCtx) {
   espacio(L, 3);
 
   subtitulo(L, "A completar por quirófano");
-  campo2(L, "Historia clínica", "", "Lente", ctx.lioNombre);
+  campo2(L, "Historia clínica", "", "Lente", lioImpreso(ctx));
   campo2(L, "Dioptría", "", "SN", "");
   campo2(L, "Fecha vencimiento", "", "Código", "");
   campo2(L, "Serie", "", "Fecha factura", "");
@@ -1015,7 +1024,7 @@ export function docConsentimiento(L: Lienzo, ctx: SobreCtx) {
 
   campo(L, "Paciente", ctx.paciente.apellidoNombre);
   campo2(L, "DNI", ctx.paciente.documento, "Ojo a operar", ctx.ojoTexto);
-  campo2(L, "Fecha de cirugía", ctx.fechaCirugia, "LIO", ctx.lioNombre);
+  campo2(L, "Fecha de cirugía", ctx.fechaCirugia, "LIO", lioImpreso(ctx));
   espacio(L, 2);
 
   parrafo(L, "Marco legal: Leyes 26.529 y 26.742 y Decreto Reglamentario 1089/2012. Modelo aprobado por el Consejo Argentino de Oftalmología.", { size: 8, color: [90, 90, 90] });

@@ -50,6 +50,19 @@ Las tres coberturas son **Particular**, **obra social vía directa** (ej. OSEP) 
 | 030511 | Facoemulsificación con lente rígido | Lente rígido |
 | 030514 | Facoemulsificación + LIO PanOptix Pro | Multifocal PanOptix Pro |
 | 030508 | Implante secundario suturado | Implante secundario |
+| 030510 | Mininuc | Mininuc (migración 78) |
+
+### Prácticas sin lente (29/10/2026, migración 78)
+
+**Si una práctica lleva lente es un dato de la prestación: `prestaciones.lleva_lio`.** Hay 10 códigos en true: los 9 de la tabla de arriba más el 030509 (implante secundario con vitrectomía). Todo lo demás está en false.
+
+- **Al aceptar:** si la práctica no lleva lente, el modal muestra "No lleva lente" en lugar del selector y no lo exige. Se guarda `presupuestos_aceptacion.lio_id = NULL`, que desde la migración 78 significa "no lleva lente". Ningún filtro ni informe usa el LIO.
+- **Checklist:** el ítem "LIO definido" se crea como *no aplica*.
+- **PDFs:** el pedido no imprime "LIO indicado", el comprobante de caja no imprime "LIO ELEGIDO", y trazabilidad y consentimiento dicen "No corresponde" en vez de dejar el renglón en blanco (`lioImpreso()` en `sobre/documentos.ts`).
+- **Si no se puede saber** (prestación inexistente o consulta caída), se pide el LIO como antes: ante la duda, de más.
+- **Dónde se cambia:** en la pantalla Diagnósticos, con el tilde "Lleva lente intraocular". Escribe por la función `prestacion_set_lleva_lio()`, que acepta el permiso `presupuestador:config` o `prestaciones`. `presupuestos_diagnosticos.lleva_lio` quedó como espejo obsoleto.
+
+Antes el LIO era obligatorio para todo. Por eso P-2026-733 (láser) quedó aceptado con LIO "Básico"; la migración 78 lo corrigió y dejó constancia en el historial.
 
 `lioSugerido()` (en `utils/circuito.ts`) resuelve por código y, si no matchea, compara el nombre del LIO contra la descripción de la prestación **probando los nombres más largos primero** — si no, "Tórico monofocal" caería en "Monofocal".
 

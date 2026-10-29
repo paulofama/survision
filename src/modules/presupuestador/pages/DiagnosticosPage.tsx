@@ -21,6 +21,7 @@ import {
   faltaElOjo,
   filtrar,
   guardarDiagnostico,
+  guardarLlevaLente,
   validarDiagnostico,
   MARCADOR_OJO,
   type Diagnostico,
@@ -49,7 +50,8 @@ interface EditorProps {
 function Editor({ fila, onCerrar, onGuardado }: EditorProps) {
   const [diagnostico, setDiagnostico] = useState(fila.dx?.diagnostico ?? '');
   const [solicitud, setSolicitud] = useState(fila.dx?.solicitud ?? '');
-  const [llevaLio, setLlevaLio] = useState(fila.dx?.lleva_lio ?? false);
+  // De la prestación (migración 78), no del diagnóstico.
+  const [llevaLio, setLlevaLio] = useState(fila.llevaLio);
   const [activo, setActivo] = useState(fila.dx?.activo ?? true);
   const [nota, setNota] = useState(fila.dx?.nota_interna ?? '');
   const propuesta = esPropuesta(fila.dx);
@@ -72,6 +74,9 @@ function Editor({ fila, onCerrar, onGuardado }: EditorProps) {
         activo,
         nota_interna: nota,
       };
+      // Primero el dato de la prestación: si falla (permiso), no queda el
+      // diagnóstico guardado con un "lleva lente" que no se aplicó.
+      if (llevaLio !== fila.llevaLio) await guardarLlevaLente(fila.codigo, llevaLio);
       await guardarDiagnostico(d);
       onGuardado();
     } catch (e) {
@@ -162,7 +167,8 @@ function Editor({ fila, onCerrar, onGuardado }: EditorProps) {
               <span>
                 Lleva lente intraocular
                 <span className="block text-[11px] text-gray-500">
-                  Imprime el renglón "LIO indicado". En un pterigión no significa nada.
+                  Es un dato de la práctica: si no lleva, al aceptar no se pide LIO y los
+                  documentos no lo imprimen.
                 </span>
               </span>
             </label>
@@ -438,7 +444,7 @@ export default function DiagnosticosPage() {
                         <span className="inline-flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           <span className="text-gray-900">{f.dx!.diagnostico}</span>
-                          {f.dx!.lleva_lio && (
+                          {f.llevaLio && (
                             <span className="text-[10px] bg-sky-100 text-sky-800 rounded px-1.5 py-px">LIO</span>
                           )}
                         </span>

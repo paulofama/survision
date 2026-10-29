@@ -426,12 +426,40 @@ export function lioSugerido(
   return "";
 }
 
+/**
+ * Si la práctica lleva lente intraocular (`prestaciones.lleva_lio`, migración
+ * 78). Es un dato de la prestación, no una búsqueda por texto.
+ *
+ * Devuelve null si no se pudo saber (código vacío, prestación inexistente o
+ * consulta fallida). Quien llama trata null como antes de la 78: pide el LIO.
+ * Ante la duda se pide de más, nunca de menos: que falte el LIO de una
+ * catarata es peor que tener que elegirlo a mano.
+ */
+export async function cargarLlevaLente(codigo: string | null | undefined): Promise<boolean | null> {
+  const cod = String(codigo || "").trim();
+  if (!cod) return null;
+  try {
+    const rows = await sbGet<{ lleva_lio: boolean }>(
+      `prestaciones?codigo=eq.${encodeURIComponent(cod)}&select=lleva_lio&limit=1`,
+    );
+    return rows[0] ? !!rows[0].lleva_lio : null;
+  } catch {
+    return null;
+  }
+}
+
 // ------------------------------------------------------------
 // Checklist de seguimiento (definición declarativa por cobertura;
 // estado persistido en DB)
 // ------------------------------------------------------------
 
-export type ChecklistCtx = Pick<Aceptacion, "rama_cobertura" | "requiere_analisis_ecg">;
+export type ChecklistCtx = Pick<Aceptacion, "rama_cobertura" | "requiere_analisis_ecg"> & {
+  /**
+   * Si la práctica lleva lente (migración 78). Opcional: sin el dato, el ítem
+   * "LIO definido" aplica, como antes.
+   */
+  lleva_lio?: boolean | null;
+};
 
 export interface ChecklistDef {
   clave: string;
@@ -452,7 +480,8 @@ export const CHECKLIST_ITEMS: ChecklistDef[] = [
   { clave: "consentimiento_firmado",  label: "Consentimiento firmado entregado" },
   { clave: "analisis_ecg",            label: "Análisis y ECG presentados",                   noAplica: (a) => !a.requiere_analisis_ecg },
   { clave: "deposito_garantia",       label: "Depósito en garantía realizado" },
-  { clave: "lio_definido",            label: "LIO definido" },
+  // En un entropión o una ptosis no hay lente que definir (migración 78).
+  { clave: "lio_definido",            label: "LIO definido",                                 noAplica: (a) => a.lleva_lio === false },
   { clave: "fecha_cirugia_confirmada",label: "Fecha de cirugía confirmada" },
 ];
 

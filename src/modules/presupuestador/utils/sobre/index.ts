@@ -18,7 +18,7 @@ import {
   recetasDelSobre, recetasFijasDelSobre, recetasDeMedicacionAdicional,
   docRecetaFija, docRecetasAdicionales,
 } from "./documentos";
-import { Aceptacion, Convenio, Lio, sbGet, lioSugerido, practicaDelPresupuesto } from "../circuito";
+import { Aceptacion, Convenio, Lio, sbGet, lioSugerido, practicaDelPresupuesto, cargarLlevaLente } from "../circuito";
 import { cargarCostoPrestacion } from "@shared/services/costoPrestacion";
 import { sinPrefijoCodigo } from '../nombrePrestacion';
 
@@ -124,9 +124,21 @@ export async function cargarDiagnosticoPractica(
    */
   opcionId?: string | null,
 ): Promise<{ diagnostico: string; solicitud: string; llevaLio: boolean }> {
-  const vacio = { diagnostico: '', solicitud: '', llevaLio: false };
   const cod = String(codigo || '').trim();
-  if (!cod) return vacio;
+  if (!cod) return { diagnostico: '', solicitud: '', llevaLio: false };
+  // Si lleva lente es dato de la PRESTACIÓN (migración 78), no del diagnóstico:
+  // el catálogo de diagnósticos no tiene todas las prácticas. Si no se pudo
+  // saber, se cae al dato viejo del diagnóstico, que es lo que había antes.
+  const [dx, llevaLente] = await Promise.all([leerDiagnostico(cod, opcionId), cargarLlevaLente(cod)]);
+  return { ...dx, llevaLio: llevaLente ?? dx.llevaLio };
+}
+
+/** El diagnóstico y la solicitud, tal como están cargados (o vacíos). */
+async function leerDiagnostico(
+  cod: string,
+  opcionId?: string | null,
+): Promise<{ diagnostico: string; solicitud: string; llevaLio: boolean }> {
+  const vacio = { diagnostico: '', solicitud: '', llevaLio: false };
   try {
     // La opción elegida manda. Se busca por id Y por código: si alguien
     // cambió la práctica del presupuesto después de aceptar, la opción vieja
