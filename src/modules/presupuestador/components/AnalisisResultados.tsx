@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { sbGet } from "../utils/circuito";
 import { estaVencido } from "../utils/resultado";
+import { nombreMedicoPresupuesto } from "@shared/utils/medicosPresupuesto";
 
 interface Row {
   id: string;
@@ -38,11 +39,6 @@ function efectivo(r: Row, plazo: number): Efectivo {
   if (r.estado === "practicado") return "ACEPTADO"; // ya se operó
   if (estaVencido(r.estado, r.resultado, r.fecha_creacion, plazo)) return "SIN_RESPUESTA";
   return "PENDIENTE";
-}
-
-function prettyCirujano(c: string | null): string {
-  if (!c) return "Sin prestador";
-  return c.replace(/^dr_/i, "Dr. ").replace(/_/g, " ").replace(/(^|\s)\p{L}/gu, (m) => m.toUpperCase());
 }
 
 // Buckets de monto (ARS)
@@ -141,7 +137,7 @@ export default function AnalisisResultados() {
   }, [filtrados, plazo, motivos]);
 
   const porOS = useMemo(() => agrupar(filtrados, plazo, (r) => r.os || "Sin obra social").slice(0, 12), [filtrados, plazo]);
-  const porPrestador = useMemo(() => agrupar(filtrados, plazo, (r) => prettyCirujano(r.cirujano)).slice(0, 12), [filtrados, plazo]);
+  const porPrestador = useMemo(() => agrupar(filtrados, plazo, (r) => nombreMedicoPresupuesto(r.cirujano)).slice(0, 12), [filtrados, plazo]);
   const porMonto = useMemo(() => {
     return BUCKETS.map((b) => {
       const rs = filtrados.filter((r) => { const v = Number(r.total_final) || 0; return v >= b.min && v < b.max; });

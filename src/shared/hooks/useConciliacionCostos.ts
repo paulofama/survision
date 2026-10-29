@@ -49,6 +49,9 @@ interface FilaErogacion {
 const MEDICOS: Array<[string, string]> = [
   ['MERCADO', 'JORGE'], ['MAHIA', 'PABLO'], ['MUSA', 'CARLOS'],
   ['ROCA', 'LEANDRO'], ['GONZALEZ', 'MARTIN'], ['OLIVA', 'IGNACIA'], ['LOPEZ', 'JORGE'],
+  // Ojo: sus pagos se cargan como "HONORARIOS DRA ARIAS", sin el nombre, y así
+  // no matchean. Se exige apellido + nombre porque ARIAS es un apellido común.
+  ['ARIAS', 'FRANCISCA'],
 ];
 const mencionaMedico = (t: string): boolean =>
   MEDICOS.some(([ap, no]) => t.includes(ap) && t.includes(no));

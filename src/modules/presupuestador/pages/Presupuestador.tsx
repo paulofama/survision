@@ -8,6 +8,7 @@ import { normalizarTelefonoAR } from "../utils/seguimiento";
 import { conCodigo } from "../utils/nombrePrestacion";
 import { sbGet, sbInsert, type Lio, type Convenio } from "../utils/circuito";
 import { generarPedidoDePresupuesto, coberturaSugerida, type CoberturaPedido } from "../utils/sobre";
+import { MEDICOS_PRESUPUESTO, DERIVADORES_PRESUPUESTO } from "@shared/utils/medicosPresupuesto";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -375,22 +376,12 @@ type DniFuente = "geclisa" | "supabase" | null;
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-// CIRUJANOS - lista fija con valores estables (no depende de IDs de GECLISA)
-const CIRUJANOS_FALLBACK: SelectOption[] = [
-  { value: "sd", label: "S/D" },
-  { value: "survision", label: "Survision" },
-  { value: "dr_mahia", label: "Dr. Pablo Mahia" },
-  { value: "dr_musa", label: "Dr. Carlos Musa" },
-  { value: "dr_roca", label: "Dr. Leandro Roca" },
-  { value: "dr_mercado", label: "Dr. Jorge Mercado" },
-  { value: "dr_oliva", label: "Dra. Ignacia Oliva" },
-];
+// CIRUJANOS y DERIVADORES: lista única en @shared/utils/medicosPresupuesto
+// (transitoria, con el ID de GECLISA de cada médico para el pase a la tabla
+// `prestadores`). No volver a escribir médicos acá.
+const CIRUJANOS_FALLBACK: SelectOption[] = MEDICOS_PRESUPUESTO.map(({ value, label }) => ({ value, label }));
 
-const DERIVADORES: SelectOption[] = [
-  { value: "", label: "Sin derivador" },
-  ...CIRUJANOS_FALLBACK,
-  { value: "dr_lopez", label: "Dr. Jorge Lopez" },
-];
+const DERIVADORES: SelectOption[] = [...DERIVADORES_PRESUPUESTO];
 
 // Lista histórica de administrativas. YA NO alimenta el selector — desde
 // 2026-08-20 las opciones salen de `usuarios_sistema` — pero se conserva para
