@@ -178,7 +178,12 @@ async function correrDevengos({ write = false } = {}) {
     if (movs.length === 0) { omitidos.sinBase++; continue; }
 
     for (const m of movs) {
-      if (emitidos.has(claveMov(m))) { omitidos.yaDevengado++; continue; }
+      // La misma práctica pudo devengarse antes de tener match, con el id del
+      // presupuesto como evento. Cuando el cruce la confirma después (desde la
+      // migración 80 también verifica los practicados a mano), el evento pasa a
+      // ser la atención: sin esto se devengaría dos veces.
+      const sinMatch = { ...m, evento_origen: `practica:${p.id}` };
+      if (emitidos.has(claveMov(m)) || emitidos.has(claveMov(sinMatch))) { omitidos.yaDevengado++; continue; }
       aInsertar.push({ ...m, created_by: 'job_devengo' });
       emitidos.add(claveMov(m));
     }

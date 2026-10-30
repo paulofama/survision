@@ -3,6 +3,30 @@
 Cambios por tarea, del más reciente al más viejo. Cada entrada corresponde a un
 commit propio, para poder revertirla por separado.
 
+## 2026-10-30 · Verificar contra GECLISA los practicados a mano
+
+**Problema:** de 732 presupuestos en "practicado", 532 se marcaron con el botón
+y nunca se cruzaron con lo facturado. El cruce con GECLISA sólo miraba los
+"entregado". El informe de presupuestos cuenta como convertido sólo lo
+respaldado por GECLISA, así que sin esto contaba 200 operaciones de 732.
+
+**Cambios:**
+- `migrations/80_verificar_practicados_a_mano.sql` (+ `_revert.sql`): sólo
+  agrega filas a `presupuestos_practica_match`, con
+  `revisado_por = 'verificacion_practicados'`. No toca `presupuestos`.
+  - **439 confirmados:** una sola práctica, varias del mismo día, o una en la
+    fecha marcada a mano.
+  - **26 presupuestos a revisión** (sugeridos): varias prácticas y ninguna en
+    la fecha marcada, o resultado Rechazado.
+  - **67 sin respaldo** en GECLISA: quedan practicados como estaban.
+- `server/services/matchPracticasService.js`: el cruce también verifica los
+  practicados a mano, con la misma regla, sin cambiarles estado ni fecha.
+  Corrido sin escribir antes de la migración daba las mismas 512 filas; después,
+  ninguna.
+- `server/services/comisionesService.js`: una práctica devengada antes de tener
+  match no se devenga de nuevo cuando el cruce la confirma (hoy no hay
+  devengos; el caso se volvió posible con el cambio del cruce).
+
 ## 2026-10-29 · Volver a pendiente un resultado cargado por error
 
 **Problema:** "Cambiar" revertía con tres escrituras sueltas desde la pantalla. Si

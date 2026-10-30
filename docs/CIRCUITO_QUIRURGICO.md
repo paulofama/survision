@@ -299,6 +299,30 @@ ANULADO no cuenta en el Análisis de resultados ni puede ser marcado practicado 
 
 ---
 
+## 4d. Practicados a mano: el cruce también los verifica (30/10/2026, migración 80)
+
+"Practicado" puede venir de dos lados: el cruce con GECLISA (`matchPracticasService.js`, que confirma y marca) o el botón "Marcar como practicado". Hasta el 30/10 el cruce sólo miraba los `entregado`, así que lo marcado a mano nunca se verificaba: 532 de 732 practicados no tenían respaldo en lo facturado.
+
+**Practicado = se operó. Convertido = se operó y GECLISA lo respalda** (fila confirmada en `presupuestos_practica_match`). El informe de presupuestos usa la segunda.
+
+Para un practicado a mano el cruce **sólo verifica**: agrega la fila de match y no toca el estado ni la fecha del presupuesto. Confirma solo cuando:
+
+| Candidatos en GECLISA | Qué hace |
+|---|---|
+| Uno | confirma (`unica`) |
+| Varios, todos el mismo día (ambos ojos, renglones del mismo acto) | confirma el de `atencion_id` menor (`ambigua`) |
+| Varios, uno en la fecha que se marcó a mano (series, p. ej. 030601) | confirma ese (`ambigua`) |
+| Varios, ninguno en la fecha marcada | sugerido → pantalla de revisión de matches |
+| Ninguno | queda practicado **sin respaldo**; el informe lo muestra aparte |
+
+Igual que para los entregados, no confirma solo si el presupuesto está RECHAZADO, SIN_RESPUESTA o ANULADO, ni si ya tenía filas de match.
+
+La migración 80 aplicó esta regla a lo acumulado: 439 confirmados, 26 presupuestos a revisión y 67 sin respaldo. Sus filas llevan `revisado_por = 'verificacion_practicados'`.
+
+**Comisiones:** el evento del devengo es la atención del match o, si no hay, el id del presupuesto. Una práctica devengada sin match y confirmada después no se devenga de nuevo: el job reconoce las dos claves como la misma práctica.
+
+---
+
 ## 5. Dónde se configura cada cosa
 
 Todo lo que Administración puede querer cambiar está en datos, no en código:

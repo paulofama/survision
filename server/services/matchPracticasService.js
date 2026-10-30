@@ -2,7 +2,8 @@
 // SERVICIO: Match presupuesto → práctica/cirugía realizada (Fase C)
 // Sistema de Gestión Integral - Survisión S.A.
 // ============================================================
-// Cruza presupuestos EMITIDOS (estado='entregado', aún no practicados) con las
+// Cruza presupuestos EMITIDOS (estado='entregado') y los marcados practicados A
+// MANO sin respaldo (estado='practicado' sin match confirmado) con las
 // prácticas realizadas del espejo movimientos_geclisa, por:
 //   DNI (normalizado) + código (o alias de presupuestos_match_codigos) + fecha ≥
 //   fecha del presupuesto.
@@ -14,6 +15,11 @@
 //   - Varios candidatos (o ya hay filas en revisión) -> se registran como
 //     'sugerido' (van a la pantalla de revisión); el presupuesto NO se toca.
 //   - Las atenciones marcadas 'descartado' por el operador no se re-sugieren.
+//   - Practicado A MANO (migración 80): el cruce sólo verifica, no cambia el
+//     presupuesto. Con varios candidatos se confirma igual si son todos del
+//     mismo día o si uno cae en la fecha que se marcó; si no, a revisión.
+//     Antes el motor sólo miraba los 'entregado' y lo marcado a mano quedaba
+//     sin verificar para siempre (532 casos al 30/10/2026).
 //
 // Idempotente: corre por el daemon o por CLI cuantas veces se quiera (upsert
 // ignore-duplicates; los practicados salen del universo de candidatos).
@@ -59,8 +65,13 @@ async function correrMatch({ write = false } = {}) {
     return s;
   };
 
-  // 2) Presupuestos candidatos (entregado = emitido y aún no practicado).
-  const pres = await loadAll('presupuestos', 'id,paciente_documento,prestacion_codigo,fecha_creacion,resultado', (q) => q.eq('estado', 'entregado'));
+  // 2) Presupuestos candidatos: entregado (emitido, aún no practicado) y
+  //    practicado a mano (los que ya tienen match confirmado se saltean abajo).
+  const pres = await loadAll(
+    'presupuestos',
+    'id,estado,paciente_documento,prestacion_codigo,fecha_creacion,fecha_practica,resultado',
+    (q) => q.in('estado', ['entregado', 'practicado']),
+  );
 
   // 3) Códigos realizados relevantes (para acotar la carga de movimientos).
   const relevantes = new Set();
@@ -94,6 +105,7 @@ async function correrMatch({ write = false } = {}) {
   // 6) Resolver candidatos por presupuesto.
   const nuevos = [];
   const practicar = [];
+  let verificados = 0;
   for (const p of pres) {
     const rows = byPres.get(p.id) || [];
     if (rows.some((r) => r.estado === 'confirmado')) continue; // ya matcheado
@@ -124,15 +136,29 @@ async function correrMatch({ write = false } = {}) {
     const bloqueaAuto = p.resultado === 'RECHAZADO' || p.resultado === 'SIN_RESPUESTA'
       || p.resultado === 'ANULADO';
 
-    if (!hasRows && candidatos.length === 1 && !bloqueaAuto) {
-      const m = candidatos[0];
+    // Practicado a mano: alguien ya dijo que se operó. Con varios candidatos
+    // vale la atención del mismo día o la de la fecha marcada (migración 80).
+    const aMano = p.estado === 'practicado';
+    let elegido = candidatos.length === 1 ? candidatos[0] : null;
+    if (!elegido && aMano) {
+      const fechas = new Set(candidatos.map((m) => m.fecha));
+      const marcada = (p.fecha_practica || '').slice(0, 10);
+      const enMarcada = candidatos.filter((m) => m.fecha === marcada);
+      const pool = fechas.size === 1 ? candidatos : enMarcada;
+      if (pool.length) elegido = pool.reduce((a, b) => (b.atencion_id < a.atencion_id ? b : a));
+    }
+
+    if (!hasRows && elegido && !bloqueaAuto) {
+      const m = elegido;
       nuevos.push({
         presupuesto_id: p.id, atencion_id: m.atencion_id, codigo_realizado: m.practica_codigo,
         practica_nombre: m.practica_nombre, prestador_nombre: m.prestador_nombre, fecha_practica: m.fecha,
-        estado: 'confirmado', confianza: 'unica', auto: true,
+        estado: 'confirmado', confianza: candidatos.length === 1 ? 'unica' : 'ambigua', auto: true,
         revisado_por: 'match_auto', revisado_at: new Date().toISOString(),
       });
-      practicar.push({ id: p.id, fecha: m.fecha });
+      // El practicado a mano ya tiene estado y fecha: el cruce sólo lo respalda.
+      if (aMano) verificados += 1;
+      else practicar.push({ id: p.id, fecha: m.fecha });
     } else {
       const conf = candidatos.length === 1 ? 'unica' : 'ambigua';
       for (const m of candidatos) {
@@ -147,8 +173,10 @@ async function correrMatch({ write = false } = {}) {
   }
 
   const resumen = {
-    presupuestosEntregados: pres.length,
+    presupuestosEntregados: pres.filter((p) => p.estado === 'entregado').length,
+    practicados: pres.filter((p) => p.estado === 'practicado').length,
     autoConfirmados: practicar.length,
+    practicadosVerificados: verificados,
     sugeridosNuevos: nuevos.filter((r) => r.estado === 'sugerido').length,
     filasAInsertar: nuevos.length,
   };
