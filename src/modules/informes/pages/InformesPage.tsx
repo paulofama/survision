@@ -4,7 +4,7 @@
 // Instituto Dr. Mercado - Sistema de Gestión Integral
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   FileBarChart,
   TrendingUp,
@@ -20,8 +20,13 @@ import {
   Clock,
   Info,
   BarChart3,
+  Award,
 } from 'lucide-react';
+import { useAuth } from '@shared/context/auth-context';
 import { useInformeGestion } from '../hooks/useInformeGestion';
+import { useInformePresupuestos } from '../hooks/useInformePresupuestos';
+import { generarPDFInformePresupuestos } from '../utils/pdfInformePresupuestos';
+import InformePresupuestosVista from '../components/InformePresupuestosVista';
 import type { DatosInformeGestion } from '@shared/types/informes';
 import { generarPDFInformeGestion } from '../utils/pdfGeneratorInformeGestion';
 import {
@@ -36,6 +41,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   TrendingUp,
   Activity,
   Receipt,
+  Award,
 };
 
 // ============================================================
@@ -65,8 +71,27 @@ const InformesPage: React.FC = () => {
   const [anioSeleccionado, setAnioSeleccionado] = useState<number>(cerrado.anio);
   const [informeSeleccionado, setInformeSeleccionado] = useState<string>('gestion-mensual');
 
-  // Hook de datos
-  const { estado, datos, error, progreso, cargarInforme, limpiar } = useInformeGestion();
+  // Hooks de datos: uno por informe.
+  const gestion = useInformeGestion();
+  const pres = useInformePresupuestos();
+  const { datos, progreso } = gestion;
+  const esPresupuestos = informeSeleccionado === 'presupuestos';
+  const estado = esPresupuestos ? pres.estado : gestion.estado;
+  const error = esPresupuestos ? pres.error : gestion.error;
+  const limpiarGestion = gestion.limpiar;
+  const limpiarPres = pres.limpiar;
+  const limpiar = useCallback(() => {
+    limpiarGestion();
+    limpiarPres();
+  }, [limpiarGestion, limpiarPres]);
+
+  // Los informes con permiso propio no se listan a quien no lo tiene.
+  const { tienePermiso } = useAuth();
+  const informesVisibles = useMemo(
+    () => INFORMES_DISPONIBLES.filter((i) => !i.permiso || tienePermiso(i.permiso)),
+    [tienePermiso],
+  );
+  const informeActual = informesVisibles.find((i) => i.id === informeSeleccionado);
 
   // Años disponibles — hasta el del último mes cerrado, no hasta el corriente.
   const aniosDisponibles = useMemo(
@@ -90,12 +115,16 @@ const InformesPage: React.FC = () => {
   // Handlers
   const handleGenerarInforme = async () => {
     if (informeSeleccionado === 'gestion-mensual') {
-      await cargarInforme(mesSeleccionado, anioSeleccionado);
+      await gestion.cargarInforme(mesSeleccionado, anioSeleccionado);
+    } else if (esPresupuestos) {
+      await pres.cargar(mesSeleccionado, anioSeleccionado);
     }
   };
 
   const handleDescargarPDF = () => {
-    if (datos) {
+    if (esPresupuestos) {
+      if (pres.informe) generarPDFInformePresupuestos(pres.informe);
+    } else if (datos) {
       generarPDFInformeGestion(datos);
     }
   };
@@ -146,7 +175,7 @@ const InformesPage: React.FC = () => {
             Informes Disponibles
           </h2>
 
-          {INFORMES_DISPONIBLES.map((informe) => (
+          {informesVisibles.map((informe) => (
             <InformeCard
               key={informe.id}
               informe={informe}
@@ -170,10 +199,10 @@ const InformesPage: React.FC = () => {
             {/* Header tarjeta */}
             <div className="bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-4">
               <h3 className="text-white font-semibold text-lg">
-                {INFORMES_DISPONIBLES.find((i) => i.id === informeSeleccionado)?.nombre}
+                {informeActual?.nombre}
               </h3>
               <p className="text-blue-200 text-sm mt-1">
-                {INFORMES_DISPONIBLES.find((i) => i.id === informeSeleccionado)?.descripcion}
+                {informeActual?.descripcion}
               </p>
             </div>
 
@@ -231,6 +260,7 @@ const InformesPage: React.FC = () => {
               </div>
 
               {/* Info del informe */}
+              {esPresupuestos ? <InfoPresupuestos /> : (
               <div className="bg-blue-50 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -260,9 +290,10 @@ const InformesPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Barra de progreso */}
-              {estado === 'cargando' && (
+              {estado === 'cargando' && !esPresupuestos && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600">Cargando datos...</span>
@@ -289,7 +320,7 @@ const InformesPage: React.FC = () => {
               )}
 
               {/* Mensaje de éxito */}
-              {estado === 'listo' && datos && (
+              {estado === 'listo' && !esPresupuestos && datos && (
                 <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -375,7 +406,10 @@ const InformesPage: React.FC = () => {
           </div>
 
           {/* Preview rápido de datos (si están listos) */}
-          {estado === 'listo' && datos && <PreviewRapido datos={datos} />}
+          {!esPresupuestos && estado === 'listo' && datos && <PreviewRapido datos={datos} />}
+          {esPresupuestos && pres.estado === 'listo' && pres.informe && (
+            <InformePresupuestosVista informe={pres.informe} />
+          )}
         </div>
       </div>
     </div>
@@ -385,6 +419,26 @@ const InformesPage: React.FC = () => {
 // ============================================================
 // COMPONENTES AUXILIARES
 // ============================================================
+
+// ---- Qué trae el informe de presupuestos ----
+const InfoPresupuestos: React.FC = () => (
+  <div className="bg-blue-50 rounded-lg p-4 mb-6">
+    <div className="flex items-start gap-3">
+      <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+      <div className="text-sm text-blue-800">
+        <p className="font-medium mb-1">Este informe incluye:</p>
+        <ul className="space-y-0.5 text-blue-700">
+          <li>• Ranking de presupuestadoras por <strong>monto convertido</strong>: cirugías confirmadas contra lo facturado en GECLISA, por mes de la cirugía</li>
+          <li>• Montos: neto que paga el paciente, <strong>sin IVA</strong></li>
+          <li>• Cortes por cobertura, cirujano y tiempo a la práctica</li>
+          <li>• Conversión por mes de entrega y cartera de aceptados sin operar</li>
+          <li>• Practicados a mano sin respaldo en GECLISA, para revisar</li>
+          <li>• Uso interno: lleva nombres de pacientes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+);
 
 // ---- Tarjeta de informe ----
 const InformeCard: React.FC<{

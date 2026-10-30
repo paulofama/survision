@@ -27,6 +27,11 @@ export const MODULOS_SISTEMA = {
   // Seguimiento telefónico de presupuestos (cola de llamados, encuesta, WhatsApp).
   'presupuestador:seguimiento': { nombre: 'Presupuestador - Seguimiento', descripcion: 'Seguimiento telefónico de presupuestos entregados (llamados, encuesta)' },
   informes: { nombre: 'Informes', descripcion: 'Informes de gestión mensual' },
+  // Informe de presupuestos (ranking de presupuestadoras). Permiso propio y no
+  // 'informes': el rol Contabilidad tiene 'informes' y lo usa una
+  // presupuestadora. Sin asignarlo a ningún rol lo ven sólo los admin
+  // (migración 81). Hace falta además 'informes' para entrar a la página.
+  'informes:presupuestos': { nombre: 'Informes - Presupuestos', descripcion: 'Ranking de presupuestadoras y conversión de presupuestos' },
   seguimiento_pacientes: { nombre: 'Seguimiento Pacientes', descripcion: 'Seguimiento clínico de pacientes' },
   usuarios: { nombre: 'Usuarios', descripcion: 'Gestión de usuarios del sistema' },
   roles: { nombre: 'Roles y Permisos', descripcion: 'Configuración de roles' },
@@ -201,6 +206,7 @@ export const PERMISOS_DEFAULT: Record<ModuloSistema, boolean> = {
   'presupuestador:config': false,
   'presupuestador:seguimiento': false,
   informes: false,
+  'informes:presupuestos': false,
   seguimiento_pacientes: false,
   usuarios: false,
   roles: false,
@@ -227,6 +233,7 @@ export const PERMISOS_ADMIN: Record<ModuloSistema, boolean> = {
   'presupuestador:config': true,
   'presupuestador:seguimiento': true,
   informes: true,
+  'informes:presupuestos': true,
   seguimiento_pacientes: true,
   usuarios: true,
   roles: true,

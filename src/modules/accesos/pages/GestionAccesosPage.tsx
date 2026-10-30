@@ -185,6 +185,14 @@ const MODULOS_CONFIG: Record<ModuloSistema, { nombre: string; descripcion: strin
     icono: FileText,
     color: 'indigo'
   },
+  // Ranking de presupuestadoras: no va con 'informes', que lo tiene una
+  // presupuestadora por el rol Contabilidad (migración 81).
+  'informes:presupuestos': {
+    nombre: 'Informes - Presupuestos',
+    descripcion: 'Ranking de presupuestadoras y conversión',
+    icono: BarChart3,
+    color: 'amber'
+  },
   seguimiento_pacientes: { 
     nombre: 'Seguim. Pac.', 
     descripcion: 'Seguimiento de pacientes clínicos',
@@ -243,6 +251,7 @@ const MODULOS_ORDENADOS: ModuloSistema[] = [
   'presupuestador:config',
   'presupuestador:seguimiento',
   'informes',
+  'informes:presupuestos',
   'seguimiento_pacientes',
   'usuarios',
   'roles',

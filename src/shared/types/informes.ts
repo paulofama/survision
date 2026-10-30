@@ -7,6 +7,8 @@
 // las tablas comparativas anuales del PDF.
 // ============================================================
 
+import type { ModuloSistema } from './auth.types';
+
 // ---- Períodos y Filtros ----
 
 export interface PeriodoInforme {
@@ -166,6 +168,8 @@ export interface TipoInforme {
   icono: string;     // nombre del ícono Lucide
   disponible: boolean;
   proximamente?: boolean;
+  /** Permiso propio, además de 'informes'. Sin él, el informe no se lista. */
+  permiso?: ModuloSistema;
 }
 
 // Lista de informes del panel
@@ -176,6 +180,15 @@ export const INFORMES_DISPONIBLES: TipoInforme[] = [
     descripcion: 'Análisis completo del mes con comparativa vs mes anterior y acumulado año anterior.',
     icono: 'FileBarChart',
     disponible: true,
+  },
+  {
+    // Ranking de presupuestadoras: permiso propio (migración 81).
+    id: 'presupuestos',
+    nombre: 'Informe de Presupuestos',
+    descripcion: 'Ranking de presupuestadoras por monto convertido, con cortes por cobertura, cirujano y tiempo a la práctica.',
+    icono: 'Award',
+    disponible: true,
+    permiso: 'informes:presupuestos',
   },
   {
     id: 'rentabilidad',

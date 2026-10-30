@@ -3,6 +3,44 @@
 Cambios por tarea, del más reciente al más viejo. Cada entrada corresponde a un
 commit propio, para poder revertirla por separado.
 
+## 2026-10-30 · Informe de presupuestos en Informes
+
+**Qué es:** el informe mensual de presupuestos, en pantalla y en PDF.
+- Ranking de presupuestadoras por monto convertido.
+- Cortes por cobertura, cirujano y tiempo a la práctica.
+- Conversión por mes de entrega.
+- Cartera de aceptados sin operar.
+- Practicados a mano sin respaldo en GECLISA.
+
+**Definiciones** (decididas con Paulo):
+- **Convertido:** cirugía confirmada contra lo facturado en GECLISA, en el mes
+  de la cirugía. No alcanza con estar "practicado" (ver migración 80).
+- **Monto:** neto que paga el paciente, sin IVA. La cobertura de la obra social
+  va como columna informativa.
+- **Obra social:** el presupuesto descontó cobertura. El texto del campo no se
+  usa.
+- **Tiempo a la práctica:** de la entrega (o la creación) a la cirugía, en 4
+  tramos: 0–7, 8–30, 31–60 y más de 60 días. El ranking muestra qué parte del
+  monto se operó en la primera semana.
+- **Cohortes:** los últimos 6 meses de entrega. Las de menos de 60 días se
+  marcan "en curso".
+- **Aceptado:** se registra desde julio de 2026. Antes se muestra "sin dato",
+  no cero.
+
+**Cambios:**
+- `migrations/81_informe_presupuestos.sql` (+ `_revert.sql`): función
+  `informe_presupuestos_datos()`. Pide el permiso nuevo
+  `informes:presupuestos`, no `informes`, porque el rol Contabilidad tiene
+  `informes` y lo usa una presupuestadora. No está asignado a ningún rol: lo
+  ven sólo los admin. Devuelve un único jsonb, sin el tope de 1000 filas.
+- `src/modules/informes/utils/informePresupuestos.ts`: el cálculo, puro. Lo
+  leen la pantalla y el PDF. Tests en `src/test/informePresupuestos.test.ts`.
+- `components/InformePresupuestosVista.tsx`, `utils/pdfInformePresupuestos.ts`
+  (A4 apaisado, uso interno), `hooks/useInformePresupuestos.ts`.
+- `InformesPage`: los informes con permiso propio no se listan a quien no lo
+  tiene.
+- Gestión de Accesos: permiso "Informes - Presupuestos".
+
 ## 2026-10-30 · Verificar contra GECLISA los practicados a mano
 
 **Problema:** de 732 presupuestos en "practicado", 532 se marcaron con el botón
