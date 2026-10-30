@@ -3,6 +3,28 @@
 Cambios por tarea, del más reciente al más viejo. Cada entrada corresponde a un
 commit propio, para poder revertirla por separado.
 
+## 2026-10-30 · Seguridad: vistas legibles con la anon key pública
+
+**Problema:** 12 vistas se podían leer sin iniciar sesión, con la anon key que
+viaja en la página publicada: sueldos por empleado (311 filas), liquidaciones
+de honorarios, permisos de usuarios, costos de recetas, prestaciones. Una vista
+no aplica la RLS de sus tablas, y la auditoría miraba sólo tablas.
+
+**Cambios:**
+- `migrations/82_vistas_sin_acceso_anonimo.sql` (+ `_revert.sql`, que reabre
+  la exposición): saca todo privilegio de `anon` y `PUBLIC` sobre cada vista
+  que `anon` pudiera leer. Los usuarios logueados no cambian: ninguna pantalla
+  usa estas vistas sin sesión. Verificado contra la API pública: 401.
+- `server/scripts/auditar-rls.cjs`: bloque 5 (crítico), que lee cada vista
+  como `anon` y cuenta filas, y bloque 6, con las funciones SECURITY DEFINER
+  que `anon` puede ejecutar. Las 5 que devuelven datos (`tes_caja_*`,
+  `app_costo_laboral_meses`, `app_cobertura_erogaciones_meses`) se probaron
+  como `anon` y responden "Sin permiso".
+- `docs/SEGURIDAD_RLS.md`: sección de vistas.
+
+**Pendiente:** un usuario logueado todavía lee estas vistas sin la RLS de las
+tablas (`security_invoker`, vista por vista).
+
 ## 2026-10-30 · Informe de presupuestos en Informes
 
 **Qué es:** el informe mensual de presupuestos, en pantalla y en PDF.

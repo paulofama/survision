@@ -32,12 +32,25 @@
 // de rol no prueba ausencia de acceso. Lo único que la prueba es leer la tabla
 // con el rol `anon` y contar filas.
 //
+// ⚠️ Y OTRO PUNTO CIEGO HASTA EL 30/10/2026: LAS VISTAS
+// ------------------------------------------------------
+// Los bloques 1 a 4 miran sólo tablas (relkind 'r'). Una vista corre con los
+// permisos de su dueño y NO aplica la RLS de las tablas de abajo; Supabase le
+// da GRANT a anon a todo lo que se crea en public. Resultado: 12 vistas —los
+// sueldos por empleado, las liquidaciones de honorarios, los permisos de
+// usuarios— legibles con la anon key, y este script diciendo "sin exposición".
+// Se cerraron con la migración 82. El bloque 5 lee cada vista con el rol anon
+// y cuenta filas, que es la única prueba que vale.
+//
 // QUÉ MIRAR:
 //   Bloque 1 y 2 -> CRÍTICO. Cualquier fila acá es exposición pública.
 //   Bloque 2b    -> revisar. Policies de PUBLIC que hoy no exponen porque
 //                   `anon` no tiene GRANT; se abren solas si alguien lo repone.
 //   Bloque 3     -> revisar. Cualquier usuario logueado puede escribir.
 //   Bloque 4     -> informativo. Deny total: si una pantalla se ve vacía, mirá acá.
+//   Bloque 5     -> CRÍTICO. Vistas que anon puede leer, leídas como anon.
+//   Bloque 6     -> revisar. Funciones SECURITY DEFINER que anon puede
+//                   ejecutar: cada una tiene que rechazarlo adentro.
 //
 // Antes de sacarle el acceso `anon` a una tabla, verificá quién escribe:
 //   - Backend: `server/config/supabase.js` usa SERVICE_ROLE y bypassa RLS. OK.
@@ -187,6 +200,45 @@ const CONSULTAS = [
     else console.table(rows);
   }
 
+  // 5. Vistas: se leen con el rol anon, en una transacción que se descarta.
+  //    Una vista con GRANT a anon es crítica aunque hoy devuelva 0 filas: la
+  //    vacía de hoy es la llena de mañana.
+  const { rows: vistas } = await client.query(`
+    SELECT c.relname AS vista
+      FROM pg_class c
+     WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('v', 'm')
+       AND has_table_privilege('anon', c.oid, 'SELECT')
+     ORDER BY c.relname`);
+  const expuestas = [];
+  for (const { vista } of vistas) {
+    await client.query('BEGIN');
+    try {
+      await client.query('SET LOCAL ROLE anon');
+      const r = await client.query(`SELECT count(*)::int AS n FROM public."${vista}"`);
+      expuestas.push({ vista, filas_leidas_como_anon: r.rows[0].n });
+    } catch (e) {
+      expuestas.push({ vista, filas_leidas_como_anon: 'error: ' + e.message });
+    } finally {
+      await client.query('ROLLBACK');
+    }
+  }
+  criticos += expuestas.length;
+  console.log(`\n${'='.repeat(72)}\n5. VISTAS LEGIBLES CON LA ANON KEY (leídas como anon)  (${expuestas.length})\n${'='.repeat(72)}`);
+  if (!expuestas.length) console.log('  (ninguna)');
+  else console.table(expuestas);
+
+  // 6. Funciones SECURITY DEFINER ejecutables por anon: no son crítico por sí
+  //    mismas (pueden rechazar adentro), pero cada una tiene que hacerlo.
+  const { rows: funcs } = await client.query(`
+    SELECT p.oid::regprocedure::text AS funcion
+      FROM pg_proc p
+     WHERE p.pronamespace = 'public'::regnamespace AND p.prosecdef
+       AND has_function_privilege('anon', p.oid, 'EXECUTE')
+     ORDER BY 1`);
+  console.log(`\n${'='.repeat(72)}\n6. FUNCIONES SECURITY DEFINER EJECUTABLES POR anon (revisar que validen permiso)  (${funcs.length})\n${'='.repeat(72)}`);
+  if (!funcs.length) console.log('  (ninguna)');
+  else console.table(funcs);
+
   await client.end();
 
   console.log(`\n${'='.repeat(72)}`);
@@ -194,5 +246,5 @@ const CONSULTAS = [
     console.log(`❌ ${criticos} hallazgo(s) CRÍTICO(s): hay datos accesibles con la anon key pública.`);
     process.exit(1);
   }
-  console.log('✅ Sin exposición anónima: ninguna tabla accesible con la anon key del bundle.');
+  console.log('✅ Sin exposición anónima: ninguna tabla ni vista accesible con la anon key del bundle.');
 })().catch((e) => { console.error('ERROR:', e.message); process.exit(1); });

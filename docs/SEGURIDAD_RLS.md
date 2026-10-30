@@ -47,7 +47,7 @@ Nada para `anon`, nunca. Y **si el frontend sólo lee esa tabla, no crear la pol
 cd server && node scripts/auditar-rls.cjs
 ```
 
-Sale con **código 1** si encuentra exposición anónima. Cuatro bloques:
+Sale con **código 1** si encuentra exposición anónima. Seis bloques:
 
 | bloque | qué busca | gravedad |
 |---|---|---|
@@ -55,6 +55,8 @@ Sale con **código 1** si encuentra exposición anónima. Cuatro bloques:
 | 2 | policies que alcanzan al rol `anon` | **crítico** |
 | 3 | escritura abierta a cualquier logueado | revisar |
 | 4 | RLS sin ninguna policy (deny total) | informativo — si una pantalla se ve vacía, mirá acá |
+| 5 | vistas que `anon` puede leer, **leídas como `anon`** con sus filas | **crítico** |
+| 6 | funciones SECURITY DEFINER que `anon` puede ejecutar | revisar — cada una tiene que rechazarlo adentro |
 
 **Correlo después de crear tablas.** El endurecimiento original (migración 07b) cubrió sólo lo que existía en junio-2026; cada módulo nuevo puede volver a abrir el agujero, y ya pasó dos veces.
 
@@ -69,6 +71,16 @@ Los tres hallazgos eran **acceso público de lectura y escritura**, verificados 
 **Migración 37 — catálogo de prácticas.** `prestaciones` (182) y `agrupaciones` (28) tenían `ALL USING(true)` para `authenticated`: cualquier usuario logueado podía editar las prácticas y sus precios, incluidos los roles que ni ven la sección. Menor severidad — requiere cuenta — pero es escritura sin control sobre los precios que alimentan al Presupuestador.
 
 Estado tras las tres: **la auditoría da cero en los cuatro bloques**.
+
+## 5b. Las vistas (2026-10-30, migración 82)
+
+**Una vista no aplica la RLS de sus tablas.** Corre con los permisos de su dueño (`postgres`), y Supabase le da GRANT a `anon` a todo lo que se crea en `public`. Hasta el 30/10 la auditoría miraba sólo tablas y daba "sin exposición" mientras 12 vistas se leían con la anon key: los sueldos por empleado (`v_sueldos_detalle_empleado`, 311 filas), las liquidaciones de honorarios, los permisos de usuarios, los costos de recetas.
+
+La 82 sacó todo privilegio de `anon` sobre cada vista que pudiera leer. Verificado desde afuera: la API pública responde **401 permission denied**. Ahora el bloque 5 de la auditoría lee cada vista como `anon`.
+
+**Al crear una vista:**
+- `REVOKE ALL ON public.<vista> FROM anon, PUBLIC;`
+- Si la vista expone datos de una tabla con RLS por permiso, crearla con `WITH (security_invoker = true)`, así aplica la RLS de quien consulta.
 
 ## 6. La trampa: rutas del backend con la anon key
 
@@ -104,5 +116,7 @@ Dos pruebas que **no prueban nada** y confunden:
 - Un UPDATE con un filtro que no matchea devuelve **204** aunque la RLS esté negando, porque simplemente afecta 0 filas.
 
 ## 8. Pendiente
+
+- **Vistas para usuarios logueados.** Después de la 82 nadie las lee sin sesión, pero un usuario logueado las sigue leyendo sin pasar por la RLS de las tablas: por ejemplo, los sueldos sin el permiso `sueldos`. Se cierra con `security_invoker = true` vista por vista, probando que cada rol siga viendo lo suyo.
 
 - Los permisos de `fiscal` se sembraron en **todos** los roles activos para no sacarle el acceso a nadie de golpe. La restricción real por rol quedó como decisión posterior: destildar el checkbox en Roles del Sistema corta el menú **y** los datos, porque la RLS cuelga del mismo permiso.
